@@ -1,0 +1,6 @@
+{
+  "name": "Crown of Emeraldia: 16-Bit Platformer",
+  "description": "A complete classic 16-bit side-scrolling pixel art platformer featuring five handcrafted levels, custom pixel sprites, responsive platforming physics, power-ups, chiptune music, and an epic castle boss battle.",
+  "requestFramePermissions": [],
+  "majorCapabilities": ["MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"]
+}
