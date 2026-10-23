@@ -57,7 +57,8 @@ export function buildLevel4(): LevelDefinition {
   for (let c = 41; c <= 47; c++) {
     grid[10][c] = c === 44 ? TileType.QUESTION_STAR : TileType.BRICK;
   }
-  addCoinRow(coins, 'l4_bat', 41, 7, 8);
+  // Coins float above blocks at row 7
+  addCoinRow(coins, 'l4_bat', 41, 7, 7);
 
   // Moving platforms over Lava Trench 2 (cols 55..65)
   movingPlatforms.push(

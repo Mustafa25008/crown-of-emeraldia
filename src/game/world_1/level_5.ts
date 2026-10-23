@@ -65,7 +65,8 @@ export function buildLevel5(): LevelDefinition {
   for (let c = 32; c <= 38; c++) {
     grid[11][c] = c === 35 ? TileType.QUESTION_COIN : TileType.BRICK;
   }
-  addCoinRow(coins, 'l5_c2', 32, 7, 8);
+  // Coins float cleanly above blocks at row 7
+  addCoinRow(coins, 'l5_c2', 32, 7, 7);
 
   // Lava Pit 2 (cols 47..57) with bridges & moving platforms
   movingPlatforms.push(

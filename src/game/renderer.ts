@@ -65,13 +65,14 @@ export function drawParallaxBackground(
   if (theme === 'HILLS' || theme === 'FOREST') {
     for (let i = -1; i < 8; i++) {
       const cx = ((i * 220 - farOffset) % (width + 260) + (width + 260)) % (width + 260) - 100;
-      const cy = 65 + (i % 3) * 38;
+      // Keep clouds up high in the upper sky (y: 24 to 90), well above blocks at y: 350+
+      const cy = 24 + (Math.abs(i) % 3) * 28;
       drawPixelCloud(ctx, Math.floor(cx), cy, theme === 'FOREST' ? '#a7f3d0' : '#ffffff');
     }
   } else if (theme === 'CAVERN') {
     for (let i = 0; i < 12; i++) {
       const cx = ((i * 150 - farOffset) % (width + 200) + (width + 200)) % (width + 200) - 50;
-      const cy = 80 + (i % 4) * 70;
+      const cy = 50 + (i % 4) * 45;
       const pulse = Math.sin(time * 3 + i) > 0 ? '#38bdf8' : '#818cf8';
       ctx.fillStyle = pulse;
       ctx.fillRect(Math.floor(cx), cy, 6, 14);
@@ -104,11 +105,12 @@ export function drawParallaxBackground(
       drawPixelHill(ctx, Math.floor(hx), height - 96, 180, 130 + (i % 2) * 45, '#16a34a', '#22c55e');
       drawPixelBush(ctx, Math.floor(hx) + 90, height - 96);
     } else if (theme === 'FOREST') {
-      drawMushroomTree(ctx, Math.floor(hx), height - 96, 140 + (i % 2) * 40);
+      // Keep background mushroom trees lower in the backdrop so caps do not intersect floating blocks
+      drawMushroomTree(ctx, Math.floor(hx), height - 96, 95 + (i % 2) * 30);
     } else if (theme === 'CAVERN') {
-      drawStalagmite(ctx, Math.floor(hx), height - 96, 120 + (i % 3) * 35);
+      drawStalagmite(ctx, Math.floor(hx), height - 96, 90 + (i % 3) * 25);
     } else if (theme === 'FORTRESS') {
-      drawDistantTower(ctx, Math.floor(hx), height - 96, 150 + (i % 2) * 40);
+      drawDistantTower(ctx, Math.floor(hx), height - 96, 120 + (i % 2) * 30);
     }
   }
 }

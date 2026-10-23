@@ -40,20 +40,23 @@ export function buildLevel2(): LevelDefinition {
   });
 
   // Forest high treetop platforms + Optional Hidden Canopy Bonus Area!
+  // Bridge is placed at row 13, and Question Block is placed at row 9 (4 full tiles = 128px clearance for Big Pip!)
   for (let c = 28; c <= 35; c++) {
-    grid[11][c] = TileType.BRIDGE;
+    grid[13][c] = TileType.BRIDGE;
   }
-  grid[11][31] = TileType.QUESTION_FIRE;
+  grid[9][31] = TileType.QUESTION_FIRE;
 
   // Stepping blocks up to the Hidden Treetop Stash
-  grid[8][35] = TileType.SOLID_STONE;
-  grid[6][37] = TileType.SOLID_STONE;
-  for (let c = 39; c <= 47; c++) {
-    grid[5][c] = TileType.BRIDGE;
+  grid[9][36] = TileType.SOLID_STONE;
+  grid[7][38] = TileType.SOLID_STONE;
+  for (let c = 40; c <= 47; c++) {
+    grid[6][c] = TileType.BRIDGE;
   }
+  // Floating blocks at row 3 (96px above row 6 bridge)
   grid[3][42] = TileType.QUESTION_STAR;
-  grid[3][44] = TileType.QUESTION_COIN;
-  addCoinRow(coins, 'l2_secret_canopy', 39, 9, 3);
+  grid[3][45] = TileType.QUESTION_COIN;
+  // Coins float cleanly above the bridge at row 4
+  addCoinRow(coins, 'l2_secret_canopy', 40, 8, 4);
 
   // Moving platforms across wide forest chasm (cols 42..53)
   movingPlatforms.push(

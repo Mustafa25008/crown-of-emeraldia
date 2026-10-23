@@ -40,11 +40,11 @@ export function buildLevel1(): LevelDefinition {
   grid[12][42] = TileType.QUESTION_FIRE;
   grid[12][43] = TileType.BRICK;
 
-  // High brick bridge with coins
+  // High brick bridge with coins (row 8 bridge, coins placed at row 6)
   for (let c = 45; c <= 51; c++) {
     grid[8][c] = TileType.BRICK;
   }
-  addCoinRow(coins, 'l1_high', 45, 7, 6);
+  addCoinRow(coins, 'l1_high', 45, 7, 5);
 
   // Checkpoint at col 56
   const checkpoint = { x: 56 * 32, y: 14 * 32 };
@@ -56,11 +56,11 @@ export function buildLevel1(): LevelDefinition {
 
   addPipe(grid, 65, 16, 3);
 
-  // Second gap & platforming challenge
+  // Second gap & platforming challenge: row 11 blocks with coins placed above at row 8
   for (let c = 75; c <= 79; c++) {
     grid[11][c] = c === 77 ? TileType.QUESTION_COIN : TileType.BRICK;
   }
-  addCoinRow(coins, 'l1_mid2', 75, 5, 9);
+  addCoinRow(coins, 'l1_mid2', 75, 5, 8);
 
   // Staircase before flagpole
   addStairs(grid, 84, 16, 4, true);

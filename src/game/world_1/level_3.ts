@@ -41,16 +41,19 @@ export function buildLevel3(): LevelDefinition {
   grid[12][13] = TileType.QUESTION_COIN;
   grid[12][14] = TileType.BRICK;
 
-  // Hidden Subterranean Vault in ceiling (cols 30..40)
+  // Hidden Subterranean Vault in ceiling (cols 28..42)
   for (let c = 28; c <= 42; c++) {
     grid[6][c] = TileType.BRICK;
   }
   // Stepping stones to reach vault
   grid[12][27] = TileType.SOLID_STONE;
   grid[9][26] = TileType.SOLID_STONE;
-  grid[4][34] = TileType.QUESTION_FIRE;
-  grid[4][36] = TileType.QUESTION_STAR;
-  addCoinRow(coins, 'l3_vault', 30, 10, 4);
+  // Vault floating power blocks at row 3
+  grid[3][34] = TileType.QUESTION_FIRE;
+  grid[3][37] = TileType.QUESTION_STAR;
+  // Coins float above vault floor (floor at row 6, coins placed at row 4 to avoid row 3 blocks)
+  addCoinRow(coins, 'l3_vault_l', 29, 4, 4);
+  addCoinRow(coins, 'l3_vault_r', 39, 4, 4);
 
   // Narrow platforms over abyss (cols 49..63)
   grid[14][51] = TileType.SOLID_STONE;
@@ -59,7 +62,7 @@ export function buildLevel3(): LevelDefinition {
   grid[12][56] = TileType.SOLID_STONE;
   grid[10][59] = TileType.SOLID_STONE;
   grid[10][60] = TileType.SOLID_STONE;
-  addCoinRow(coins, 'l3_narrow', 51, 10, 8);
+  addCoinRow(coins, 'l3_narrow', 51, 10, 7);
 
   const checkpoint = { x: 67 * 32, y: 14 * 32 };
 
