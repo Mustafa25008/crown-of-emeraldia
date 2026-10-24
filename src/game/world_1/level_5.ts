@@ -48,6 +48,7 @@ export function buildLevel5(): LevelDefinition {
   // Supply blocks at start
   grid[12][8] = TileType.QUESTION_MUSHROOM;
   grid[12][10] = TileType.QUESTION_FIRE;
+  grid[12][12] = TileType.QUESTION_FEATHER;
   addCoinRow(coins, 'l5_c1', 7, 5, 9);
 
   // Moving platform over Lava Pit 1 (cols 19..26)
@@ -94,7 +95,7 @@ export function buildLevel5(): LevelDefinition {
   const checkpoint = { x: 64 * 32, y: 14 * 32 };
   grid[12][70] = TileType.QUESTION_MUSHROOM;
   grid[12][73] = TileType.QUESTION_FIRE;
-  grid[12][76] = TileType.QUESTION_COIN;
+  grid[12][76] = TileType.QUESTION_FEATHER;
   addCoinRow(coins, 'l5_sanctuary', 69, 9, 9);
 
   // Boss Arena tactical platforms (cols 94..118) so player can dodge fire & stomp Dredge!

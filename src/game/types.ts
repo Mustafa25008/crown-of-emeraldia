@@ -11,7 +11,7 @@ export type GameState =
   | 'GAME_OVER'
   | 'WORLD_VICTORY';
 
-export type PowerState = 'SMALL' | 'BIG' | 'FIRE';
+export type PowerState = 'SMALL' | 'BIG' | 'FIRE' | 'RACCOON';
 
 export type LevelTheme = 'HILLS' | 'FOREST' | 'CAVERN' | 'FORTRESS' | 'CASTLE';
 
@@ -35,6 +35,7 @@ export enum TileType {
   LAVA_DEEP = 16,
   BRIDGE = 17,
   HIDDEN_BONUS = 18,
+  QUESTION_FEATHER = 19,
 }
 
 export interface MovingPlatformDef {
@@ -98,7 +99,7 @@ export interface SaveProgress {
 
 export interface ActivePowerUpItem {
   id: string;
-  type: 'MUSHROOM' | 'FIRE_FLOWER' | 'STAR' | 'COIN_POP';
+  type: 'MUSHROOM' | 'FIRE_FLOWER' | 'FEATHER' | 'STAR' | 'COIN_POP';
   x: number;
   y: number;
   vx: number;

@@ -36,7 +36,7 @@ export function buildLevel4(): LevelDefinition {
   // Intro supply blocks
   grid[12][10] = TileType.BRICK;
   grid[12][11] = TileType.QUESTION_MUSHROOM;
-  grid[12][12] = TileType.BRICK;
+  grid[12][12] = TileType.QUESTION_FEATHER;
   grid[12][13] = TileType.QUESTION_FIRE;
   addCoinRow(coins, 'l4_c1', 9, 6, 9);
 

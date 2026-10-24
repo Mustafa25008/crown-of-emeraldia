@@ -25,7 +25,7 @@ export function buildLevel1(): LevelDefinition {
   grid[12][14] = TileType.BRICK;
   grid[12][15] = TileType.QUESTION_MUSHROOM;
   grid[12][16] = TileType.BRICK;
-  grid[12][17] = TileType.QUESTION_COIN;
+  grid[12][17] = TileType.QUESTION_FEATHER;
   grid[12][18] = TileType.BRICK;
   grid[8][16] = TileType.QUESTION_COIN;
 
@@ -36,7 +36,7 @@ export function buildLevel1(): LevelDefinition {
   addPipe(grid, 30, 16, 3);
 
   // Mid section after first pit
-  grid[12][41] = TileType.BRICK;
+  grid[12][41] = TileType.QUESTION_FEATHER;
   grid[12][42] = TileType.QUESTION_FIRE;
   grid[12][43] = TileType.BRICK;
 

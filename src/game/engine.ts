@@ -89,6 +89,7 @@ export class PlatformerEngine {
   private jumpBufferTimer: number = 0;
   private jumpHoldTimer: number = 0;
   private isJumping: boolean = false;
+  private isRaccoonFlying: boolean = false;
   private fireballCooldown: number = 0;
 
   // Game progression & counters
@@ -193,6 +194,7 @@ export class PlatformerEngine {
     this.pvx = 0;
     this.pvy = 0;
     this.onGround = false;
+    this.isRaccoonFlying = false;
     this.isDead = false;
     this.isLevelFinishing = false;
     this.isInvincibleStar = false;
@@ -498,6 +500,7 @@ export class PlatformerEngine {
     // Coyote Time & Jump Buffering
     if (this.onGround) {
       this.coyoteTimer = COYOTE_TIME_WINDOW;
+      this.isRaccoonFlying = false;
     } else {
       this.coyoteTimer = Math.max(0, this.coyoteTimer - dt);
     }
@@ -510,6 +513,7 @@ export class PlatformerEngine {
 
     // Execute Jump if buffered and within Coyote window
     if (this.jumpBufferTimer > 0 && this.coyoteTimer > 0) {
+      const isSprintTakeoff = isRunning || Math.abs(this.pvx) >= MAX_WALK_SPEED * 0.75;
       const speedBonus = Math.abs(this.pvx) > MAX_WALK_SPEED + 20 ? -35 : 0;
       this.pvy = JUMP_INITIAL_VEL + speedBonus;
       this.onGround = false;
@@ -517,6 +521,9 @@ export class PlatformerEngine {
       this.jumpBufferTimer = 0;
       this.isJumping = true;
       this.jumpHoldTimer = MAX_JUMP_HOLD_TIME;
+      if (this.powerState === 'RACCOON' && isSprintTakeoff) {
+        this.isRaccoonFlying = true;
+      }
       soundManager.playJump(this.powerState !== 'SMALL');
     }
 
@@ -529,8 +536,27 @@ export class PlatformerEngine {
       this.jumpHoldTimer = 0;
     }
 
-    // Gravity
-    this.pvy = Math.min(MAX_FALL_SPEED, this.pvy + GRAVITY * dt);
+    // Raccoon Tail Flight: During a sprint run jump, keeping Jump pressed/clicked makes Pip fly;
+    // releasing Jump stops upward flight and lets Pip glide down to land smoothly!
+    if (this.powerState === 'RACCOON' && !this.onGround) {
+      if (isRunning && (jumpHeld || this.jumpJustPressed)) {
+        this.isRaccoonFlying = true;
+      }
+
+      if (this.isRaccoonFlying && (jumpHeld || this.jumpJustPressed)) {
+        this.pvy = -195;
+        if (this.py < 36) {
+          this.py = 36;
+          this.pvy = 0;
+        }
+      } else {
+        // Gravity with gentle tail-glide cap when descending in Raccoon form
+        this.pvy = Math.min(240, this.pvy + GRAVITY * 0.75 * dt);
+      }
+    } else {
+      // Standard Gravity
+      this.pvy = Math.min(MAX_FALL_SPEED, this.pvy + GRAVITY * dt);
+    }
 
     // Horizontal Movement & Collision
     this.px += this.pvx * dt;
@@ -551,6 +577,9 @@ export class PlatformerEngine {
     this.onGround = false;
     this.resolveVerticalTileCollisions();
     this.resolveMovingPlatformCollisions(prevBottom);
+    if (this.onGround) {
+      this.isRaccoonFlying = false;
+    }
 
     // Check Lethal Pits & Hazard Tiles
     if (this.py > CANVAS_HEIGHT + 24) {
@@ -568,6 +597,7 @@ export class PlatformerEngine {
       t === TileType.QUESTION_COIN ||
       t === TileType.QUESTION_MUSHROOM ||
       t === TileType.QUESTION_FIRE ||
+      t === TileType.QUESTION_FEATHER ||
       t === TileType.QUESTION_STAR ||
       t === TileType.USED_BLOCK ||
       t === TileType.SOLID_STONE ||
@@ -711,14 +741,21 @@ export class PlatformerEngine {
     } else if (
       tile === TileType.QUESTION_MUSHROOM ||
       tile === TileType.QUESTION_FIRE ||
+      tile === TileType.QUESTION_FEATHER ||
       tile === TileType.QUESTION_STAR
     ) {
       this.tiles[row][col] = TileType.USED_BLOCK;
       soundManager.playPowerUpAppear();
 
-      let spawnType: 'MUSHROOM' | 'FIRE_FLOWER' | 'STAR' = 'MUSHROOM';
+      // Progressive power-up flow:
+      // - If player is SMALL, power-up blocks always spawn MUSHROOM first.
+      // - Once player is BIG (or higher), MUSHROOM no longer spawns; instead FEATHER or FIRE_FLOWER spawns!
+      // - If player takes damage and shrinks back to SMALL, MUSHROOM will spawn again.
+      let spawnType: 'MUSHROOM' | 'FIRE_FLOWER' | 'FEATHER' | 'STAR' = 'MUSHROOM';
       if (tile === TileType.QUESTION_STAR) {
         spawnType = 'STAR';
+      } else if (tile === TileType.QUESTION_FEATHER) {
+        spawnType = this.powerState === 'SMALL' ? 'MUSHROOM' : 'FEATHER';
       } else if (tile === TileType.QUESTION_FIRE) {
         spawnType = this.powerState === 'SMALL' ? 'MUSHROOM' : 'FIRE_FLOWER';
       } else if (tile === TileType.QUESTION_MUSHROOM) {
@@ -730,8 +767,8 @@ export class PlatformerEngine {
         type: spawnType,
         x: col * TILE_SIZE + 4,
         y: (row - 1) * TILE_SIZE + 8,
-        vx: spawnType === 'FIRE_FLOWER' ? 0 : 95,
-        vy: spawnType === 'STAR' ? -260 : 0,
+        vx: spawnType === 'FIRE_FLOWER' ? 0 : spawnType === 'FEATHER' ? 55 : 95,
+        vy: spawnType === 'STAR' ? -260 : spawnType === 'FEATHER' ? -140 : 0,
         width: 24,
         height: 24,
         spawnTimer: 0.25,
@@ -812,7 +849,9 @@ export class PlatformerEngine {
       }
 
       if (item.type !== 'FIRE_FLOWER') {
-        item.vy = Math.min(MAX_FALL_SPEED, item.vy + GRAVITY * 0.85 * dt);
+        const gravMult = item.type === 'FEATHER' ? 0.28 : 0.85;
+        const maxFall = item.type === 'FEATHER' ? 110 : MAX_FALL_SPEED;
+        item.vy = Math.min(maxFall, item.vy + GRAVITY * gravMult * dt);
         item.x += item.vx * dt;
 
         // Horizontal bounce off walls
@@ -852,6 +891,9 @@ export class PlatformerEngine {
           }
         } else if (item.type === 'FIRE_FLOWER') {
           this.powerState = 'FIRE';
+          this.updatePlayerDimensions();
+        } else if (item.type === 'FEATHER') {
+          this.powerState = 'RACCOON';
           this.updatePlayerDimensions();
         } else if (item.type === 'STAR') {
           this.isInvincibleStar = true;
@@ -1338,14 +1380,16 @@ export class PlatformerEngine {
   private damagePlayer() {
     if (this.invulnTimer > 0 || this.isInvincibleStar || this.isDead) return;
 
-    if (this.powerState === 'FIRE') {
+    if (this.powerState === 'FIRE' || this.powerState === 'RACCOON') {
       this.powerState = 'BIG';
+      this.isRaccoonFlying = false;
       this.invulnTimer = 1.8;
       soundManager.playDamage();
       this.spawnBurstParticles(this.px + 12, this.py + 20, '#f97316', 12);
       this.emitHud();
     } else if (this.powerState === 'BIG') {
       this.powerState = 'SMALL';
+      this.isRaccoonFlying = false;
       this.updatePlayerDimensions();
       this.invulnTimer = 1.8;
       soundManager.playDamage();

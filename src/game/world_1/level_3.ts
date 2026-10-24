@@ -39,7 +39,7 @@ export function buildLevel3(): LevelDefinition {
   grid[12][11] = TileType.BRICK;
   grid[12][12] = TileType.QUESTION_MUSHROOM;
   grid[12][13] = TileType.QUESTION_COIN;
-  grid[12][14] = TileType.BRICK;
+  grid[12][14] = TileType.QUESTION_FEATHER;
 
   // Hidden Subterranean Vault in ceiling (cols 28..42)
   for (let c = 28; c <= 42; c++) {

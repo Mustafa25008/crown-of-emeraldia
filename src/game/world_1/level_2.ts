@@ -87,7 +87,7 @@ export function buildLevel2(): LevelDefinition {
   addPipe(grid, 62, 16, 3);
   addPipe(grid, 69, 16, 4);
   grid[10][65] = TileType.BRICK;
-  grid[10][66] = TileType.QUESTION_MUSHROOM;
+  grid[10][66] = TileType.QUESTION_FEATHER;
   grid[10][67] = TileType.BRICK;
 
   // Vertical & horizontal moving platforms across gap (cols 74..86)

@@ -22,6 +22,7 @@ import {
   HelpCircle,
   Map,
   ChevronRight,
+  Feather,
 } from 'lucide-react';
 import { GameState, HudSnapshot, PowerState, SaveProgress } from './game/types';
 import { LEVELS, getLevelById } from './game/levels';
@@ -562,7 +563,7 @@ export default function App() {
             {/* Power-Ups Reference Row */}
             <div className="bg-slate-950 border border-slate-800 rounded-xl p-5 space-y-3">
               <div className="font-pixel text-xs text-amber-400">POWER-UP ITEMS</div>
-              <div className="grid grid-cols-1 sm:grid-cols-3 gap-4 text-xs">
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
                 <div className="flex items-start gap-3">
                   <div className="w-8 h-8 rounded-lg bg-red-500/20 border border-red-500/40 flex items-center justify-center shrink-0">
                     <Shield className="w-4 h-4 text-red-400" />
@@ -570,6 +571,15 @@ export default function App() {
                   <div>
                     <div className="font-semibold text-slate-100">Growth Mushroom</div>
                     <div className="text-slate-400">Grows Pip larger, breaks bricks & absorbs 1 hit.</div>
+                  </div>
+                </div>
+                <div className="flex items-start gap-3">
+                  <div className="w-8 h-8 rounded-lg bg-amber-600/20 border border-amber-500/40 flex items-center justify-center shrink-0">
+                    <Feather className="w-4 h-4 text-amber-400" />
+                  </div>
+                  <div>
+                    <div className="font-semibold text-slate-100">Raccoon Feather</div>
+                    <div className="text-slate-400">Grants raccoon ears & tail. Sprint + hold Jump to fly!</div>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">

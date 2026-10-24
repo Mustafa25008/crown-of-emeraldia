@@ -282,7 +282,8 @@ export function drawTile(
     case TileType.QUESTION_COIN:
     case TileType.QUESTION_MUSHROOM:
     case TileType.QUESTION_FIRE:
-    case TileType.QUESTION_STAR: {
+    case TileType.QUESTION_STAR:
+    case TileType.QUESTION_FEATHER: {
       const pulse = Math.floor(time * 5) % 3;
       const bgColors = ['#f59e0b', '#fbbf24', '#d97706'];
       ctx.fillStyle = '#78350f';
@@ -562,6 +563,10 @@ export function drawPlayer(
     tunicColor = '#f97316'; // Solar Flame Tunic
     capeColor = '#fef08a';
     armorColor = '#b91c1c';
+  } else if (powerState === 'RACCOON') {
+    tunicColor = '#dc2626'; // Classic Raccoon Red/Amber Tunic
+    capeColor = '#b45309';
+    armorColor = '#1d4ed8';
   }
 
   if (isInvincibleStar) {
@@ -604,10 +609,39 @@ export function drawPlayer(
       ctx.fillRect(px + 13, py + 23, 6, 5);
     }
   } else {
-    // Big / Fire Hero Pip (26x44)
-    // Royal Plume & Helmet
-    ctx.fillStyle = capeColor;
-    ctx.fillRect(px + 2, py, 10, 6);
+    // Big / Fire / Raccoon Hero Pip (26x44)
+    if (powerState === 'RACCOON') {
+      // Striped Raccoon Tail extending behind Pip (wags rapidly when flying or sprinting!)
+      const isFlapping = !onGround || Math.abs(vx) > 220;
+      const tailWag = isFlapping ? (Math.floor(time * 20) % 3) - 1 : 0;
+      const ty = py + 26 + tailWag * 2;
+      // Base tail silhouette (dark brown #451a03)
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(px - 10, ty, 12, 9);
+      ctx.fillRect(px - 13, ty + 1, 4, 7);
+      // Warm tan/amber raccoon tail stripes (#f59e0b / #fde68a)
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(px - 11, ty + 1, 3, 7);
+      ctx.fillRect(px - 5, ty + 1, 3, 7);
+      ctx.fillStyle = '#fde68a';
+      ctx.fillRect(px - 11, ty + 2, 2, 5);
+      ctx.fillRect(px - 5, ty + 2, 2, 5);
+
+      // Pointed Raccoon Ears on top of Cap
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(px + 5, py - 3, 5, 7);
+      ctx.fillRect(px + 14, py - 3, 5, 7);
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(px + 6, py - 2, 3, 5);
+      ctx.fillRect(px + 15, py - 2, 3, 5);
+    } else {
+      // Royal Plume & Flowing Cape for BIG / FIRE
+      ctx.fillStyle = capeColor;
+      ctx.fillRect(px + 2, py, 10, 6);
+      ctx.fillRect(px, py + 22, 6, 14 + walkCycle * 2);
+    }
+
+    // Cap / Helmet
     ctx.fillStyle = tunicColor;
     ctx.fillRect(px + 4, py + 4, 18, 8);
     ctx.fillStyle = armorColor;
@@ -617,9 +651,6 @@ export function drawPlayer(
     ctx.fillRect(px + 6, py + 12, 15, 10);
     ctx.fillStyle = '#0f172a';
     ctx.fillRect(px + 16, py + 14, 3, 5);
-    // Flowing Cape
-    ctx.fillStyle = capeColor;
-    ctx.fillRect(px, py + 22, 6, 14 + walkCycle * 2);
     // Armor & Tunic Torso
     ctx.fillStyle = tunicColor;
     ctx.fillRect(px + 5, py + 22, 16, 14);
@@ -628,9 +659,13 @@ export function drawPlayer(
     // Belt buckle
     ctx.fillStyle = '#fbbf24';
     ctx.fillRect(px + 11, py + 32, 6, 4);
-    // Arms
+    // Arms (outstretched when flying in Raccoon state!)
     ctx.fillStyle = '#fde68a';
-    ctx.fillRect(px + (walkCycle ? 18 : 15), py + 25, 5, 6);
+    if (powerState === 'RACCOON' && !onGround) {
+      ctx.fillRect(px + 17, py + 21, 7, 5);
+    } else {
+      ctx.fillRect(px + (walkCycle ? 18 : 15), py + 25, 5, 6);
+    }
     // Boots
     ctx.fillStyle = '#78350f';
     if (isJumping) {
@@ -767,6 +802,24 @@ export function drawPowerUpItem(ctx: CanvasRenderingContext2D, item: ActivePower
     ctx.fillRect(px + 2, py + 2, 20, 14);
     ctx.fillStyle = '#fef08a';
     ctx.fillRect(px + 6, py + 5, 12, 8);
+  } else if (item.type === 'FEATHER') {
+    // Raccoon Flight Feather (Swaying golden/white/crimson-tipped plume)
+    const sway = Math.floor(Math.sin(time * 7) * 2);
+    const fx = px + sway;
+    // Quill stem
+    ctx.fillStyle = '#fef3c7';
+    ctx.fillRect(fx + 5, py + 16, 4, 7);
+    // Lower white/cream vane
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(fx + 7, py + 9, 10, 9);
+    // Golden-brown middle band
+    ctx.fillStyle = '#f59e0b';
+    ctx.fillRect(fx + 9, py + 5, 10, 6);
+    // Crimson/orange raccoon crest tip
+    ctx.fillStyle = '#dc2626';
+    ctx.fillRect(fx + 11, py + 1, 9, 5);
+    ctx.fillStyle = '#fde68a';
+    ctx.fillRect(fx + 8, py + 6, 3, 12);
   } else if (item.type === 'STAR') {
     const flash = Math.floor(time * 15) % 2;
     ctx.fillStyle = flash ? '#fbbf24' : '#fef08a';
