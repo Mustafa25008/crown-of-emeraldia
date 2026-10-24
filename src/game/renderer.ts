@@ -537,7 +537,9 @@ export function drawPlayer(
   vx: number,
   vy: number,
   onGround: boolean,
-  time: number
+  time: number,
+  tailSpinTimer: number = 0,
+  isCrouching: boolean = false
 ) {
   // Damage blink protection
   if (invulnBlinkTimer > 0 && Math.floor(invulnBlinkTimer * 18) % 2 === 0) {
@@ -608,24 +610,97 @@ export function drawPlayer(
       ctx.fillRect(px + 5, py + 23, 6, 5);
       ctx.fillRect(px + 13, py + 23, 6, 5);
     }
+  } else if (isCrouching) {
+    // Crouching / Sitting Grown Hero Pip (26x28)
+    if (powerState === 'RACCOON') {
+      // Striped Raccoon Tail tucked behind sitting Pip
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(px - 10, py + 15, 12, 8);
+      ctx.fillRect(px - 13, py + 16, 4, 6);
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(px - 11, py + 16, 3, 6);
+      ctx.fillRect(px - 5, py + 16, 3, 6);
+      ctx.fillStyle = '#fde68a';
+      ctx.fillRect(px - 11, py + 17, 2, 4);
+      ctx.fillRect(px - 5, py + 17, 2, 4);
+
+      // Pointed Raccoon Ears on lowered Cap
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(px + 5, py - 2, 5, 6);
+      ctx.fillRect(px + 14, py - 2, 5, 6);
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(px + 6, py - 1, 3, 4);
+      ctx.fillRect(px + 15, py - 1, 3, 4);
+    } else {
+      // Lowered Plume & Tucked Cape for BIG / FIRE
+      ctx.fillStyle = capeColor;
+      ctx.fillRect(px + 2, py, 10, 5);
+      ctx.fillRect(px, py + 13, 6, 10);
+    }
+
+    // Lowered Cap / Helmet
+    ctx.fillStyle = tunicColor;
+    ctx.fillRect(px + 4, py + 2, 18, 7);
+    ctx.fillStyle = armorColor;
+    ctx.fillRect(px + 6, py + 7, 16, 2);
+    // Tucked Face
+    ctx.fillStyle = '#fde68a';
+    ctx.fillRect(px + 6, py + 9, 15, 7);
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(px + 16, py + 10, 3, 4);
+    // Sitting / Crouching Torso & Knees
+    ctx.fillStyle = tunicColor;
+    ctx.fillRect(px + 4, py + 16, 18, 7);
+    ctx.fillStyle = armorColor;
+    ctx.fillRect(px + 6, py + 17, 14, 5);
+    ctx.fillStyle = '#fbbf24';
+    ctx.fillRect(px + 11, py + 20, 6, 3);
+    // Arms holding knees
+    ctx.fillStyle = '#fde68a';
+    ctx.fillRect(px + 15, py + 17, 6, 5);
+    // Sitting Boots planted on ground
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(px + 3, py + 23, 9, 5);
+    ctx.fillRect(px + 14, py + 23, 9, 5);
   } else {
     // Big / Fire / Raccoon Hero Pip (26x44)
     if (powerState === 'RACCOON') {
-      // Striped Raccoon Tail extending behind Pip (wags rapidly when flying or sprinting!)
+      const isSpinAttacking = tailSpinTimer > 0;
       const isFlapping = !onGround || Math.abs(vx) > 220;
-      const tailWag = isFlapping ? (Math.floor(time * 20) % 3) - 1 : 0;
+      const tailWag = isFlapping ? (Math.floor(time * 22) % 3) - 1 : 0;
       const ty = py + 26 + tailWag * 2;
-      // Base tail silhouette (dark brown #451a03)
-      ctx.fillStyle = '#451a03';
-      ctx.fillRect(px - 10, ty, 12, 9);
-      ctx.fillRect(px - 13, ty + 1, 4, 7);
-      // Warm tan/amber raccoon tail stripes (#f59e0b / #fde68a)
-      ctx.fillStyle = '#f59e0b';
-      ctx.fillRect(px - 11, ty + 1, 3, 7);
-      ctx.fillRect(px - 5, ty + 1, 3, 7);
-      ctx.fillStyle = '#fde68a';
-      ctx.fillRect(px - 11, ty + 2, 2, 5);
-      ctx.fillRect(px - 5, ty + 2, 2, 5);
+
+      if (isSpinAttacking) {
+        // 360° Tail Spin Attack Swoosh & Extended Whip on Front + Back!
+        const spinPhase = Math.floor(tailSpinTimer * 36) % 2;
+        ctx.fillStyle = '#fef08a';
+        ctx.fillRect(px - 18, py + 25, width + 36, 6);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(px - 16, py + 27, width + 32, 2);
+
+        // Extended Striped Tail whipping across front and back
+        const whipX = spinPhase === 0 ? px + width - 2 : px - 16;
+        ctx.fillStyle = '#451a03';
+        ctx.fillRect(whipX, py + 24, 18, 9);
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillRect(whipX + 3, py + 25, 4, 7);
+        ctx.fillRect(whipX + 10, py + 25, 4, 7);
+        ctx.fillStyle = '#fde68a';
+        ctx.fillRect(whipX + 4, py + 26, 2, 5);
+        ctx.fillRect(whipX + 11, py + 26, 2, 5);
+      } else {
+        // Standard Striped Raccoon Tail extending behind Pip
+        ctx.fillStyle = '#451a03';
+        ctx.fillRect(px - 10, ty, 12, 9);
+        ctx.fillRect(px - 13, ty + 1, 4, 7);
+        // Warm tan/amber raccoon tail stripes (#f59e0b / #fde68a)
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillRect(px - 11, ty + 1, 3, 7);
+        ctx.fillRect(px - 5, ty + 1, 3, 7);
+        ctx.fillStyle = '#fde68a';
+        ctx.fillRect(px - 11, ty + 2, 2, 5);
+        ctx.fillRect(px - 5, ty + 2, 2, 5);
+      }
 
       // Pointed Raccoon Ears on top of Cap
       ctx.fillStyle = '#451a03';

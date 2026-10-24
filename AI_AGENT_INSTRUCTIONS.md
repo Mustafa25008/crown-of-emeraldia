@@ -57,7 +57,11 @@ To prevent the grown character from getting stuck and to prevent visual overlaps
 The game features three core progression power-ups plus the Invincibility Star:
 1. **Growth Mushroom (`MUSHROOM` $\rightarrow$ `PowerState: 'BIG'`)**: Grows character larger (`26×44px`), allows breaking `TileType.BRICK` blocks from below, and absorbs 1 hit of damage.
 2. **Solar Fire Flower (`FIRE_FLOWER` $\rightarrow$ `PowerState: 'FIRE'`)**: Allows launching bouncing fireballs with `Shift` / `X` / `J` or the on-screen **FIRE** button.
-3. **Raccoon Feather (`FEATHER` $\rightarrow$ `PowerState: 'RACCOON'`)**: Grants raccoon ears and a wagging striped raccoon tail. Jumping during a sprint run and holding/pressing **JUMP** allows the player to fly upward through the air until the Jump button is released.
+3. **Raccoon Feather (`FEATHER` $\rightarrow$ `PowerState: 'RACCOON'`)**: Grants all 4 classic Raccoon abilities:
+   - **Raccoon Transformation**: Pointed brown raccoon ears and a striped wagging tail.
+   - **Flying and Gliding**: Jumping during a sprint run and holding/pressing **JUMP** allows the player to fly upward through the air until the Jump button is released.
+   - **Tail Attack**: Pressing the **FIRE / ATTACK** button (`Shift` / `X` / `J` on PC or the on-screen **FIRE** button) triggers a 360° spinning tail whip (`tailSpinTimer`) that defeats nearby enemies, damages the vulnerable Boss, and breaks/activates adjacent Bricks and Question Blocks at waist height.
+   - **Slow Falling**: Holding or tapping **JUMP** while descending in mid-air wags the raccoon tail to float and descend slowly (`95 px/s`).
 4. **Invincibility Star (`STAR` $\rightarrow$ `isInvincibleStar: true`)**: Grants temporary rainbow invincibility for 10 seconds, defeating enemies on contact.
 
 ### B. Strict Block Placement Rules in Every Level File
@@ -93,10 +97,11 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
 
 1. **Desktop Keyboard Controls** (must always remain active):
    - **Move Left / Right**: `A` / `D` or `ArrowLeft` / `ArrowRight`
-   - **Jump / Raccoon Fly**: `Space`, `W`, or `ArrowUp`
-   - **Sprint / Fireball**: `Shift`, `X`, or `J`
+   - **Down / Sit (When Grown)**: `S` or `ArrowDown` (makes grown character crouch/sit down to `28px` height and disables Left/Right walking while held)
+   - **Jump / Raccoon Fly / Slow Fall**: `Space`, `W`, or `ArrowUp`
+   - **Sprint / Fireball / Tail Attack**: `Shift`, `X`, or `J`
    - **Pause**: `Escape` or `P`
 2. **On-Screen Controller** (`PlatformerEngine.setVirtualKey(code, pressed)`):
-   - **Left Side**: Directional buttons (`ArrowLeft` and `ArrowRight`) for horizontal movement.
-   - **Right Side**: Action buttons (`FIRE / RUN` mapped to `KeyX`, and `JUMP` mapped to `Space`).
+   - **Left Side**: Directional buttons (`LEFT` mapped to `ArrowLeft`, `RIGHT` mapped to `ArrowRight`, `DOWN` mapped to `ArrowDown` for sitting/crouching when grown, and mobile-only `UP` mapped to `ArrowUp` which performs the exact same jump/fly/slow-fall work as `JUMP`).
+   - **Right Side**: Action buttons (`FIRE` mapped to `KeyX` for sprinting, shooting fireballs, and Raccoon tail spin attack; `JUMP` mapped to `Space` for jumping, Raccoon flight, and slow falling).
    - Both desktop keyboard listeners and on-screen touch/pointer buttons feed into the same engine input state simultaneously.

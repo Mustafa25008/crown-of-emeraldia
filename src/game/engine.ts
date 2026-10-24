@@ -89,7 +89,10 @@ export class PlatformerEngine {
   private jumpBufferTimer: number = 0;
   private jumpHoldTimer: number = 0;
   private isJumping: boolean = false;
+  private isCrouching: boolean = false;
   private isRaccoonFlying: boolean = false;
+  private tailSpinTimer: number = 0;
+  private tailSpinCooldown: number = 0;
   private fireballCooldown: number = 0;
 
   // Game progression & counters
@@ -200,7 +203,10 @@ export class PlatformerEngine {
     this.pvx = 0;
     this.pvy = 0;
     this.onGround = false;
+    this.isCrouching = false;
     this.isRaccoonFlying = false;
+    this.tailSpinTimer = 0;
+    this.tailSpinCooldown = 0;
     this.isDead = false;
     this.isLevelFinishing = false;
     this.isInvincibleStar = false;
@@ -347,6 +353,9 @@ export class PlatformerEngine {
     if (this.powerState === 'SMALL') {
       this.pWidth = 24;
       this.pHeight = 28;
+    } else if (this.isCrouching) {
+      this.pWidth = 26;
+      this.pHeight = 28;
     } else {
       this.pWidth = 26;
       this.pHeight = 44;
@@ -488,6 +497,8 @@ export class PlatformerEngine {
     // Update Timers
     if (this.invulnTimer > 0) this.invulnTimer = Math.max(0, this.invulnTimer - dt);
     if (this.fireballCooldown > 0) this.fireballCooldown = Math.max(0, this.fireballCooldown - dt);
+    if (this.tailSpinTimer > 0) this.tailSpinTimer = Math.max(0, this.tailSpinTimer - dt);
+    if (this.tailSpinCooldown > 0) this.tailSpinCooldown = Math.max(0, this.tailSpinCooldown - dt);
     if (this.isInvincibleStar) {
       this.starTimer -= dt;
       if (this.starTimer <= 0) {
@@ -552,10 +563,22 @@ export class PlatformerEngine {
   }
 
   private updatePlayer(dt: number) {
-    const moveLeft = this.keys['ArrowLeft'] || this.keys['KeyA'];
-    const moveRight = this.keys['ArrowRight'] || this.keys['KeyD'];
+    const rawMoveLeft = this.keys['ArrowLeft'] || this.keys['KeyA'];
+    const rawMoveRight = this.keys['ArrowRight'] || this.keys['KeyD'];
+    const downHeld = this.keys['ArrowDown'] || this.keys['KeyS'];
     const isRunning = this.keys['ShiftLeft'] || this.keys['ShiftRight'] || this.keys['KeyX'] || this.keys['KeyJ'];
     const jumpHeld = this.keys['Space'] || this.keys['KeyW'] || this.keys['ArrowUp'];
+
+    // Classic Crouch / Sit Mechanic when character is grown (BIG, FIRE, or RACCOON):
+    // Holding Down makes the grown character sit/crouch and disables Left/Right movement while held.
+    const nextCrouching = this.powerState !== 'SMALL' && !!downHeld && (this.onGround || this.isCrouching);
+    if (nextCrouching !== this.isCrouching) {
+      this.isCrouching = nextCrouching;
+      this.updatePlayerDimensions();
+    }
+
+    const moveLeft = this.isCrouching ? false : rawMoveLeft;
+    const moveRight = this.isCrouching ? false : rawMoveRight;
 
     // Fireball shooting when in FIRE state
     if (this.fireJustPressed && this.powerState === 'FIRE' && this.fireballCooldown <= 0) {
@@ -574,6 +597,24 @@ export class PlatformerEngine {
           active: true,
         });
       }
+    }
+
+    // Raccoon Tail Spin Attack when in RACCOON state (triggered by Shift / X / J or On-Screen FIRE button)
+    if (this.fireJustPressed && this.powerState === 'RACCOON' && this.tailSpinCooldown <= 0) {
+      this.tailSpinTimer = 0.26;
+      this.tailSpinCooldown = 0.28;
+      soundManager.playTailSpin();
+      this.spawnBurstParticles(
+        this.pFacing === 1 ? this.px + this.pWidth + 8 : this.px - 8,
+        this.py + (this.isCrouching ? 16 : 28),
+        '#fef08a',
+        5
+      );
+      this.performRaccoonTailBlockHit();
+    }
+
+    if (this.tailSpinTimer > 0 && this.powerState === 'RACCOON') {
+      this.performRaccoonTailAttack();
     }
 
     // Horizontal Acceleration & Friction
@@ -645,10 +686,11 @@ export class PlatformerEngine {
       this.jumpHoldTimer = 0;
     }
 
-    // Raccoon Tail Flight: During a sprint run jump, keeping Jump pressed/clicked makes Pip fly;
-    // releasing Jump stops upward flight and lets Pip glide down to land smoothly!
+    // Raccoon Tail Flight & Slow Falling:
+    // 1. Flying: During a sprint run jump, keeping Jump pressed/clicked makes Pip fly upward.
+    // 2. Slow Falling: When descending in mid-air, holding or tapping Jump wags the tail to descend slowly!
     if (this.powerState === 'RACCOON' && !this.onGround) {
-      if (isRunning && (jumpHeld || this.jumpJustPressed)) {
+      if (isRunning && Math.abs(this.pvx) >= MAX_WALK_SPEED * 0.75 && (jumpHeld || this.jumpJustPressed)) {
         this.isRaccoonFlying = true;
       }
 
@@ -658,9 +700,15 @@ export class PlatformerEngine {
           this.py = 36;
           this.pvy = 0;
         }
+      } else if (this.pvy >= 0 && (jumpHeld || this.jumpJustPressed)) {
+        // Ability 4: Slow Falling while holding or tapping Jump during descent
+        if (this.jumpJustPressed) {
+          this.pvy = Math.min(this.pvy, 75);
+        }
+        this.pvy = Math.min(95, this.pvy + GRAVITY * 0.3 * dt);
       } else {
-        // Gravity with gentle tail-glide cap when descending in Raccoon form
-        this.pvy = Math.min(240, this.pvy + GRAVITY * 0.75 * dt);
+        // Standard descent when Jump is not held
+        this.pvy = Math.min(480, this.pvy + GRAVITY * dt);
       }
     } else {
       // Standard Gravity
@@ -696,6 +744,61 @@ export class PlatformerEngine {
       return;
     }
     this.checkHazardTiles();
+  }
+
+  private performRaccoonTailBlockHit() {
+    // Check tiles immediately to the left and right at tail/waist height
+    const waistRow = Math.floor((this.py + 28) / TILE_SIZE);
+    const sideCols = [
+      Math.floor((this.px - 14) / TILE_SIZE),
+      Math.floor((this.px + this.pWidth + 14) / TILE_SIZE),
+    ];
+
+    for (const c of sideCols) {
+      const tile = this.getTileAt(c, waistRow);
+      if (
+        tile === TileType.BRICK ||
+        tile === TileType.QUESTION_COIN ||
+        tile === TileType.QUESTION_MUSHROOM ||
+        tile === TileType.QUESTION_FIRE ||
+        tile === TileType.QUESTION_FEATHER ||
+        tile === TileType.QUESTION_STAR
+      ) {
+        this.handleBlockHitFromBelow(c, waistRow, tile);
+      }
+    }
+  }
+
+  private performRaccoonTailAttack() {
+    // 360° Tail Spin Hitbox around Pip's lower torso & tail reach (22px left and right)
+    const hitX = this.px - 22;
+    const hitY = this.py + 10;
+    const hitW = this.pWidth + 44;
+    const hitH = this.pHeight - 10;
+
+    // 1. Defeat enemies within Tail Spin reach
+    for (const enemy of this.enemies) {
+      if (enemy.state === 'DEAD' || enemy.state === 'SQUISHED' || enemy.type === 'FIRE_BAR') continue;
+      if (this.rectsOverlap(hitX, hitY, hitW, hitH, enemy.x, enemy.y, enemy.width, enemy.height)) {
+        enemy.state = 'DEAD';
+        soundManager.playStomp();
+        this.addScore(200, enemy.x, enemy.y);
+        this.spawnBurstParticles(enemy.x + 14, enemy.y + 14, '#fef08a', 12);
+      }
+    }
+
+    // 2. Strike Boss if Boss is in VULNERABLE phase within tail reach
+    if (
+      this.boss.active &&
+      this.boss.phase !== 'DEFEATED' &&
+      this.boss.invulnerableTimer <= 0 &&
+      this.rectsOverlap(hitX, hitY, hitW, hitH, this.boss.x, this.boss.y, this.boss.width, this.boss.height)
+    ) {
+      if (this.boss.phase === 'VULNERABLE') {
+        this.px += this.px < this.boss.x ? -24 : 24;
+        this.damageBoss();
+      }
+    }
   }
 
   private isSolidTile(t: TileType): boolean {
@@ -1272,7 +1375,7 @@ export class PlatformerEngine {
           enemy.height
         )
       ) {
-        if (this.isInvincibleStar) {
+        if (this.isInvincibleStar || (this.powerState === 'RACCOON' && this.tailSpinTimer > 0)) {
           enemy.state = 'DEAD';
           soundManager.playStomp();
           this.addScore(200, enemy.x, enemy.y);
@@ -1540,6 +1643,7 @@ export class PlatformerEngine {
       this.emitHud();
     } else if (this.powerState === 'BIG') {
       this.powerState = 'SMALL';
+      this.isCrouching = false;
       this.isRaccoonFlying = false;
       this.updatePlayerDimensions();
       this.invulnTimer = 1.8;
@@ -1737,7 +1841,9 @@ export class PlatformerEngine {
       this.pvx,
       this.pvy,
       this.onGround,
-      this.elapsedTime
+      this.elapsedTime,
+      this.tailSpinTimer,
+      this.isCrouching
     );
 
     // 9. Particles & Floating Score Popups

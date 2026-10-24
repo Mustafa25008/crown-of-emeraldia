@@ -24,6 +24,8 @@ import {
   ChevronRight,
   Feather,
   ChevronLeft,
+  ChevronUp,
+  ChevronDown,
 } from 'lucide-react';
 import { GameState, HudSnapshot, PowerState, SaveProgress } from './game/types';
 import { LEVELS, getLevelById } from './game/levels';
@@ -564,11 +566,15 @@ export default function App() {
                     <span className="font-mono-num text-amber-300">A / D or Left / Right Arrows</span>
                   </div>
                   <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                    <span>Variable Height Jump</span>
+                    <span>Duck / Sit (When Grown)</span>
+                    <span className="font-mono-num text-amber-300">S or Down Arrow</span>
+                  </div>
+                  <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                    <span>Jump / Fly / Slow Fall</span>
                     <span className="font-mono-num text-amber-300">Space, W, or Up Arrow</span>
                   </div>
                   <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                    <span>Sprint / Shoot Fireball</span>
+                    <span>Sprint / Fireball / Tail Attack</span>
                     <span className="font-mono-num text-amber-300">Shift, X, or J</span>
                   </div>
                   <div className="flex items-center justify-between py-1">
@@ -583,8 +589,8 @@ export default function App() {
                 <ul className="space-y-2 text-xs text-slate-300 leading-relaxed list-disc list-inside">
                   <li>Hold the Jump key longer for higher leaps across wide chasms.</li>
                   <li>Hold Shift while moving to build sprint momentum and jump farther.</li>
-                  <li>Stomp on Beetles to turn them into shells, then kick the shell into enemy lines!</li>
-                  <li>In Level 5, wait for Ironclad King Dredge to tire after his attack, then stomp his head or blast him with Fireballs 5 times to win!</li>
+                  <li>In Raccoon form, press Fire/Attack to spin your tail and hit enemies or blocks!</li>
+                  <li>In Level 5, wait for Ironclad King Dredge to tire after his attack, then stomp his head, whip your Raccoon tail, or blast him with Fireballs 5 times to win!</li>
                 </ul>
               </div>
             </div>
@@ -608,7 +614,9 @@ export default function App() {
                   </div>
                   <div>
                     <div className="font-semibold text-slate-100">Raccoon Feather</div>
-                    <div className="text-slate-400">Grants raccoon ears & tail. Sprint + hold Jump to fly!</div>
+                    <div className="text-slate-400">
+                      Fly on sprint-jumps, hold Jump to slow-fall, & press Fire/Shift to spin-attack!
+                    </div>
                   </div>
                 </div>
                 <div className="flex items-start gap-3">
@@ -1016,36 +1024,67 @@ export default function App() {
               )}
             </div>
 
-            {/* Classic On-Screen Controller (Left Side: Directional Pad | Right Side: Fire/Run & Jump) */}
+            {/* Classic On-Screen Controller (Left Side: Directional Pad [Left, Up, Down, Right] | Right Side: Fire/Run & Jump) */}
             <div className="w-full mt-3 bg-slate-900/95 border border-slate-800 rounded-2xl px-4 py-3.5 shadow-xl flex items-center justify-between gap-4 touch-none select-none">
-              {/* LEFT SIDE: Movement Controls (Left & Right) */}
-              <div className="flex items-center gap-3">
+              {/* LEFT SIDE: Directional Controls (Left, Up [Mobile Jump], Down [Crouch/Sit], Right) */}
+              <div className="flex items-center gap-2 sm:gap-2.5">
                 <button
                   type="button"
                   aria-label="Move Left"
                   {...bindVirtualButton('ArrowLeft')}
-                  className={`w-16 h-14 sm:w-20 sm:h-16 rounded-2xl border-b-4 font-pixel text-xs flex flex-col items-center justify-center gap-1 transition-transform cursor-pointer select-none touch-none ${
+                  className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border-b-4 font-pixel text-xs flex flex-col items-center justify-center gap-1 transition-transform cursor-pointer select-none touch-none ${
                     activeVirtualKeys['ArrowLeft']
                       ? 'bg-slate-700 border-slate-900 text-emerald-300 translate-y-0.5 scale-95'
                       : 'bg-slate-800 hover:bg-slate-750 border-slate-950 text-slate-100 shadow-lg'
                   }`}
                 >
                   <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
-                  <span className="text-[9px] tracking-wider">LEFT</span>
+                  <span className="text-[8px] tracking-wider">LEFT</span>
                 </button>
+
+                {/* UP (Mobile Jump) & DOWN (Crouch / Sit when grown) Vertical D-Pad Column */}
+                <div className="flex flex-col items-center gap-1.5">
+                  <button
+                    type="button"
+                    aria-label="Up Jump"
+                    {...bindVirtualButton('ArrowUp')}
+                    className={`md:hidden w-14 h-11 rounded-xl border-b-4 font-pixel text-xs flex flex-col items-center justify-center transition-transform cursor-pointer select-none touch-none ${
+                      activeVirtualKeys['ArrowUp']
+                        ? 'bg-slate-700 border-slate-900 text-emerald-300 translate-y-0.5 scale-95'
+                        : 'bg-slate-800 hover:bg-slate-750 border-slate-950 text-slate-100 shadow-lg'
+                    }`}
+                  >
+                    <ChevronUp className="w-5 h-5 stroke-[2.5]" />
+                    <span className="text-[7px] tracking-wider">UP</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    aria-label="Crouch Down"
+                    {...bindVirtualButton('ArrowDown')}
+                    className={`w-14 h-11 md:w-16 md:h-16 rounded-xl md:rounded-2xl border-b-4 font-pixel text-xs flex flex-col items-center justify-center gap-0.5 transition-transform cursor-pointer select-none touch-none ${
+                      activeVirtualKeys['ArrowDown']
+                        ? 'bg-slate-700 border-slate-900 text-amber-300 translate-y-0.5 scale-95'
+                        : 'bg-slate-800 hover:bg-slate-750 border-slate-950 text-slate-100 shadow-lg'
+                    }`}
+                  >
+                    <ChevronDown className="w-5 h-5 md:w-6 md:h-6 stroke-[2.5]" />
+                    <span className="text-[7px] md:text-[8px] tracking-wider">DOWN</span>
+                  </button>
+                </div>
 
                 <button
                   type="button"
                   aria-label="Move Right"
                   {...bindVirtualButton('ArrowRight')}
-                  className={`w-16 h-14 sm:w-20 sm:h-16 rounded-2xl border-b-4 font-pixel text-xs flex flex-col items-center justify-center gap-1 transition-transform cursor-pointer select-none touch-none ${
+                  className={`w-14 h-14 sm:w-16 sm:h-16 rounded-2xl border-b-4 font-pixel text-xs flex flex-col items-center justify-center gap-1 transition-transform cursor-pointer select-none touch-none ${
                     activeVirtualKeys['ArrowRight']
                       ? 'bg-slate-700 border-slate-900 text-emerald-300 translate-y-0.5 scale-95'
                       : 'bg-slate-800 hover:bg-slate-750 border-slate-950 text-slate-100 shadow-lg'
                   }`}
                 >
                   <ChevronRight className="w-6 h-6 stroke-[2.5]" />
-                  <span className="text-[9px] tracking-wider">RIGHT</span>
+                  <span className="text-[8px] tracking-wider">RIGHT</span>
                 </button>
               </div>
 
@@ -1056,8 +1095,9 @@ export default function App() {
                 </div>
                 <div>
                   PC: <span className="text-slate-200 font-medium">A/D or Arrows</span> ·{' '}
-                  <span className="text-slate-200 font-medium">Shift/X</span> (Fire/Sprint) ·{' '}
-                  <span className="text-slate-200 font-medium">Space/W</span> (Jump)
+                  <span className="text-slate-200 font-medium">S/Down</span> (Sit) ·{' '}
+                  <span className="text-slate-200 font-medium">Shift/X</span> (Fire/Spin) ·{' '}
+                  <span className="text-slate-200 font-medium">Space/W/Up</span> (Jump)
                 </div>
               </div>
 

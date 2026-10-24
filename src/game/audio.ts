@@ -118,6 +118,11 @@ class SoundManager {
     this.playTone(720, 0.08, 'sawtooth', 0.12, 220);
   }
 
+  public playTailSpin() {
+    this.playTone(260, 0.07, 'triangle', 0.18, 620, 0);
+    this.playTone(380, 0.09, 'square', 0.14, 180, 55);
+  }
+
   public playDamage() {
     const notes = [440, 392, 349, 293, 220];
     notes.forEach((n, idx) => {
