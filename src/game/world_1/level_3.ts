@@ -14,10 +14,12 @@ export function buildLevel3(): LevelDefinition {
   const enemies: EnemySpawnDef[] = [];
   const movingPlatforms: MovingPlatformDef[] = [];
 
-  // Underground ceiling
+  // Underground ceiling (keep stalactites clear of elevated vault & high bridges)
   for (let c = 0; c < cols; c++) {
     grid[0][c] = TileType.GROUND_DEEP;
-    if (c % 5 === 0 && c > 6 && c < 115) {
+    const isNearElevatedBlock =
+      (c >= 26 && c <= 44) || (c >= 52 && c <= 62) || (c >= 76 && c <= 84);
+    if (c % 5 === 0 && c > 6 && c < 115 && !isNearElevatedBlock) {
       grid[1][c] = TileType.GROUND_DEEP;
     }
   }
@@ -41,18 +43,17 @@ export function buildLevel3(): LevelDefinition {
   grid[12][13] = TileType.QUESTION_COIN;
   grid[12][14] = TileType.BRICK;
 
-  // Hidden Subterranean Vault in ceiling (cols 28..42)
+  // Hidden Subterranean Vault (cols 28..42 at row 9, leaving 4 full tiles above row 5 Question Block!)
   for (let c = 28; c <= 42; c++) {
-    grid[6][c] = TileType.BRICK;
+    grid[9][c] = TileType.BRICK;
   }
-  // Stepping stones to reach vault
-  grid[12][27] = TileType.SOLID_STONE;
-  grid[9][26] = TileType.SOLID_STONE;
-  // Vault floating power block at row 3 (Power-up slot 2 at col 35)
-  grid[3][35] = TileType.QUESTION_FIRE;
-  // Coins float above vault floor (floor at row 6, coins placed at row 4 to avoid row 3 blocks)
-  addCoinRow(coins, 'l3_vault_l', 29, 4, 4);
-  addCoinRow(coins, 'l3_vault_r', 39, 4, 4);
+  // Stepping stone to reach vault
+  grid[12][26] = TileType.SOLID_STONE;
+  // Vault floating power block at row 5 (4 tiles = 128px below ceiling AND 3 full empty tiles above row 9 floor!)
+  grid[5][35] = TileType.QUESTION_FIRE;
+  // Coins float cleanly above vault floor at row 7
+  addCoinRow(coins, 'l3_vault_l', 29, 4, 7);
+  addCoinRow(coins, 'l3_vault_r', 38, 4, 7);
 
   // Narrow platforms over abyss (cols 49..63) + Star slot 1 at col 56
   grid[14][51] = TileType.SOLID_STONE;

@@ -89,9 +89,11 @@ export function buildLevel4(): LevelDefinition {
 
   for (let c = 79; c <= 83; c++) {
     grid[15][c] = TileType.SPIKE;
-    grid[11][c] = TileType.BRIDGE;
   }
-  addCoinRow(coins, 'l4_bridge', 79, 5, 9);
+  for (let c = 78; c <= 84; c++) {
+    grid[12][c] = TileType.BRIDGE;
+  }
+  addCoinRow(coins, 'l4_bridge', 79, 5, 10);
 
   // Star slot 2 at col 87 before Checkpoint
   grid[12][87] = TileType.QUESTION_STAR;

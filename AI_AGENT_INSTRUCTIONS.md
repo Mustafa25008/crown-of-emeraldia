@@ -42,12 +42,21 @@ When the player collects a **Growth Mushroom**, **Solar Fire Flower**, or **Racc
 To prevent the grown character from getting stuck and to prevent visual overlaps:
 1. **Minimum 3 to 4 Tiles (`96px–128px`) Vertical Clearance Under Floating Blocks**:
    - Standard ground top is at **row `16`**. Any floating Question Block or Brick row above standard ground must be placed at **row `12` or higher** (leaving rows `13`, `14`, and `15` completely empty = `96px` clearance).
-   - If a floating Question Block is placed above an elevated `TileType.BRIDGE` or platform at row `R_floor`, the floating block above it **must** be placed at **`R_floor - 4` or higher** (e.g., bridge at row `13` $\rightarrow$ Question Block at row `9`; bridge at row `10` $\rightarrow$ Question Block at row `6`).
-2. **Zero Coin & Block Overlap**:
+   - If a floating Question Block is placed above an elevated `TileType.BRIDGE` or platform at row `R_floor`, the floating block above it **must** be placed at **`R_floor - 4` or higher** (e.g., bridge at row `13` $\rightarrow$ Question Block at row `9`; platform at row `9` $\rightarrow$ Question Block at row `5`).
+2. **Minimum 3 to 4 Tiles (`96px–128px`) Top Headroom Above Every Question Block**:
+   - Stationary power-ups like `FIRE_FLOWER` spawn on top of the Question Block (`R_block - 1`), and the grown character is `44px` tall (`~1.4` tiles).
+   - Therefore, every Question Block (`QUESTION_*`) **must** have at least **3 to 4 full empty tiles (`96px–128px`) of open space above it** (`R_block - 1`, `R_block - 2`, and `R_block - 3` must be `TileType.EMPTY` across `c - 1 .. c + 1`).
+   - In underground or castle levels with a ceiling at row `0` (or stalactites at row `1`), never place a Question Block higher than **row `5`**, and never place ceiling stalactites (`grid[1][c]`) within 4 columns of an elevated platform or Question Block.
+3. **Zero Coin & Block Overlap**:
    - Never place a `CoinDef` on the same `(row, col)` or within `1` tile of a `BRICK`, `QUESTION_*`, or `SOLID_STONE` tile.
    - When placing a coin row above floating blocks at row `R_block`, place the coins at **`R_block - 2` or higher** (at least `64px` above the blocks).
-3. **Parallax Cloud Altitude**:
+4. **Parallax Cloud Altitude**:
    - Background clouds in `renderer.ts` must stay in the upper sky band (`y: 18px–62px`) so they never overlap high platforms or floating Question Blocks.
+5. **Solid Spike Hazards (`TileType.SPIKE`) for Players & Enemies**:
+   - `TileType.SPIKE` is a **solid hazard tile** (`isSolidTile` includes `TileType.SPIKE`):
+     - **Player Collision**: Players cannot walk or fall through spikes; colliding with spikes blocks movement just like a solid block while applying spike hazard damage (`damagePlayer()`).
+     - **Enemy Reflection**: When ground enemies (`SLIME`, `BEETLE`, `KNIGHT`, or moving shells) hit a `TileType.SPIKE` tile horizontally or encounter a spike at a ledge, they immediately reflect back in the opposite direction just like hitting a solid wall.
+     - **Level Design Requirement**: Whenever a row of spikes (`TileType.SPIKE`) is placed on the ground across multiple columns, always provide a reachable jump path or `TileType.BRIDGE` (at most `4` tiles above the ground, e.g. row `12`) so the player can jump over the solid spike formation.
 
 ---
 
@@ -93,7 +102,7 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
 
 ---
 
-## 4. Controls Architecture (Desktop Keyboard + Mobile On-Screen Controller)
+## 4. Controls Architecture (Desktop Keyboard + Overlaid Transparent On-Screen Controller)
 
 1. **Desktop Keyboard Controls** (must always remain active):
    - **Move Left / Right**: `A` / `D` or `ArrowLeft` / `ArrowRight`
@@ -101,7 +110,8 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
    - **Jump / Raccoon Fly / Slow Fall**: `Space`, `W`, or `ArrowUp`
    - **Sprint / Fireball / Tail Attack**: `Shift`, `X`, or `J`
    - **Pause**: `Escape` or `P`
-2. **On-Screen Controller** (`PlatformerEngine.setVirtualKey(code, pressed)`):
-   - **Left Side**: Directional buttons (`LEFT` mapped to `ArrowLeft`, `RIGHT` mapped to `ArrowRight`, `DOWN` mapped to `ArrowDown` for sitting/crouching when grown, and mobile-only `UP` mapped to `ArrowUp` which performs the exact same jump/fly/slow-fall work as `JUMP`).
-   - **Right Side**: Action buttons (`FIRE` mapped to `KeyX` for sprinting, shooting fireballs, and Raccoon tail spin attack; `JUMP` mapped to `Space` for jumping, Raccoon flight, and slow falling).
+2. **Overlaid On-Screen Controller** (`PlatformerEngine.setVirtualKey(code, pressed)`):
+   - Rendered **directly inside the game canvas container** (bottom-left and bottom-right corners) with a **lightly transparent** style (`bg-white/15`, `border-white/35`) and **icons only (no text labels)**.
+   - **Left Side**: Icon-only directional buttons (`ChevronLeft` mapped to `ArrowLeft`, `ChevronRight` mapped to `ArrowRight`, `ChevronDown` mapped to `ArrowDown` for sitting/crouching when grown, and mobile-only `ChevronUp` mapped to `ArrowUp` which performs the exact same jump/fly/slow-fall work as `JUMP`).
+   - **Right Side**: Icon-only circular action buttons (`Flame` mapped to `KeyX` for sprinting, shooting fireballs, and Raccoon tail spin attack; `ArrowUp` mapped to `Space` for jumping, Raccoon flight, and slow falling).
    - Both desktop keyboard listeners and on-screen touch/pointer buttons feed into the same engine input state simultaneously.

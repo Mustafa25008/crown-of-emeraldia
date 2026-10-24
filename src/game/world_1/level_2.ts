@@ -47,16 +47,16 @@ export function buildLevel2(): LevelDefinition {
   grid[9][31] = TileType.QUESTION_FIRE;
 
   // Stepping blocks up to the Hidden Treetop Stash
-  grid[9][36] = TileType.SOLID_STONE;
-  grid[7][38] = TileType.SOLID_STONE;
+  grid[11][36] = TileType.SOLID_STONE;
+  grid[9][38] = TileType.SOLID_STONE;
   for (let c = 40; c <= 47; c++) {
-    grid[6][c] = TileType.BRIDGE;
+    grid[8][c] = TileType.BRIDGE;
   }
-  // Floating blocks at row 3 (96px above row 6 bridge)
-  grid[3][42] = TileType.QUESTION_STAR;
-  grid[3][45] = TileType.QUESTION_COIN;
-  // Coins float cleanly above the bridge at row 4
-  addCoinRow(coins, 'l2_secret_canopy', 40, 8, 4);
+  // Floating blocks at row 4 (4 full tiles below top border AND 3 full empty tiles above row 8 bridge)
+  grid[4][42] = TileType.QUESTION_STAR;
+  grid[4][45] = TileType.QUESTION_COIN;
+  // Coins float cleanly above the bridge at row 6
+  addCoinRow(coins, 'l2_secret_canopy', 40, 8, 6);
 
   // Moving platforms across wide forest chasm (cols 42..53)
   movingPlatforms.push(

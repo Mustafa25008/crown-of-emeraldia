@@ -277,12 +277,39 @@ export class PlatformerEngine {
     this.nextVarietyUpgrade = Math.random() < 0.5 ? 'FIRE_FLOWER' : 'FEATHER';
 
     // 2. Collect all candidate power-up Question Blocks (QUESTION_MUSHROOM, QUESTION_FIRE, QUESTION_FEATHER)
+    //    and enforce at least 3 full tiles (96px) of open headroom above every Question Block so a grown
+    //    character (44px tall) can always jump and collect power-ups sitting on top of the block!
     const powerUpBlocks: Array<{ r: number; c: number }> = [];
     const starBlocks: Array<{ r: number; c: number }> = [];
 
     for (let r = 0; r < this.level.heightInTiles; r++) {
       for (let c = 0; c < this.level.widthInTiles; c++) {
         const t = this.tiles[r][c];
+        const isQuestion =
+          t === TileType.QUESTION_COIN ||
+          t === TileType.QUESTION_MUSHROOM ||
+          t === TileType.QUESTION_FIRE ||
+          t === TileType.QUESTION_FEATHER ||
+          t === TileType.QUESTION_STAR;
+
+        if (isQuestion) {
+          // Clear any solid ceiling/stalactite tiles within 3 rows directly above this Question Block
+          for (let ur = Math.max(0, r - 3); ur < r; ur++) {
+            for (let uc = Math.max(0, c - 1); uc <= Math.min(this.level.widthInTiles - 1, c + 1); uc++) {
+              if (ur > 0 || r <= 3) {
+                const aboveTile = this.tiles[ur][uc];
+                if (
+                  aboveTile === TileType.GROUND_DEEP ||
+                  aboveTile === TileType.GROUND_TOP ||
+                  aboveTile === TileType.SOLID_STONE
+                ) {
+                  this.tiles[ur][uc] = TileType.EMPTY;
+                }
+              }
+            }
+          }
+        }
+
         if (
           t === TileType.QUESTION_MUSHROOM ||
           t === TileType.QUESTION_FIRE ||
@@ -817,7 +844,8 @@ export class PlatformerEngine {
       t === TileType.PIPE_TOP_R ||
       t === TileType.PIPE_BODY_L ||
       t === TileType.PIPE_BODY_R ||
-      t === TileType.BRIDGE
+      t === TileType.BRIDGE ||
+      t === TileType.SPIKE
     );
   }
 
@@ -831,9 +859,15 @@ export class PlatformerEngine {
   private resolveHorizontalTileCollisions() {
     const startRow = Math.floor((this.py + 2) / TILE_SIZE);
     const endRow = Math.floor((this.py + this.pHeight - 2) / TILE_SIZE);
+    let touchedSpike = false;
 
     if (this.pvx > 0) {
       const rightCol = Math.floor((this.px + this.pWidth) / TILE_SIZE);
+      for (let r = startRow; r <= endRow; r++) {
+        if (this.getTileAt(rightCol, r) === TileType.SPIKE) {
+          touchedSpike = true;
+        }
+      }
       for (let r = startRow; r <= endRow; r++) {
         const tile = this.getTileAt(rightCol, r);
         if (this.isSolidTile(tile) && tile !== TileType.BRIDGE) {
@@ -845,6 +879,11 @@ export class PlatformerEngine {
     } else if (this.pvx < 0) {
       const leftCol = Math.floor(this.px / TILE_SIZE);
       for (let r = startRow; r <= endRow; r++) {
+        if (this.getTileAt(leftCol, r) === TileType.SPIKE) {
+          touchedSpike = true;
+        }
+      }
+      for (let r = startRow; r <= endRow; r++) {
         const tile = this.getTileAt(leftCol, r);
         if (this.isSolidTile(tile) && tile !== TileType.BRIDGE) {
           this.px = (leftCol + 1) * TILE_SIZE + 0.01;
@@ -853,15 +892,25 @@ export class PlatformerEngine {
         }
       }
     }
+
+    if (touchedSpike && !this.isInvincibleStar) {
+      this.damagePlayer();
+    }
   }
 
   private resolveVerticalTileCollisions() {
     const startCol = Math.floor((this.px + 3) / TILE_SIZE);
     const endCol = Math.floor((this.px + this.pWidth - 3) / TILE_SIZE);
+    let touchedSpike = false;
 
     if (this.pvy > 0) {
       // Falling down
       const bottomRow = Math.floor((this.py + this.pHeight) / TILE_SIZE);
+      for (let c = startCol; c <= endCol; c++) {
+        if (this.getTileAt(c, bottomRow) === TileType.SPIKE) {
+          touchedSpike = true;
+        }
+      }
       for (let c = startCol; c <= endCol; c++) {
         const tile = this.getTileAt(c, bottomRow);
         if (this.isSolidTile(tile)) {
@@ -880,15 +929,26 @@ export class PlatformerEngine {
       // Jumping up into underside of blocks
       const topRow = Math.floor(this.py / TILE_SIZE);
       for (let c = startCol; c <= endCol; c++) {
+        if (this.getTileAt(c, topRow) === TileType.SPIKE) {
+          touchedSpike = true;
+        }
+      }
+      for (let c = startCol; c <= endCol; c++) {
         const tile = this.getTileAt(c, topRow);
         if (this.isSolidTile(tile) && tile !== TileType.BRIDGE) {
           this.py = (topRow + 1) * TILE_SIZE + 0.01;
           this.pvy = 40;
           this.isJumping = false;
-          this.handleBlockHitFromBelow(c, topRow, tile);
+          if (tile !== TileType.SPIKE) {
+            this.handleBlockHitFromBelow(c, topRow, tile);
+          }
           break;
         }
       }
+    }
+
+    if (touchedSpike && !this.isInvincibleStar) {
+      this.damagePlayer();
     }
   }
 
@@ -1034,21 +1094,35 @@ export class PlatformerEngine {
   }
 
   private checkHazardTiles() {
-    const startCol = Math.floor((this.px + 4) / TILE_SIZE);
-    const endCol = Math.floor((this.px + this.pWidth - 4) / TILE_SIZE);
-    const startRow = Math.floor((this.py + 4) / TILE_SIZE);
-    const endRow = Math.floor((this.py + this.pHeight - 2) / TILE_SIZE);
+    // Check inner bounds for lava
+    const lavaStartCol = Math.floor((this.px + 4) / TILE_SIZE);
+    const lavaEndCol = Math.floor((this.px + this.pWidth - 4) / TILE_SIZE);
+    const lavaStartRow = Math.floor((this.py + 4) / TILE_SIZE);
+    const lavaEndRow = Math.floor((this.py + this.pHeight - 2) / TILE_SIZE);
 
-    for (let r = startRow; r <= endRow; r++) {
-      for (let c = startCol; c <= endCol; c++) {
+    for (let r = lavaStartRow; r <= lavaEndRow; r++) {
+      for (let c = lavaStartCol; c <= lavaEndCol; c++) {
         const tile = this.getTileAt(c, r);
         if (tile === TileType.LAVA_TOP || tile === TileType.LAVA_DEEP) {
           this.killPlayer();
           return;
         }
-        if (tile === TileType.SPIKE) {
-          if (this.isInvincibleStar) continue;
-          this.damagePlayer();
+      }
+    }
+
+    // Since SPIKE is now a solid tile, check a 1px contact margin around the player so standing
+    // on top of or pressing against a spike continues to apply spike damage once invuln expires
+    const spikeStartCol = Math.floor((this.px - 1) / TILE_SIZE);
+    const spikeEndCol = Math.floor((this.px + this.pWidth + 1) / TILE_SIZE);
+    const spikeStartRow = Math.floor((this.py - 1) / TILE_SIZE);
+    const spikeEndRow = Math.floor((this.py + this.pHeight + 1) / TILE_SIZE);
+
+    for (let r = spikeStartRow; r <= spikeEndRow; r++) {
+      for (let c = spikeStartCol; c <= spikeEndCol; c++) {
+        if (this.getTileAt(c, r) === TileType.SPIKE) {
+          if (!this.isInvincibleStar) {
+            this.damagePlayer();
+          }
           return;
         }
       }
@@ -1311,20 +1385,32 @@ export class PlatformerEngine {
         enemy.vy = Math.min(MAX_FALL_SPEED, enemy.vy + GRAVITY * dt);
         enemy.x += enemy.vx * dt;
 
-        // Wall or Ledge turnaround
-        const sideCol =
-          enemy.vx > 0 ? Math.floor((enemy.x + enemy.width) / TILE_SIZE) : Math.floor(enemy.x / TILE_SIZE);
+        // Wall, Spike, or Ledge turnaround (reflect back cleanly like hitting a wall)
+        const movingRight = enemy.vx > 0;
+        const sideCol = movingRight
+          ? Math.floor((enemy.x + enemy.width) / TILE_SIZE)
+          : Math.floor(enemy.x / TILE_SIZE);
         const midRow = Math.floor((enemy.y + enemy.height / 2) / TILE_SIZE);
         const belowRow = Math.floor((enemy.y + enemy.height + 4) / TILE_SIZE);
 
-        const hitWall = this.isSolidTile(this.getTileAt(sideCol, midRow));
+        const sideTile = this.getTileAt(sideCol, midRow);
+        const belowTile = this.getTileAt(sideCol, belowRow);
+        const hitWall = this.isSolidTile(sideTile) && sideTile !== TileType.BRIDGE;
         const atLedge =
-          enemy.state === 'PATROL' && !this.isSolidTile(this.getTileAt(sideCol, belowRow));
+          enemy.state === 'PATROL' &&
+          (!this.isSolidTile(belowTile) || belowTile === TileType.SPIKE);
 
         if (hitWall || atLedge) {
+          if (hitWall) {
+            enemy.x = movingRight
+              ? sideCol * TILE_SIZE - enemy.width - 0.5
+              : (sideCol + 1) * TILE_SIZE + 0.5;
+          }
           enemy.vx = -enemy.vx;
           enemy.facing = enemy.vx > 0 ? 1 : -1;
-          enemy.x += enemy.vx * dt * 2;
+          if (!hitWall) {
+            enemy.x += enemy.vx * dt * 2;
+          }
         }
 
         // Floor collision
