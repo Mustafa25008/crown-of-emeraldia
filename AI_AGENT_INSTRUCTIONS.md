@@ -115,3 +115,8 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
    - **Left Side**: Icon-only directional buttons (`ChevronLeft` mapped to `ArrowLeft`, `ChevronRight` mapped to `ArrowRight`, `ChevronDown` mapped to `ArrowDown` for sitting/crouching when grown, and mobile-only `ChevronUp` mapped to `ArrowUp` which performs the exact same jump/fly/slow-fall work as `JUMP`).
    - **Right Side**: Icon-only circular action buttons (`Flame` mapped to `KeyX` for sprinting, shooting fireballs, and Raccoon tail spin attack; `ArrowUp` mapped to `Space` for jumping, Raccoon flight, and slow falling).
    - Both desktop keyboard listeners and on-screen touch/pointer buttons feed into the same engine input state simultaneously.
+3. **Mobile Landscape Requirement**:
+   - The game is strictly designed for **landscape orientation** on mobile devices.
+   - When opened in portrait on a mobile touch device, an orientation guard overlay prompts the user to rotate their device (`"PLEASE ROTATE YOUR DEVICE"` with animated phone rotation and fullscreen landscape option).
+   - In landscape mode on mobile devices, the canvas container dynamically constrains height (`maxHeight: calc(100dvh - 52px)`) and width so that the entire retro viewport and overlaid touch buttons fit seamlessly without vertical page scrolling.
+   - The web app manifest (`/public/manifest.json`) enforces `"orientation": "landscape"` and `"display": "standalone"`.

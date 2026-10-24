@@ -1,0 +1,10 @@
+{
+  "name": "Crown of Emeraldia: 16-Bit Platformer",
+  "short_name": "Emeraldia",
+  "start_url": "/",
+  "display": "standalone",
+  "orientation": "landscape",
+  "background_color": "#020617",
+  "theme_color": "#020617",
+  "description": "A complete classic 16-bit side-scrolling pixel art platformer featuring five handcrafted levels, responsive platforming physics, power-ups, chiptune music, and an epic castle boss battle."
+}

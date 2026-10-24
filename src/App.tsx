@@ -27,6 +27,8 @@ import {
   ChevronUp,
   ChevronDown,
   ArrowUp,
+  Smartphone,
+  Maximize2,
 } from 'lucide-react';
 import { GameState, HudSnapshot, PowerState, SaveProgress } from './game/types';
 import { LEVELS, getLevelById } from './game/levels';
@@ -44,6 +46,8 @@ export default function App() {
   const [carriedPower, setCarriedPower] = useState<PowerState>('SMALL');
   const [runRestartCounter, setRunRestartCounter] = useState<number>(0);
   const [activeVirtualKeys, setActiveVirtualKeys] = useState<Record<string, boolean>>({});
+  const [isPortraitMobile, setIsPortraitMobile] = useState<boolean>(false);
+  const [dismissPortraitWarning, setDismissPortraitWarning] = useState<boolean>(false);
 
   const [hud, setHud] = useState<HudSnapshot>({
     score: 0,
@@ -65,6 +69,42 @@ export default function App() {
   useEffect(() => {
     soundManager.updateSettings(saveData.soundEnabled, saveData.musicEnabled, saveData.volume);
   }, [saveData.soundEnabled, saveData.musicEnabled, saveData.volume]);
+
+  // Detect mobile portrait orientation and guide user to landscape mode
+  useEffect(() => {
+    const checkOrientation = () => {
+      const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+      const isPortrait = window.innerHeight > window.innerWidth;
+      const isSmallScreen = window.innerWidth <= 860 || window.innerHeight <= 860;
+      setIsPortraitMobile(hasTouch && isPortrait && isSmallScreen);
+    };
+
+    checkOrientation();
+    window.addEventListener('resize', checkOrientation);
+    window.addEventListener('orientationchange', checkOrientation);
+
+    return () => {
+      window.removeEventListener('resize', checkOrientation);
+      window.removeEventListener('orientationchange', checkOrientation);
+    };
+  }, []);
+
+  const requestLandscapeFullscreen = useCallback(() => {
+    try {
+      if (document.documentElement.requestFullscreen) {
+        document.documentElement.requestFullscreen().catch(() => {});
+      }
+      if (
+        'screen' in window &&
+        'orientation' in window.screen &&
+        'lock' in (window.screen.orientation as any)
+      ) {
+        (window.screen.orientation as any).lock('landscape').catch(() => {});
+      }
+    } catch {
+      // Graceful fallback for browsers without orientation lock support
+    }
+  }, []);
 
   const navigateToMenu = useCallback((targetState: GameState) => {
     soundManager.stopMusic();
@@ -249,10 +289,57 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 select-none">
-      <main className="flex-1 flex flex-col items-center justify-center px-4 py-6">
+      {/* MOBILE PORTRAIT ROTATE PROMPT (Ensures mobile gameplay is in landscape) */}
+      {isPortraitMobile && !dismissPortraitWarning && (
+        <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center select-none">
+          <div className="w-full max-w-sm bg-slate-900 border-2 border-amber-400/70 rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col items-center space-y-5">
+            {/* Animated Rotating Phone Graphic */}
+            <div className="relative w-24 h-24 flex items-center justify-center">
+              <div className="absolute inset-0 rounded-full bg-amber-400/10 animate-ping opacity-35" />
+              <div className="w-20 h-20 rounded-2xl bg-slate-950 border border-amber-400/40 flex items-center justify-center shadow-inner">
+                <Smartphone className="w-10 h-10 text-amber-400 transition-transform duration-700 animate-pulse -rotate-90" />
+              </div>
+            </div>
+
+            <div className="space-y-2">
+              <div className="flex items-center justify-center gap-2 text-xs font-bold text-amber-400 tracking-wider">
+                <Crown className="w-4 h-4" />
+                <span>LANDSCAPE ORIENTATION REQUIRED</span>
+              </div>
+              <h2 className="font-pixel text-sm sm:text-base text-white leading-relaxed">
+                PLEASE ROTATE YOUR DEVICE
+              </h2>
+              <p className="text-xs text-slate-300 leading-relaxed max-w-xs">
+                Crown of Emeraldia is designed for widescreen landscape play. Turn your phone horizontally for the full 16-bit retro arcade experience!
+              </p>
+            </div>
+
+            <div className="w-full space-y-2.5 pt-2">
+              <button
+                type="button"
+                onClick={requestLandscapeFullscreen}
+                className="w-full min-h-[46px] py-2.5 px-4 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-slate-950 font-bold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0"
+              >
+                <Maximize2 className="w-4 h-4" />
+                <span>Enter Fullscreen Landscape</span>
+              </button>
+
+              <button
+                type="button"
+                onClick={() => setDismissPortraitWarning(true)}
+                className="w-full min-h-[38px] py-1.5 px-3 text-slate-400 hover:text-slate-200 text-xs font-medium transition-colors cursor-pointer"
+              >
+                Continue in Portrait Anyway
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      <main className="flex-1 flex flex-col items-center justify-center p-2 sm:px-4 sm:py-6 landscape:p-1 max-w-full overflow-x-hidden">
         {/* 1. CLASSIC GAME HOME SCREEN (Mobile App & Retro Title Screen Feel) */}
         {gameState === 'TITLE_MENU' && (
-          <div className="relative w-full max-w-4xl min-h-[540px] rounded-2xl overflow-hidden border-2 border-slate-800 shadow-2xl flex flex-col justify-between bg-gradient-to-b from-sky-400 via-sky-300 to-emerald-200">
+          <div className="relative w-full max-w-4xl min-h-[360px] sm:min-h-[520px] rounded-2xl overflow-hidden border-2 border-slate-800 shadow-2xl flex flex-col justify-between bg-gradient-to-b from-sky-400 via-sky-300 to-emerald-200">
             {/* Pixel Art Scenery Backdrop (Clouds, Sun, Hills, Ground, and Hero Sprite) */}
             <div className="absolute inset-0 pointer-events-none overflow-hidden">
               {/* Pixel Sun */}
@@ -740,33 +827,33 @@ export default function App() {
           gameState === 'LEVEL_COMPLETE' ||
           gameState === 'GAME_OVER' ||
           gameState === 'WORLD_VICTORY') && (
-          <div className="flex flex-col items-center w-full max-w-[820px]">
+          <div className="flex flex-col items-center w-full max-w-[820px] max-h-full">
             {/* Top Retro HUD Bar */}
-            <div className="w-full bg-slate-900 border border-slate-800 rounded-t-xl px-4 py-2.5 flex flex-wrap items-center justify-between gap-4 text-xs">
-              <div className="flex items-center gap-5 font-mono-num">
+            <div className="w-full bg-slate-900 border border-slate-800 rounded-t-xl px-3 py-1.5 sm:px-4 sm:py-2 flex items-center justify-between gap-2 sm:gap-4 text-xs shrink-0">
+              <div className="flex items-center gap-3 sm:gap-5 font-mono-num">
                 <div className="flex items-center gap-1.5">
                   <Trophy className="w-4 h-4 text-amber-400" />
-                  <span className="text-slate-400">SCORE</span>
-                  <span className="font-bold text-white text-sm">
+                  <span className="text-slate-400 hidden xs:inline">SCORE</span>
+                  <span className="font-bold text-white text-xs sm:text-sm">
                     {hud.score.toString().padStart(6, '0')}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-1.5">
                   <Coins className="w-4 h-4 text-yellow-400" />
-                  <span className="font-bold text-yellow-300 text-sm">
+                  <span className="font-bold text-yellow-300 text-xs sm:text-sm">
                     ×{hud.coins.toString().padStart(2, '0')}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-1.5">
                   <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
-                  <span className="font-bold text-white text-sm">×{hud.lives}</span>
+                  <span className="font-bold text-white text-xs sm:text-sm">×{hud.lives}</span>
                 </div>
               </div>
 
-              <div className="flex items-center gap-4">
-                <div className="text-slate-300 font-medium hidden sm:block">
+              <div className="flex items-center gap-2 sm:gap-4">
+                <div className="text-slate-300 font-medium hidden md:block">
                   <span>{hud.levelName}</span>
                   <span className="mx-2 text-slate-600">·</span>
                   <span className="font-mono-num text-emerald-400">
@@ -780,7 +867,7 @@ export default function App() {
                   <button
                     onClick={toggleMusic}
                     title="Toggle Music"
-                    className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors cursor-pointer"
+                    className="p-1.5 sm:p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors cursor-pointer"
                   >
                     {saveData.musicEnabled ? (
                       <Volume2 className="w-4 h-4 text-emerald-400" />
@@ -791,7 +878,7 @@ export default function App() {
                   <button
                     onClick={() => startLevel(currentLevelId, false)}
                     title="Restart Stage"
-                    className="p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors cursor-pointer"
+                    className="p-1.5 sm:p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors cursor-pointer"
                   >
                     <RotateCcw className="w-4 h-4" />
                   </button>
@@ -799,7 +886,7 @@ export default function App() {
                     onClick={() =>
                       setGameState((prev) => (prev === 'PLAYING' ? 'PAUSED' : 'PLAYING'))
                     }
-                    className="flex items-center gap-1 px-3 py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                    className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer text-xs"
                   >
                     {gameState === 'PAUSED' ? (
                       <>
@@ -819,33 +906,39 @@ export default function App() {
 
             {/* Boss Health Bar Banner during Final Castle Fight */}
             {hud.boss && hud.boss.active && (
-              <div className="w-full bg-red-950/90 border-x border-b border-red-800/80 px-4 py-2 flex items-center justify-between gap-4">
-                <div className="flex items-center gap-2 text-xs font-bold text-red-200">
-                  <Skull className="w-4 h-4 text-red-400" />
-                  <span>{hud.boss.name}</span>
-                  <span className="text-red-400">·</span>
-                  <span className="font-mono-num text-amber-300">
+              <div className="w-full bg-red-950/90 border-x border-b border-red-800/80 px-3 py-1 sm:px-4 sm:py-1.5 flex items-center justify-between gap-3 shrink-0">
+                <div className="flex items-center gap-2 text-xs font-bold text-red-200 truncate">
+                  <Skull className="w-4 h-4 text-red-400 shrink-0" />
+                  <span className="truncate">{hud.boss.name}</span>
+                  <span className="text-red-400 hidden sm:inline">·</span>
+                  <span className="font-mono-num text-amber-300 hidden sm:inline">
                     {hud.boss.phase === 'VULNERABLE'
                       ? 'VULNERABLE! STOMP OR FIREBALL NOW!'
                       : `PATTERN: ${hud.boss.phase}`}
                   </span>
                 </div>
-                <div className="flex items-center gap-3">
-                  <div className="w-40 h-3 bg-slate-950 rounded overflow-hidden border border-red-700">
+                <div className="flex items-center gap-2 sm:gap-3 shrink-0">
+                  <div className="w-24 sm:w-40 h-2.5 sm:h-3 bg-slate-950 rounded overflow-hidden border border-red-700">
                     <div
                       className="h-full bg-gradient-to-r from-red-500 to-amber-400 transition-all duration-200"
                       style={{ width: `${(hud.boss.hp / hud.boss.maxHp) * 100}%` }}
                     />
                   </div>
-                  <span className="font-mono-num text-xs font-bold text-white">
+                  <span className="font-mono-num text-[11px] sm:text-xs font-bold text-white">
                     HP: {hud.boss.hp}/{hud.boss.maxHp}
                   </span>
                 </div>
               </div>
             )}
 
-            {/* Game Canvas Container */}
-            <div className="relative w-full aspect-[800/608] bg-slate-950 border-x border-b border-slate-800 rounded-b-xl overflow-hidden shadow-2xl">
+            {/* Game Canvas Container (fits perfectly within mobile landscape height without scrolling) */}
+            <div
+              className="relative w-full aspect-[800/608] bg-slate-950 border-x border-b border-slate-800 rounded-b-xl overflow-hidden shadow-2xl mx-auto"
+              style={{
+                maxHeight: 'calc(100dvh - 52px)',
+                maxWidth: 'calc((100dvh - 52px) * (800 / 608))',
+              }}
+            >
               <canvas
                 ref={canvasRef}
                 width={CANVAS_WIDTH}
