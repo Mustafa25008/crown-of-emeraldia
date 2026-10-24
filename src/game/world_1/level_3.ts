@@ -35,11 +35,11 @@ export function buildLevel3(): LevelDefinition {
   }
   grid[13][22] = TileType.BRIDGE;
 
-  // Early powerup
+  // Early powerup (Power-up slot 1 at col 12)
   grid[12][11] = TileType.BRICK;
   grid[12][12] = TileType.QUESTION_MUSHROOM;
   grid[12][13] = TileType.QUESTION_COIN;
-  grid[12][14] = TileType.QUESTION_FEATHER;
+  grid[12][14] = TileType.BRICK;
 
   // Hidden Subterranean Vault in ceiling (cols 28..42)
   for (let c = 28; c <= 42; c++) {
@@ -48,31 +48,31 @@ export function buildLevel3(): LevelDefinition {
   // Stepping stones to reach vault
   grid[12][27] = TileType.SOLID_STONE;
   grid[9][26] = TileType.SOLID_STONE;
-  // Vault floating power blocks at row 3
-  grid[3][34] = TileType.QUESTION_FIRE;
-  grid[3][37] = TileType.QUESTION_STAR;
+  // Vault floating power block at row 3 (Power-up slot 2 at col 35)
+  grid[3][35] = TileType.QUESTION_FIRE;
   // Coins float above vault floor (floor at row 6, coins placed at row 4 to avoid row 3 blocks)
   addCoinRow(coins, 'l3_vault_l', 29, 4, 4);
   addCoinRow(coins, 'l3_vault_r', 39, 4, 4);
 
-  // Narrow platforms over abyss (cols 49..63)
+  // Narrow platforms over abyss (cols 49..63) + Star slot 1 at col 56
   grid[14][51] = TileType.SOLID_STONE;
   grid[14][52] = TileType.SOLID_STONE;
   grid[12][55] = TileType.SOLID_STONE;
   grid[12][56] = TileType.SOLID_STONE;
+  grid[8][56] = TileType.QUESTION_STAR;
   grid[10][59] = TileType.SOLID_STONE;
   grid[10][60] = TileType.SOLID_STONE;
   addCoinRow(coins, 'l3_narrow', 51, 10, 7);
 
   const checkpoint = { x: 67 * 32, y: 14 * 32 };
 
-  // Cavern hazard section with spikes and bridges
+  // Cavern hazard section with spikes and bridges (Power-up slot 3 at col 80)
   for (let c = 73; c <= 81; c++) {
     grid[15][c] = TileType.SPIKE;
   }
   for (let c = 72; c <= 75; c++) grid[12][c] = TileType.BRIDGE;
   for (let c = 78; c <= 82; c++) grid[10][c] = TileType.BRIDGE;
-  grid[7][80] = TileType.QUESTION_FIRE;
+  grid[6][80] = TileType.QUESTION_FEATHER;
 
   // Moving cavern elevators over second abyss (cols 88..102)
   movingPlatforms.push(
@@ -96,6 +96,11 @@ export function buildLevel3(): LevelDefinition {
     }
   );
   addCoinRow(coins, 'l3_elev', 91, 8, 7);
+
+  // Star slot 2 before final cavern stairs
+  grid[12][104] = TileType.BRICK;
+  grid[12][105] = TileType.QUESTION_STAR;
+  grid[12][106] = TileType.BRICK;
 
   // Final cavern stairs
   addStairs(grid, 112, 16, 6, true);

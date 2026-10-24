@@ -23,6 +23,7 @@ import {
   Map,
   ChevronRight,
   Feather,
+  ChevronLeft,
 } from 'lucide-react';
 import { GameState, HudSnapshot, PowerState, SaveProgress } from './game/types';
 import { LEVELS, getLevelById } from './game/levels';
@@ -39,6 +40,7 @@ export default function App() {
   const [carriedLives, setCarriedLives] = useState<number>(3);
   const [carriedPower, setCarriedPower] = useState<PowerState>('SMALL');
   const [runRestartCounter, setRunRestartCounter] = useState<number>(0);
+  const [activeVirtualKeys, setActiveVirtualKeys] = useState<Record<string, boolean>>({});
 
   const [hud, setHud] = useState<HudSnapshot>({
     score: 0,
@@ -211,6 +213,33 @@ export default function App() {
     const fresh = resetAllProgress();
     setSaveData(fresh);
   };
+
+  const handleVirtualInput = useCallback((code: string, pressed: boolean) => {
+    engineRef.current?.setVirtualKey(code, pressed);
+    setActiveVirtualKeys((prev) => {
+      if (!!prev[code] === pressed) return prev;
+      return { ...prev, [code]: pressed };
+    });
+  }, []);
+
+  const bindVirtualButton = (code: string) => ({
+    onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      e.currentTarget.setPointerCapture(e.pointerId);
+      handleVirtualInput(code, true);
+    },
+    onPointerUp: (e: React.PointerEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      handleVirtualInput(code, false);
+    },
+    onPointerCancel: (e: React.PointerEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+      handleVirtualInput(code, false);
+    },
+    onContextMenu: (e: React.MouseEvent<HTMLButtonElement>) => {
+      e.preventDefault();
+    },
+  });
 
   const totalBestScore = Object.values(saveData.highScores).reduce((a, b) => a + b, 0);
   const completedStagesCount = Object.values(saveData.highScores).filter((score) => score > 0).length;
@@ -987,15 +1016,80 @@ export default function App() {
               )}
             </div>
 
-            {/* Subtle Controls Bar Underneath Canvas */}
-            <div className="w-full pt-2.5 flex flex-wrap items-center justify-between gap-2 text-xs text-slate-400">
-              <div>
-                Move: <span className="text-slate-200 font-medium">A/D or Arrows</span> · Jump (Hold
-                for higher): <span className="text-slate-200 font-medium">Space / W / Up</span> ·
-                Run & Fireball: <span className="text-slate-200 font-medium">Shift / X</span>
+            {/* Classic On-Screen Controller (Left Side: Directional Pad | Right Side: Fire/Run & Jump) */}
+            <div className="w-full mt-3 bg-slate-900/95 border border-slate-800 rounded-2xl px-4 py-3.5 shadow-xl flex items-center justify-between gap-4 touch-none select-none">
+              {/* LEFT SIDE: Movement Controls (Left & Right) */}
+              <div className="flex items-center gap-3">
+                <button
+                  type="button"
+                  aria-label="Move Left"
+                  {...bindVirtualButton('ArrowLeft')}
+                  className={`w-16 h-14 sm:w-20 sm:h-16 rounded-2xl border-b-4 font-pixel text-xs flex flex-col items-center justify-center gap-1 transition-transform cursor-pointer select-none touch-none ${
+                    activeVirtualKeys['ArrowLeft']
+                      ? 'bg-slate-700 border-slate-900 text-emerald-300 translate-y-0.5 scale-95'
+                      : 'bg-slate-800 hover:bg-slate-750 border-slate-950 text-slate-100 shadow-lg'
+                  }`}
+                >
+                  <ChevronLeft className="w-6 h-6 stroke-[2.5]" />
+                  <span className="text-[9px] tracking-wider">LEFT</span>
+                </button>
+
+                <button
+                  type="button"
+                  aria-label="Move Right"
+                  {...bindVirtualButton('ArrowRight')}
+                  className={`w-16 h-14 sm:w-20 sm:h-16 rounded-2xl border-b-4 font-pixel text-xs flex flex-col items-center justify-center gap-1 transition-transform cursor-pointer select-none touch-none ${
+                    activeVirtualKeys['ArrowRight']
+                      ? 'bg-slate-700 border-slate-900 text-emerald-300 translate-y-0.5 scale-95'
+                      : 'bg-slate-800 hover:bg-slate-750 border-slate-950 text-slate-100 shadow-lg'
+                  }`}
+                >
+                  <ChevronRight className="w-6 h-6 stroke-[2.5]" />
+                  <span className="text-[9px] tracking-wider">RIGHT</span>
+                </button>
               </div>
-              <div>
-                Pause: <span className="text-slate-200 font-medium">Esc</span>
+
+              {/* CENTER: Desktop Keyboard Reference (Visible on PC / Larger Screens) */}
+              <div className="hidden md:flex flex-col items-center text-center text-[11px] text-slate-400 space-y-1 px-2">
+                <div className="font-pixel text-[10px] text-slate-300 tracking-wider">
+                  GAME CONTROLLER
+                </div>
+                <div>
+                  PC: <span className="text-slate-200 font-medium">A/D or Arrows</span> ·{' '}
+                  <span className="text-slate-200 font-medium">Shift/X</span> (Fire/Sprint) ·{' '}
+                  <span className="text-slate-200 font-medium">Space/W</span> (Jump)
+                </div>
+              </div>
+
+              {/* RIGHT SIDE: Action Buttons (FIRE / SPRINT & JUMP) */}
+              <div className="flex items-center gap-3.5">
+                <button
+                  type="button"
+                  aria-label="Fire and Sprint"
+                  {...bindVirtualButton('KeyX')}
+                  className={`w-16 h-14 sm:w-20 sm:h-16 rounded-full border-b-4 font-pixel flex flex-col items-center justify-center gap-1 transition-transform cursor-pointer select-none touch-none ${
+                    activeVirtualKeys['KeyX']
+                      ? 'bg-orange-600 border-orange-900 text-white translate-y-0.5 scale-95'
+                      : 'bg-orange-500 hover:bg-orange-400 border-orange-800 text-slate-950 shadow-lg'
+                  }`}
+                >
+                  <Flame className="w-5 h-5 fill-current" />
+                  <span className="text-[9px] font-bold tracking-wider">FIRE</span>
+                </button>
+
+                <button
+                  type="button"
+                  aria-label="Jump"
+                  {...bindVirtualButton('Space')}
+                  className={`w-16 h-14 sm:w-20 sm:h-16 rounded-full border-b-4 font-pixel flex flex-col items-center justify-center gap-1 transition-transform cursor-pointer select-none touch-none ${
+                    activeVirtualKeys['Space']
+                      ? 'bg-emerald-600 border-emerald-900 text-white translate-y-0.5 scale-95'
+                      : 'bg-emerald-500 hover:bg-emerald-400 border-emerald-800 text-slate-950 shadow-lg'
+                  }`}
+                >
+                  <span className="text-xs font-bold">A</span>
+                  <span className="text-[9px] font-bold tracking-wider">JUMP</span>
+                </button>
               </div>
             </div>
           </div>

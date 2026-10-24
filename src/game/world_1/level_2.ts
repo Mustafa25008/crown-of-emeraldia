@@ -113,9 +113,10 @@ export function buildLevel2(): LevelDefinition {
   );
   addCoinRow(coins, 'l2_vert_coins', 79, 5, 7);
 
-  // Final stretch before flagpole
+  // Final stretch before flagpole (Star slot 2 at col 93)
   for (let c = 91; c <= 96; c++) {
-    grid[12][c] = c % 2 === 0 ? TileType.BRICK : TileType.QUESTION_COIN;
+    grid[12][c] =
+      c === 93 ? TileType.QUESTION_STAR : c % 2 === 0 ? TileType.BRICK : TileType.QUESTION_COIN;
   }
   addStairs(grid, 108, 16, 6, true);
 

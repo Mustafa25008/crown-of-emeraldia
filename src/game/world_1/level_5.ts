@@ -45,10 +45,10 @@ export function buildLevel5(): LevelDefinition {
     grid[r][126] = TileType.SOLID_STONE;
   }
 
-  // Supply blocks at start
-  grid[12][8] = TileType.QUESTION_MUSHROOM;
-  grid[12][10] = TileType.QUESTION_FIRE;
-  grid[12][12] = TileType.QUESTION_FEATHER;
+  // Supply blocks at start (Power-up slot 1 at col 10; adjacent blocks are coins)
+  grid[12][8] = TileType.QUESTION_COIN;
+  grid[12][10] = TileType.QUESTION_MUSHROOM;
+  grid[12][12] = TileType.QUESTION_COIN;
   addCoinRow(coins, 'l5_c1', 7, 5, 9);
 
   // Moving platform over Lava Pit 1 (cols 19..26)
@@ -62,10 +62,11 @@ export function buildLevel5(): LevelDefinition {
     speed: 95,
   });
 
-  // Mid Castle Hall (cols 27..46)
+  // Mid Castle Hall (cols 27..46) (Power-up slot 2 at col 35, Star slot 1 at col 43)
   for (let c = 32; c <= 38; c++) {
-    grid[11][c] = c === 35 ? TileType.QUESTION_COIN : TileType.BRICK;
+    grid[11][c] = c === 35 ? TileType.QUESTION_FIRE : TileType.BRICK;
   }
+  grid[11][43] = TileType.QUESTION_STAR;
   // Coins float cleanly above blocks at row 7
   addCoinRow(coins, 'l5_c2', 32, 7, 7);
 
@@ -92,10 +93,12 @@ export function buildLevel5(): LevelDefinition {
   );
 
   // Pre-Boss Checkpoint & Power-Up Sanctuary (cols 60..86)
+  // Power-up slot 3 at col 72, Star slot 2 at col 82
   const checkpoint = { x: 64 * 32, y: 14 * 32 };
-  grid[12][70] = TileType.QUESTION_MUSHROOM;
-  grid[12][73] = TileType.QUESTION_FIRE;
-  grid[12][76] = TileType.QUESTION_FEATHER;
+  grid[12][69] = TileType.QUESTION_COIN;
+  grid[12][72] = TileType.QUESTION_FEATHER;
+  grid[12][75] = TileType.QUESTION_COIN;
+  grid[12][82] = TileType.QUESTION_STAR;
   addCoinRow(coins, 'l5_sanctuary', 69, 9, 9);
 
   // Boss Arena tactical platforms (cols 94..118) so player can dodge fire & stomp Dredge!

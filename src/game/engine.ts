@@ -107,6 +107,11 @@ export class PlatformerEngine {
   private isLevelFinishing: boolean = false;
   private finishTimer: number = 0;
 
+  // Per-level randomized power-up & star progression state
+  private levelUpgradeMode: 'ALL_THREE' | 'ONLY_FIRE_FLOWER' | 'ONLY_FEATHER' = 'ALL_THREE';
+  private nextVarietyUpgrade: 'FIRE_FLOWER' | 'FEATHER' = 'FIRE_FLOWER';
+  private powerUpsSpawnedInLevel: number = 0;
+
   // Dynamic Entities
   private activeCoins: Map<string, { x: number; y: number; collected: boolean }> = new Map();
   private enemies: ActiveEnemy[] = [];
@@ -182,6 +187,7 @@ export class PlatformerEngine {
   private initEntitiesFromLevel(resetCoinsAndBlocks: boolean) {
     if (resetCoinsAndBlocks) {
       this.tiles = this.level.tiles.map((row) => [...row]);
+      this.randomizeLevelPowerUpAndStarBlocks();
       this.activeCoins.clear();
       for (const c of this.level.coins) {
         this.activeCoins.set(c.id, { x: c.x, y: c.y, collected: false });
@@ -249,6 +255,93 @@ export class PlatformerEngine {
     this.emitHud();
   }
 
+  private randomizeLevelPowerUpAndStarBlocks() {
+    this.powerUpsSpawnedInLevel = 0;
+
+    // 1. Randomly pick the upgrade behavior for this level when Pip is BIG/FIRE/RACCOON:
+    // - 'ALL_THREE': gives both FIRE_FLOWER and FEATHER across consecutive upgrade blocks
+    // - 'ONLY_FIRE_FLOWER': gives only FIRE_FLOWER when grown in this level
+    // - 'ONLY_FEATHER': gives only FEATHER when grown in this level
+    const modes: Array<'ALL_THREE' | 'ONLY_FIRE_FLOWER' | 'ONLY_FEATHER'> = [
+      'ALL_THREE',
+      'ONLY_FIRE_FLOWER',
+      'ONLY_FEATHER',
+    ];
+    this.levelUpgradeMode = modes[Math.floor(Math.random() * modes.length)];
+    this.nextVarietyUpgrade = Math.random() < 0.5 ? 'FIRE_FLOWER' : 'FEATHER';
+
+    // 2. Collect all candidate power-up Question Blocks (QUESTION_MUSHROOM, QUESTION_FIRE, QUESTION_FEATHER)
+    const powerUpBlocks: Array<{ r: number; c: number }> = [];
+    const starBlocks: Array<{ r: number; c: number }> = [];
+
+    for (let r = 0; r < this.level.heightInTiles; r++) {
+      for (let c = 0; c < this.level.widthInTiles; c++) {
+        const t = this.tiles[r][c];
+        if (
+          t === TileType.QUESTION_MUSHROOM ||
+          t === TileType.QUESTION_FIRE ||
+          t === TileType.QUESTION_FEATHER
+        ) {
+          powerUpBlocks.push({ r, c });
+        } else if (t === TileType.QUESTION_STAR) {
+          starBlocks.push({ r, c });
+        }
+      }
+    }
+
+    // Sort left-to-right by column and enforce minimum spacing (>= 12 tiles apart)
+    // so two adjacent or nearby blocks can NEVER both give power-ups.
+    powerUpBlocks.sort((a, b) => a.c - b.c);
+    const spacedPowerUpBlocks: Array<{ r: number; c: number }> = [];
+    for (const blk of powerUpBlocks) {
+      if (
+        spacedPowerUpBlocks.length === 0 ||
+        blk.c - spacedPowerUpBlocks[spacedPowerUpBlocks.length - 1].c >= 12
+      ) {
+        spacedPowerUpBlocks.push(blk);
+      } else {
+        this.tiles[blk.r][blk.c] = TileType.QUESTION_COIN;
+      }
+    }
+
+    // Randomly decide how many power-up blocks appear in this level: 1, 2, or 3 (max 3).
+    // Note: Always keep the earliest block active if quota >= 1 so a Small player can find a Mushroom early,
+    // or shuffle among the spaced slots so any 1, 2, or all 3 slots are active.
+    const maxSlots = Math.min(3, spacedPowerUpBlocks.length);
+    const possibleQuotas = [1, 2, 3].filter((q) => q <= maxSlots);
+    const powerUpQuota =
+      possibleQuotas.length > 0
+        ? possibleQuotas[Math.floor(Math.random() * possibleQuotas.length)]
+        : maxSlots;
+
+    // Shuffle indices to pick `powerUpQuota` active power-up blocks; convert unselected slots to QUESTION_COIN
+    const slotIndices = spacedPowerUpBlocks.map((_, idx) => idx);
+    for (let i = slotIndices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [slotIndices[i], slotIndices[j]] = [slotIndices[j], slotIndices[i]];
+    }
+    const activePowerUpSet = new Set(slotIndices.slice(0, powerUpQuota));
+    spacedPowerUpBlocks.forEach((blk, idx) => {
+      if (!activePowerUpSet.has(idx)) {
+        this.tiles[blk.r][blk.c] = TileType.QUESTION_COIN;
+      }
+    });
+
+    // 3. Randomly decide how many Invincible Stars appear in this level: 0, 1, or 2 Stars
+    const starQuota = Math.min(starBlocks.length, Math.floor(Math.random() * 3)); // 0, 1, or 2
+    const starIndices = starBlocks.map((_, idx) => idx);
+    for (let i = starIndices.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [starIndices[i], starIndices[j]] = [starIndices[j], starIndices[i]];
+    }
+    const activeStarSet = new Set(starIndices.slice(0, starQuota));
+    starBlocks.forEach((blk, idx) => {
+      if (!activeStarSet.has(idx)) {
+        this.tiles[blk.r][blk.c] = TileType.QUESTION_COIN;
+      }
+    });
+  }
+
   private updatePlayerDimensions() {
     const oldHeight = this.pHeight;
     if (this.powerState === 'SMALL') {
@@ -302,6 +395,22 @@ export class PlatformerEngine {
     this.jumpJustPressed = false;
     this.fireJustPressed = false;
   };
+
+  public setVirtualKey(code: string, pressed: boolean) {
+    if (pressed) {
+      if (!this.keys[code]) {
+        if (code === 'Space' || code === 'KeyW' || code === 'ArrowUp') {
+          this.jumpJustPressed = true;
+        }
+        if (code === 'ShiftLeft' || code === 'ShiftRight' || code === 'KeyX' || code === 'KeyJ') {
+          this.fireJustPressed = true;
+        }
+      }
+      this.keys[code] = true;
+    } else {
+      this.keys[code] = false;
+    }
+  }
 
   private bindKeyboardListeners() {
     window.addEventListener('keydown', this.handleKeyDown);
@@ -738,28 +847,70 @@ export class PlatformerEngine {
       this.addScore(200, blockCenterX - 10, blockTopY - 16);
       this.spawnBurstParticles(blockCenterX, blockTopY - 8, '#fbbf24', 10);
       this.emitHud();
+    } else if (tile === TileType.QUESTION_STAR) {
+      this.tiles[row][col] = TileType.USED_BLOCK;
+      soundManager.playPowerUpAppear();
+      this.powerUps.push({
+        id: `pu_star_${col}_${row}_${Date.now()}`,
+        type: 'STAR',
+        x: col * TILE_SIZE + 4,
+        y: (row - 1) * TILE_SIZE + 8,
+        vx: 95,
+        vy: -260,
+        width: 24,
+        height: 24,
+        spawnTimer: 0.25,
+        collected: false,
+      });
     } else if (
       tile === TileType.QUESTION_MUSHROOM ||
       tile === TileType.QUESTION_FIRE ||
-      tile === TileType.QUESTION_FEATHER ||
-      tile === TileType.QUESTION_STAR
+      tile === TileType.QUESTION_FEATHER
     ) {
       this.tiles[row][col] = TileType.USED_BLOCK;
+
+      // Enforce hard cap of at most 3 non-star power-ups per level
+      if (this.powerUpsSpawnedInLevel >= 3) {
+        soundManager.playCoin();
+        this.coins++;
+        this.checkExtraLifeFromCoins();
+        this.addScore(200, blockCenterX - 10, blockTopY - 16);
+        this.spawnBurstParticles(blockCenterX, blockTopY - 8, '#fbbf24', 10);
+        this.emitHud();
+        return;
+      }
+
+      this.powerUpsSpawnedInLevel++;
       soundManager.playPowerUpAppear();
 
-      // Progressive power-up flow:
-      // - If player is SMALL, power-up blocks always spawn MUSHROOM first.
-      // - Once player is BIG (or higher), MUSHROOM no longer spawns; instead FEATHER or FIRE_FLOWER spawns!
-      // - If player takes damage and shrinks back to SMALL, MUSHROOM will spawn again.
-      let spawnType: 'MUSHROOM' | 'FIRE_FLOWER' | 'FEATHER' | 'STAR' = 'MUSHROOM';
-      if (tile === TileType.QUESTION_STAR) {
-        spawnType = 'STAR';
-      } else if (tile === TileType.QUESTION_FEATHER) {
-        spawnType = this.powerState === 'SMALL' ? 'MUSHROOM' : 'FEATHER';
-      } else if (tile === TileType.QUESTION_FIRE) {
-        spawnType = this.powerState === 'SMALL' ? 'MUSHROOM' : 'FIRE_FLOWER';
-      } else if (tile === TileType.QUESTION_MUSHROOM) {
-        spawnType = this.powerState === 'SMALL' ? 'MUSHROOM' : 'FIRE_FLOWER';
+      // Dynamic & State-Aware Power-Up Selection:
+      // 1. Whenever the character is SMALL, a MUSHROOM is guaranteed to spawn!
+      //    (If the player shrinks back to SMALL after taking a hit, or stays SMALL for the whole level,
+      //     any power-up block they hit will definitely give a MUSHROOM.)
+      // 2. When the character is already grown (BIG, FIRE, or RACCOON), MUSHROOM will NOT come.
+      //    Instead, either FEATHER or FIRE_FLOWER spawns based on the level's randomized mode:
+      //    - 'ONLY_FIRE_FLOWER': spawns FIRE_FLOWER
+      //    - 'ONLY_FEATHER': spawns FEATHER
+      //    - 'ALL_THREE': alternates between FIRE_FLOWER and FEATHER so all 3 power-ups appear once!
+      let spawnType: 'MUSHROOM' | 'FIRE_FLOWER' | 'FEATHER' = 'MUSHROOM';
+      if (this.powerState === 'SMALL') {
+        spawnType = 'MUSHROOM';
+      } else if (this.levelUpgradeMode === 'ONLY_FIRE_FLOWER') {
+        spawnType = 'FIRE_FLOWER';
+      } else if (this.levelUpgradeMode === 'ONLY_FEATHER') {
+        spawnType = 'FEATHER';
+      } else {
+        // 'ALL_THREE' mode: if player is already FIRE, prefer FEATHER; if already RACCOON, prefer FIRE_FLOWER;
+        // otherwise alternate using nextVarietyUpgrade so all three appear one time each.
+        if (this.powerState === 'FIRE') {
+          spawnType = 'FEATHER';
+        } else if (this.powerState === 'RACCOON') {
+          spawnType = 'FIRE_FLOWER';
+        } else {
+          spawnType = this.nextVarietyUpgrade;
+          this.nextVarietyUpgrade =
+            this.nextVarietyUpgrade === 'FIRE_FLOWER' ? 'FEATHER' : 'FIRE_FLOWER';
+        }
       }
 
       this.powerUps.push({
@@ -768,7 +919,7 @@ export class PlatformerEngine {
         x: col * TILE_SIZE + 4,
         y: (row - 1) * TILE_SIZE + 8,
         vx: spawnType === 'FIRE_FLOWER' ? 0 : spawnType === 'FEATHER' ? 55 : 95,
-        vy: spawnType === 'STAR' ? -260 : spawnType === 'FEATHER' ? -140 : 0,
+        vy: spawnType === 'FEATHER' ? -140 : 0,
         width: 24,
         height: 24,
         spawnTimer: 0.25,

@@ -20,14 +20,14 @@ export function buildLevel1(): LevelDefinition {
   fillGroundRange(grid, 37, 68);
   fillGroundRange(grid, 71, 119);
 
-  // Intro Question & Brick formations
+  // Intro Question & Brick formations (Power-up slot 1 at col 15, Star slot 1 high at col 16)
   grid[12][10] = TileType.QUESTION_COIN;
   grid[12][14] = TileType.BRICK;
   grid[12][15] = TileType.QUESTION_MUSHROOM;
   grid[12][16] = TileType.BRICK;
-  grid[12][17] = TileType.QUESTION_FEATHER;
+  grid[12][17] = TileType.QUESTION_COIN;
   grid[12][18] = TileType.BRICK;
-  grid[8][16] = TileType.QUESTION_COIN;
+  grid[8][16] = TileType.QUESTION_STAR;
 
   addCoinRow(coins, 'l1_intro', 14, 5, 10);
 
@@ -35,8 +35,8 @@ export function buildLevel1(): LevelDefinition {
   addPipe(grid, 23, 16, 2);
   addPipe(grid, 30, 16, 3);
 
-  // Mid section after first pit
-  grid[12][41] = TileType.QUESTION_FEATHER;
+  // Mid section after first pit (Power-up slot 2 at col 42)
+  grid[12][41] = TileType.BRICK;
   grid[12][42] = TileType.QUESTION_FIRE;
   grid[12][43] = TileType.BRICK;
 
@@ -49,16 +49,16 @@ export function buildLevel1(): LevelDefinition {
   // Checkpoint at col 56
   const checkpoint = { x: 56 * 32, y: 14 * 32 };
 
-  // Star block & bricks
+  // Star slot 2 & bricks at col 61
   grid[12][60] = TileType.BRICK;
   grid[12][61] = TileType.QUESTION_STAR;
   grid[12][62] = TileType.BRICK;
 
   addPipe(grid, 65, 16, 3);
 
-  // Second gap & platforming challenge: row 11 blocks with coins placed above at row 8
+  // Second gap & platforming challenge (Power-up slot 3 at col 77)
   for (let c = 75; c <= 79; c++) {
-    grid[11][c] = c === 77 ? TileType.QUESTION_COIN : TileType.BRICK;
+    grid[11][c] = c === 77 ? TileType.QUESTION_FEATHER : TileType.BRICK;
   }
   addCoinRow(coins, 'l1_mid2', 75, 5, 8);
 

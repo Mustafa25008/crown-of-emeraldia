@@ -33,11 +33,11 @@ export function buildLevel4(): LevelDefinition {
     }
   }
 
-  // Intro supply blocks
+  // Intro supply blocks (Power-up slot 1 at col 11)
   grid[12][10] = TileType.BRICK;
   grid[12][11] = TileType.QUESTION_MUSHROOM;
-  grid[12][12] = TileType.QUESTION_FEATHER;
-  grid[12][13] = TileType.QUESTION_FIRE;
+  grid[12][12] = TileType.BRICK;
+  grid[12][13] = TileType.QUESTION_COIN;
   addCoinRow(coins, 'l4_c1', 9, 6, 9);
 
   // Moving platform over Lava Trench 1 (cols 23..29)
@@ -51,7 +51,7 @@ export function buildLevel4(): LevelDefinition {
     speed: 95,
   });
 
-  // Battlement section (cols 30..54) with Fire Bars and Knights
+  // Battlement section (cols 30..54) with Fire Bars and Knights (Star slot 1 at col 44)
   grid[13][38] = TileType.SOLID_STONE;
   grid[12][38] = TileType.SOLID_STONE;
   for (let c = 41; c <= 47; c++) {
@@ -82,7 +82,7 @@ export function buildLevel4(): LevelDefinition {
     }
   );
 
-  // Mid-late section (cols 66..94) + Checkpoint near the end
+  // Mid-late section (cols 66..94) (Power-up slot 2 at col 73)
   grid[12][72] = TileType.BRICK;
   grid[12][73] = TileType.QUESTION_FIRE;
   grid[12][74] = TileType.BRICK;
@@ -92,6 +92,9 @@ export function buildLevel4(): LevelDefinition {
     grid[11][c] = TileType.BRIDGE;
   }
   addCoinRow(coins, 'l4_bridge', 79, 5, 9);
+
+  // Star slot 2 at col 87 before Checkpoint
+  grid[12][87] = TileType.QUESTION_STAR;
 
   // Checkpoint near end of approach (col 90)
   const checkpoint = { x: 90 * 32, y: 14 * 32 };
@@ -110,6 +113,11 @@ export function buildLevel4(): LevelDefinition {
     endY: 13 * 32,
     speed: 105,
   });
+
+  // Power-up slot 3 after Lava Trench 3 at col 108
+  grid[12][107] = TileType.BRICK;
+  grid[12][108] = TileType.QUESTION_FEATHER;
+  grid[12][109] = TileType.BRICK;
 
   // Grand castle approach staircase
   addStairs(grid, 114, 16, 7, true);
