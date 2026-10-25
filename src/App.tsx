@@ -31,7 +31,7 @@ import {
   Maximize2,
 } from 'lucide-react';
 import { GameState, HudSnapshot, PowerState, SaveProgress } from './game/types';
-import { LEVELS, getLevelById } from './game/levels';
+import { LEVELS, WORLDS, getLevelById, getWorldById } from './game/levels';
 import { loadProgress, saveProgress, recordLevelCompletion, resetAllProgress } from './game/storage';
 import { soundManager } from './game/audio';
 import { PlatformerEngine, CANVAS_WIDTH, CANVAS_HEIGHT } from './game/engine';
@@ -39,6 +39,7 @@ import { PlatformerEngine, CANVAS_WIDTH, CANVAS_HEIGHT } from './game/engine';
 export default function App() {
   const [gameState, setGameState] = useState<GameState>('TITLE_MENU');
   const [saveData, setSaveData] = useState<SaveProgress>(() => loadProgress());
+  const [selectedWorldId, setSelectedWorldId] = useState<number>(1);
   const [currentLevelId, setCurrentLevelId] = useState<number>(1);
   const [carriedScore, setCarriedScore] = useState<number>(0);
   const [carriedCoins, setCarriedCoins] = useState<number>(0);
@@ -123,6 +124,7 @@ export default function App() {
       }
       const level = getLevelById(levelId);
       setCurrentLevelId(levelId);
+      setSelectedWorldId(level.worldId || (levelId > 5 ? 2 : 1));
 
       if (resetRunStats) {
         setCarriedScore(0);
@@ -170,7 +172,7 @@ export default function App() {
           setSaveData((prev) => recordLevelCompletion(prev, level.id, finalScore, finalCoins));
           setGameState((prev) => {
             if (prev !== 'PLAYING' && prev !== 'PAUSED') return prev;
-            return level.id === 5 ? 'WORLD_VICTORY' : 'LEVEL_COMPLETE';
+            return level.id === 5 || level.id === 10 ? 'WORLD_VICTORY' : 'LEVEL_COMPLETE';
           });
         },
         onGameOver: (finalScore, finalCoins) => {
@@ -286,6 +288,19 @@ export default function App() {
 
   const totalBestScore = Object.values(saveData.highScores).reduce((a, b) => a + b, 0);
   const completedStagesCount = Object.values(saveData.highScores).filter((score) => score > 0).length;
+  const activeWorld = getWorldById(selectedWorldId);
+  const currentLevelDef = getLevelById(currentLevelId);
+
+  const isStageUnlocked = (lvlId: number): boolean => {
+    if (lvlId === 1 || lvlId === 6) return true;
+    const prevHigh = saveData.highScores[lvlId - 1] || 0;
+    const prevCoins = saveData.bestCoins[lvlId - 1] || 0;
+    if (prevHigh > 0 || prevCoins > 0) return true;
+    if (lvlId <= 5) {
+      return lvlId <= Math.min(5, saveData.unlockedLevel);
+    }
+    return false;
+  };
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 select-none">
@@ -427,14 +442,14 @@ export default function App() {
 
             {/* Bottom Ground Footer Note */}
             <div className="relative z-10 h-16 flex items-center justify-center px-6 text-xs font-mono-num text-amber-100/90">
-              <span>STAGE PROGRESS: {completedStagesCount} / 5 COMPLETED</span>
+              <span>STAGE PROGRESS: {completedStagesCount} / {LEVELS.length} COMPLETED</span>
             </div>
           </div>
         )}
 
         {/* 2. COMPACT WORLD SELECT SCREEN */}
         {gameState === 'WORLD_SELECT' && (
-          <div className="w-full max-w-lg bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-2xl">
+          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-2xl">
             <div className="flex items-center justify-between gap-4 border-b border-slate-800 pb-4">
               <button
                 onClick={() => navigateToMenu('TITLE_MENU')}
@@ -449,24 +464,50 @@ export default function App() {
               <div className="w-16 hidden sm:block" />
             </div>
 
-            <div className="flex justify-center">
-              <button
-                onClick={() => navigateToMenu('LEVEL_SELECT')}
-                className="w-56 bg-slate-950 border-2 border-emerald-500/70 hover:border-emerald-400 active:scale-[0.98] rounded-xl p-5 text-center space-y-3 transition-all cursor-pointer shadow-lg"
-              >
-                <div className="font-pixel text-base text-white">WORLD 1</div>
-                <div className="text-xs font-mono-num font-semibold text-emerald-400">
-                  {completedStagesCount}/5 STAGES
-                </div>
-                <div className="pt-2 border-t border-slate-800/80 text-xs font-mono-num text-slate-300">
-                  World Score: {totalBestScore.toLocaleString()}
-                </div>
-              </button>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              {WORLDS.map((world) => {
+                const worldCompletedCount = world.levels.filter(
+                  (l) => (saveData.highScores[l.id] || 0) > 0 || (saveData.bestCoins[l.id] || 0) > 0
+                ).length;
+                const worldScore = world.levels.reduce(
+                  (sum, l) => sum + (saveData.highScores[l.id] || 0),
+                  0
+                );
+                const isOceanWorld = world.id === 2;
+
+                return (
+                  <button
+                    key={world.id}
+                    onClick={() => {
+                      setSelectedWorldId(world.id);
+                      navigateToMenu('LEVEL_SELECT');
+                    }}
+                    className={`w-full bg-slate-950 border-2 ${
+                      isOceanWorld
+                        ? 'border-cyan-500/70 hover:border-cyan-400'
+                        : 'border-emerald-500/70 hover:border-emerald-400'
+                    } active:scale-[0.98] rounded-xl p-5 text-center space-y-2.5 transition-all cursor-pointer shadow-lg`}
+                  >
+                    <div className="font-pixel text-base text-white">WORLD {world.id}</div>
+                    <div className="text-xs font-semibold text-slate-300">{world.name}</div>
+                    <div
+                      className={`text-xs font-mono-num font-semibold ${
+                        isOceanWorld ? 'text-cyan-400' : 'text-emerald-400'
+                      }`}
+                    >
+                      {worldCompletedCount}/{world.levels.length} STAGES
+                    </div>
+                    <div className="pt-2 border-t border-slate-800/80 text-xs font-mono-num text-slate-300">
+                      World Score: {worldScore.toLocaleString()}
+                    </div>
+                  </button>
+                );
+              })}
             </div>
           </div>
         )}
 
-        {/* 3. LEVEL SELECTION SCREEN (Appears after selecting World 1) */}
+        {/* 3. LEVEL SELECTION SCREEN (Appears after selecting World 1 or World 2) */}
         {gameState === 'LEVEL_SELECT' && (
           <div className="w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8 space-y-6 shadow-2xl">
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
@@ -479,7 +520,7 @@ export default function App() {
                   <span>Worlds</span>
                 </button>
                 <h2 className="font-pixel text-base md:text-xl text-white">
-                  WORLD 1: EMERALDIA KINGDOM
+                  WORLD {activeWorld.id}: {activeWorld.name.toUpperCase()}
                 </h2>
               </div>
               <button
@@ -491,8 +532,10 @@ export default function App() {
             </div>
 
             <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
-              {LEVELS.map((lvl) => {
-                const isUnlocked = lvl.id <= saveData.unlockedLevel;
+              {activeWorld.levels.map((lvl, idx) => {
+                const stageNum = lvl.stageNumber || idx + 1;
+                const worldNum = lvl.worldId || activeWorld.id;
+                const isUnlocked = isStageUnlocked(lvl.id);
                 const highScore = saveData.highScores[lvl.id] || 0;
                 const bestCoins = saveData.bestCoins[lvl.id] || 0;
                 const isCompleted = highScore > 0 || bestCoins > 0;
@@ -502,6 +545,10 @@ export default function App() {
                   : isCompleted
                   ? 'Play Again'
                   : 'Play Now';
+
+                const cleanTitle = lvl.name
+                  .replace(`Level ${lvl.id}: `, '')
+                  .replace(`Stage ${worldNum}-${stageNum}: `, '');
 
                 return (
                   <div
@@ -514,7 +561,9 @@ export default function App() {
                   >
                     <div className="space-y-3">
                       <div className="flex items-center justify-between text-xs text-slate-400 font-mono-num">
-                        <span>STAGE 1-{lvl.id}</span>
+                        <span>
+                          STAGE {worldNum}-{stageNum}
+                        </span>
                         {isUnlocked ? (
                           <CheckCircle2 className="w-4 h-4 text-emerald-400" />
                         ) : (
@@ -522,9 +571,7 @@ export default function App() {
                         )}
                       </div>
 
-                      <h3 className="font-bold text-base text-white">
-                        {lvl.name.replace(`Level ${lvl.id}: `, '')}
-                      </h3>
+                      <h3 className="font-bold text-base text-white">{cleanTitle}</h3>
                       <p className="text-xs text-slate-400 leading-relaxed">{lvl.subtitle}</p>
                     </div>
 
@@ -1107,14 +1154,15 @@ export default function App() {
                       <div className="px-1">
                         <div className="text-[10px] text-slate-400 truncate">NEXT STAGE</div>
                         <div className="text-xs sm:text-sm font-bold text-emerald-400 mt-0.5 truncate">
-                          Stage 1-{Math.min(5, currentLevelId + 1)}
+                          Stage {currentLevelDef.worldId || (currentLevelId > 5 ? 2 : 1)}-
+                          {(currentLevelDef.stageNumber || ((currentLevelId - 1) % 5) + 1) + 1}
                         </div>
                       </div>
                     </div>
 
                     <div className="flex flex-col gap-2">
                       <button
-                        onClick={() => startLevel(Math.min(5, currentLevelId + 1), false)}
+                        onClick={() => startLevel(Math.min(10, currentLevelId + 1), false)}
                         className="w-full min-h-[38px] flex items-center justify-center gap-2 py-2 px-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
                       >
                         <span>Next Level</span>
@@ -1183,10 +1231,14 @@ export default function App() {
 
                     <div>
                       <div className="text-[10px] sm:text-xs font-bold text-amber-400">
-                        IRONCLAD KING DREDGE DEFEATED!
+                        {currentLevelId >= 6
+                          ? 'ABYSSAL WARLORD KRAKENOS DEFEATED!'
+                          : 'IRONCLAD KING DREDGE DEFEATED!'}
                       </div>
                       <h3 className="font-pixel text-xs sm:text-base text-white mt-0.5">
-                        PEACE RESTORED TO EMERALDIA!
+                        {currentLevelId >= 6
+                          ? 'WORLD 2: CORAL ABYSS CONQUERED!'
+                          : 'WORLD 1: EMERALDIA SAVED!'}
                       </h3>
                     </div>
 
@@ -1207,17 +1259,26 @@ export default function App() {
                     </div>
 
                     <div className="grid grid-cols-2 gap-2">
+                      {currentLevelId === 5 ? (
+                        <button
+                          onClick={() => startLevel(6, false)}
+                          className="min-h-[38px] py-2 px-3 bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
+                        >
+                          Enter World 2
+                        </button>
+                      ) : (
+                        <button
+                          onClick={() => startLevel(currentLevelId >= 6 ? 6 : 1, true)}
+                          className="min-h-[38px] py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
+                        >
+                          Replay World {currentLevelId >= 6 ? 2 : 1}
+                        </button>
+                      )}
                       <button
-                        onClick={() => startLevel(1, true)}
-                        className="min-h-[38px] py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
-                      >
-                        Replay World 1
-                      </button>
-                      <button
-                        onClick={() => navigateToMenu('LEVEL_SELECT')}
+                        onClick={() => navigateToMenu('WORLD_SELECT')}
                         className="min-h-[38px] py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
                       >
-                        Level Selection
+                        World Select
                       </button>
                     </div>
                   </div>

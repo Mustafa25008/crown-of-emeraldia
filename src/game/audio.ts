@@ -1,7 +1,7 @@
 // Web Audio API Chiptune & Retro Sound Effects Engine
 // Purely synthesized 16-bit sounds and looping background music with zero external audio files
 
-type TrackName = 'OVERWORLD' | 'FOREST' | 'CAVERN' | 'FORTRESS' | 'CASTLE_BOSS';
+type TrackName = 'OVERWORLD' | 'FOREST' | 'CAVERN' | 'FORTRESS' | 'CASTLE_BOSS' | 'UNDERWATER';
 
 class SoundManager {
   private ctx: AudioContext | null = null;
@@ -78,6 +78,11 @@ class SoundManager {
     const startFreq = isBig ? 160 : 220;
     const endFreq = isBig ? 480 : 620;
     this.playTone(startFreq, 0.16, 'square', 0.14, endFreq);
+  }
+
+  public playSwim() {
+    this.playTone(240, 0.08, 'triangle', 0.16, 420, 0);
+    this.playTone(360, 0.07, 'sine', 0.12, 540, 45);
   }
 
   public playCoin() {
@@ -210,6 +215,22 @@ class SoundManager {
         bass:  [82, 82, 87, 87, 82, 82, 110, 98, 82, 82, 87, 87, 123, 116, 110, 98, 110, 110, 116, 116, 110, 110, 146, 131, 123, 110, 98, 87, 82, 82, 82, 82],
         tempoMs: 135,
         wave: 'sawtooth',
+      },
+      UNDERWATER: {
+        notes: [
+          293, 330, 370, 392, 440, 494, 523, 0, 523, 523, 0, 494,
+          523, 0, 0, 392, 0, 0, 392, 370, 392, 440, 0, 0,
+          293, 330, 370, 392, 440, 494, 587, 0, 523, 494, 0, 440,
+          392, 0, 0, 523, 0, 0, 494, 440, 392, 523, 0, 0,
+        ],
+        bass: [
+          131, 196, 196, 146, 220, 220, 131, 196, 196, 131, 196, 196,
+          131, 196, 196, 123, 196, 196, 110, 165, 165, 146, 220, 220,
+          131, 196, 196, 146, 220, 220, 146, 220, 220, 146, 220, 220,
+          196, 247, 247, 131, 196, 196, 146, 196, 196, 131, 196, 131,
+        ],
+        tempoMs: 185,
+        wave: 'triangle',
       },
     };
 

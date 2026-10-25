@@ -13,7 +13,7 @@ export type GameState =
 
 export type PowerState = 'SMALL' | 'BIG' | 'FIRE' | 'RACCOON';
 
-export type LevelTheme = 'HILLS' | 'FOREST' | 'CAVERN' | 'FORTRESS' | 'CASTLE';
+export type LevelTheme = 'HILLS' | 'FOREST' | 'CAVERN' | 'FORTRESS' | 'CASTLE' | 'UNDERWATER';
 
 export enum TileType {
   EMPTY = 0,
@@ -69,10 +69,13 @@ export interface CheckpointDef {
 
 export interface LevelDefinition {
   id: number;
+  worldId?: number;
+  stageNumber?: number;
   name: string;
   subtitle: string;
   theme: LevelTheme;
-  musicTrack: 'OVERWORLD' | 'FOREST' | 'CAVERN' | 'FORTRESS' | 'CASTLE_BOSS';
+  isUnderwater?: boolean;
+  musicTrack: 'OVERWORLD' | 'FOREST' | 'CAVERN' | 'FORTRESS' | 'CASTLE_BOSS' | 'UNDERWATER';
   widthInTiles: number;
   heightInTiles: number;
   tiles: number[][];

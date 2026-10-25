@@ -16,22 +16,28 @@ All worlds and levels must be organized modularly by world folder so new stages 
 ├── engine.ts                 # Core physics, collision, and randomized power-up/star engine
 ├── renderer.ts               # 16-bit pixel-art Canvas renderer
 ├── world_1/
-│   ├── index.ts              # Exports WORLD_1_LEVELS array
+│   ├── index.ts              # Exports WORLD_1 and WORLD_1_LEVELS array (Levels 1-5)
 │   ├── level_1.ts            # Stage 1-1 definition (buildLevel1)
 │   ├── level_2.ts            # Stage 1-2 definition (buildLevel2)
 │   ├── level_3.ts            # Stage 1-3 definition (buildLevel3)
 │   ├── level_4.ts            # Stage 1-4 definition (buildLevel4)
 │   └── level_5.ts            # Stage 1-5 boss stage definition (buildLevel5)
-└── world_2/                  # Future worlds follow the exact same pattern
-    ├── index.ts              # Exports WORLD_2_LEVELS array
-    ├── level_1.ts            # Stage 2-1 definition
-    └── ...
+└── world_2/                  # World 2: Coral Abyss (Underwater Stages 2-1 to 2-4 + Boss Stage 2-5)
+    ├── index.ts              # Exports WORLD_2 and WORLD_2_LEVELS array (Levels 6-10)
+    ├── level_1.ts            # Stage 2-1 definition (Coral Shallows - Underwater)
+    ├── level_2.ts            # Stage 2-2 definition (Kelp Forest Trench - Underwater)
+    ├── level_3.ts            # Stage 2-3 definition (Sunken Galleon Reef - Underwater)
+    ├── level_4.ts            # Stage 2-4 definition (Abyssal Whirlpool - Underwater)
+    └── level_5.ts            # Stage 2-5 boss stage definition (Tidal Citadel & Boss Fight)
 ```
 
 ### Rules for Adding New Levels or Worlds:
-1. **One File Per Level**: Every stage must live in its own file (`src/game/world_<W>/level_<L>.ts`) and export both `buildLevel<ID>(): LevelDefinition` and the built constant.
+1. **One File Per Level**: Every stage must live in its own file (`src/game/world_<W>/level_<L>.ts`) and export both `buildWorld<W>Level<L>(): LevelDefinition` and the built constant.
 2. **Use `level_builder.ts` Helpers**: Always use `createEmptyGrid(cols)`, `fillGroundRange(grid, startCol, endCol)`, `addPipe(...)`, `addStairs(...)`, and `addCoinRow(...)` from `src/game/level_builder.ts`.
 3. **Register in World Index**: Export all levels of a world from `src/game/world_<W>/index.ts` and register them in `src/game/levels.ts`.
+4. **Underwater Stages (`isUnderwater: true`, `theme: 'UNDERWATER'`, `musicTrack: 'UNDERWATER'`)**:
+   - In underwater worlds (such as World 2 Stages 2-1 through 2-4), set `isUnderwater: true`, `theme: 'UNDERWATER'`, and `musicTrack: 'UNDERWATER'`, while keeping the final Stage X-5 Castle Boss fight non-underwater (`isUnderwater: false`, `theme: 'CASTLE'`, `musicTrack: 'BOSS'`).
+   - Underwater physics allow the player to swim upward (`vy = -255`) with every Jump press (`Space`, `W`, `ArrowUp`, or on-screen Jump/Up buttons), with buoyant gravity (`480 px/s²`), gentle max sink speed (`210 px/s`), and an upper water-surface boundary at `y = 24px`.
 
 ---
 

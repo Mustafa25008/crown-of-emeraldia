@@ -50,6 +50,23 @@ export function drawParallaxBackground(
     grad.addColorStop(1, '#ea580c');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, width, height);
+  } else if (theme === 'UNDERWATER') {
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, '#0284c7');
+    grad.addColorStop(0.55, '#0369a1');
+    grad.addColorStop(1, '#0c4a6e');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+
+    // Shimmering water surface waves at top of screen
+    const waveShift = Math.floor(time * 24) % 32;
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillRect(0, 0, width, 10);
+    ctx.fillStyle = '#bae6fd';
+    for (let wx = -waveShift; wx < width + 32; wx += 32) {
+      ctx.fillRect(wx, 2, 18, 4);
+      ctx.fillRect(wx + 8, 6, 12, 3);
+    }
   } else {
     // CASTLE
     const grad = ctx.createLinearGradient(0, 0, 0, height);
@@ -60,7 +77,7 @@ export function drawParallaxBackground(
     ctx.fillRect(0, 0, width, height);
   }
 
-  // Far parallax layer (clouds / glowing crystals / castle pillars)
+  // Far parallax layer (clouds / glowing crystals / rising bubbles / castle pillars)
   const farOffset = Math.floor(cameraX * 0.18);
   if (theme === 'HILLS' || theme === 'FOREST') {
     for (let i = -1; i < 8; i++) {
@@ -68,6 +85,17 @@ export function drawParallaxBackground(
       // Keep clouds up high in the upper sky (y: 24 to 90), well above blocks at y: 350+
       const cy = 24 + (Math.abs(i) % 3) * 28;
       drawPixelCloud(ctx, Math.floor(cx), cy, theme === 'FOREST' ? '#a7f3d0' : '#ffffff');
+    }
+  } else if (theme === 'UNDERWATER') {
+    // Rising air bubbles and sunlit ocean rays
+    for (let i = 0; i < 16; i++) {
+      const bx = ((i * 110 - farOffset) % (width + 120) + (width + 120)) % (width + 120) - 20;
+      const by = ((height - ((time * (38 + (i % 3) * 14) + i * 75) % (height - 40)))) | 0;
+      const bSize = i % 3 === 0 ? 8 : 6;
+      ctx.fillStyle = 'rgba(186, 230, 253, 0.55)';
+      ctx.fillRect(Math.floor(bx), by, bSize, bSize);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(Math.floor(bx) + 1, by + 1, 2, 2);
     }
   } else if (theme === 'CAVERN') {
     for (let i = 0; i < 12; i++) {
@@ -97,7 +125,7 @@ export function drawParallaxBackground(
     }
   }
 
-  // Mid parallax layer (hills / giant mushroom trees / stalagmites / battlements)
+  // Mid parallax layer (hills / giant mushroom trees / swaying kelp & coral / stalagmites / battlements)
   const midOffset = Math.floor(cameraX * 0.4);
   for (let i = -1; i < 7; i++) {
     const hx = ((i * 260 - midOffset) % (width + 300) + (width + 300)) % (width + 300) - 120;
@@ -107,6 +135,9 @@ export function drawParallaxBackground(
     } else if (theme === 'FOREST') {
       // Keep background mushroom trees lower in the backdrop so caps do not intersect floating blocks
       drawMushroomTree(ctx, Math.floor(hx), height - 96, 95 + (i % 2) * 30);
+    } else if (theme === 'UNDERWATER') {
+      drawCoralReef(ctx, Math.floor(hx), height - 96, 75 + (i % 2) * 28, i);
+      drawSeaweedStalk(ctx, Math.floor(hx) + 110, height - 96, 95 + (i % 3) * 20, time, i);
     } else if (theme === 'CAVERN') {
       drawStalagmite(ctx, Math.floor(hx), height - 96, 90 + (i % 3) * 25);
     } else if (theme === 'FORTRESS') {
@@ -192,6 +223,41 @@ function drawDistantTower(ctx: CanvasRenderingContext2D, x: number, baseY: numbe
   ctx.fillRect(x + 26, baseY - h + 28, 12, 24);
 }
 
+function drawCoralReef(ctx: CanvasRenderingContext2D, x: number, baseY: number, h: number, idx: number) {
+  const mainColor = idx % 2 === 0 ? '#f43f5e' : '#fb923c';
+  const lightColor = idx % 2 === 0 ? '#fda4af' : '#fed7aa';
+  // Central coral trunk
+  ctx.fillStyle = mainColor;
+  ctx.fillRect(x + 20, baseY - h, 20, h);
+  // Left & right coral branches
+  ctx.fillRect(x + 4, baseY - Math.floor(h * 0.75), 16, 14);
+  ctx.fillRect(x + 4, baseY - Math.floor(h * 0.9), 12, Math.floor(h * 0.3));
+  ctx.fillRect(x + 40, baseY - Math.floor(h * 0.65), 16, 14);
+  ctx.fillRect(x + 44, baseY - Math.floor(h * 0.85), 12, Math.floor(h * 0.3));
+  ctx.fillStyle = lightColor;
+  ctx.fillRect(x + 24, baseY - h + 4, 6, h - 12);
+}
+
+function drawSeaweedStalk(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  baseY: number,
+  h: number,
+  time: number,
+  idx: number
+) {
+  const segments = 6;
+  const segH = Math.floor(h / segments);
+  for (let s = 0; s < segments; s++) {
+    const sway = Math.floor(Math.sin(time * 3.5 + s * 0.8 + idx) * 5);
+    const sy = baseY - (s + 1) * segH;
+    ctx.fillStyle = '#059669';
+    ctx.fillRect(x + sway, sy, 14, segH + 2);
+    ctx.fillStyle = '#34d399';
+    ctx.fillRect(x + sway + 3, sy + 2, 5, segH - 2);
+  }
+}
+
 export function drawTile(
   ctx: CanvasRenderingContext2D,
   tile: TileType,
@@ -216,6 +282,19 @@ export function drawTile(
         ctx.fillRect(x, y, s, 4);
         ctx.fillRect(x + 6, y + 10, 6, 4);
         ctx.fillRect(x + 20, y + 10, 6, 3);
+      } else if (theme === 'UNDERWATER') {
+        // Sandy ocean seabed with coral reef crust
+        ctx.fillStyle = '#b45309';
+        ctx.fillRect(x, y, s, s);
+        ctx.fillStyle = '#d97706';
+        ctx.fillRect(x + 4, y + 12, 10, 10);
+        ctx.fillRect(x + 18, y + 16, 10, 10);
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillRect(x, y, s, 10);
+        ctx.fillStyle = '#fde68a';
+        ctx.fillRect(x, y, s, 4);
+        ctx.fillRect(x + 6, y + 8, 6, 3);
+        ctx.fillRect(x + 20, y + 8, 6, 3);
       } else if (theme === 'CAVERN') {
         ctx.fillStyle = '#312e81';
         ctx.fillRect(x, y, s, s);
@@ -241,10 +320,10 @@ export function drawTile(
     }
 
     case TileType.GROUND_DEEP: {
-      if (theme === 'HILLS' || theme === 'FOREST') {
-        ctx.fillStyle = '#78350f';
+      if (theme === 'HILLS' || theme === 'FOREST' || theme === 'UNDERWATER') {
+        ctx.fillStyle = theme === 'UNDERWATER' ? '#92400e' : '#78350f';
         ctx.fillRect(x, y, s, s);
-        ctx.fillStyle = '#92400e';
+        ctx.fillStyle = theme === 'UNDERWATER' ? '#b45309' : '#92400e';
         ctx.fillRect(x + 4, y + 4, 10, 10);
         ctx.fillRect(x + 18, y + 16, 10, 10);
       } else if (theme === 'CAVERN') {
@@ -758,7 +837,12 @@ export function drawPlayer(
   ctx.restore();
 }
 
-export function drawEnemy(ctx: CanvasRenderingContext2D, enemy: ActiveEnemy, time: number) {
+export function drawEnemy(
+  ctx: CanvasRenderingContext2D,
+  enemy: ActiveEnemy,
+  time: number,
+  theme?: LevelTheme
+) {
   if (enemy.state === 'DEAD') return;
   const px = Math.floor(enemy.x);
   const py = Math.floor(enemy.y);
@@ -772,7 +856,7 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, enemy: ActiveEnemy, tim
       ctx.fillRect(px + 6, py + 20, 16, 4);
       return;
     }
-    // Bouncing Spore Slime
+    // Bouncing Spore Slime / Reef Crab
     ctx.fillStyle = '#9f1239';
     ctx.fillRect(px + 2, py + 4 + step * 2, 24, 24 - step * 2);
     ctx.fillStyle = '#e11d48';
@@ -789,7 +873,7 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, enemy: ActiveEnemy, tim
     ctx.fillRect(px + (step ? 2 : 4), py + 24, 8, 4);
     ctx.fillRect(px + (step ? 18 : 16), py + 24, 8, 4);
   } else if (enemy.type === 'BEETLE') {
-    // Armored Shell Beetle
+    // Armored Shell Beetle / Sea Turtle
     const isShell = enemy.state === 'SHELL_IDLE' || enemy.state === 'SHELL_MOVING';
     ctx.fillStyle = '#1e3a8a';
     ctx.fillRect(px + 2, py + (isShell ? 6 : 4), 24, isShell ? 22 : 20);
@@ -809,33 +893,75 @@ export function drawEnemy(ctx: CanvasRenderingContext2D, enemy: ActiveEnemy, tim
       ctx.fillRect(px + (step ? 18 : 16), py + 24, 6, 4);
     }
   } else if (enemy.type === 'BAT') {
-    // Swooping Cave Bat
-    const wingY = step === 0 ? py + 2 : py + 12;
-    ctx.fillStyle = '#581c87';
-    ctx.fillRect(px, wingY, 8, 10);
-    ctx.fillRect(px + 20, wingY, 8, 10);
-    ctx.fillStyle = '#7e22ce';
-    ctx.fillRect(px + 8, py + 6, 12, 14);
-    ctx.fillStyle = '#f43f5e';
-    ctx.fillRect(px + 10, py + 10, 3, 3);
-    ctx.fillRect(px + 15, py + 10, 3, 3);
+    if (theme === 'UNDERWATER') {
+      // Classic Cheep-Cheep Swimming Reef Fish!
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(px + 4, py + 6, 20, 16);
+      ctx.fillStyle = '#fca5a5';
+      ctx.fillRect(px + 6, py + 16, 16, 5);
+      // Dorsal & Tail Fins
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(px + 10, py + 2, 8, 4);
+      const tailX = enemy.facing === 1 ? px : px + 22;
+      ctx.fillRect(tailX, py + (step ? 5 : 7), 6, 14);
+      // Wing-like pectoral fin
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(px + 10, py + (step ? 11 : 14), 8, 5);
+      // Eye
+      const eyeX = enemy.facing === 1 ? px + 18 : px + 6;
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(eyeX, py + 8, 5, 5);
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(eyeX + (enemy.facing === 1 ? 2 : 0), py + 9, 3, 3);
+    } else {
+      // Swooping Cave Bat
+      const wingY = step === 0 ? py + 2 : py + 12;
+      ctx.fillStyle = '#581c87';
+      ctx.fillRect(px, wingY, 8, 10);
+      ctx.fillRect(px + 20, wingY, 8, 10);
+      ctx.fillStyle = '#7e22ce';
+      ctx.fillRect(px + 8, py + 6, 12, 14);
+      ctx.fillStyle = '#f43f5e';
+      ctx.fillRect(px + 10, py + 10, 3, 3);
+      ctx.fillRect(px + 15, py + 10, 3, 3);
+    }
   } else if (enemy.type === 'KNIGHT') {
-    // Iron Guard Knight
-    ctx.fillStyle = '#334155';
-    ctx.fillRect(px + 2, py + 2, 24, 24);
-    ctx.fillStyle = '#64748b';
-    ctx.fillRect(px + 4, py + 4, 20, 18);
-    // Horned crest
-    ctx.fillStyle = '#fbbf24';
-    ctx.fillRect(px, py, 6, 6);
-    ctx.fillRect(px + 22, py, 6, 6);
-    // Glowing visor
-    ctx.fillStyle = '#ef4444';
-    ctx.fillRect(px + 6, py + 10, 16, 4);
-    // Boots
-    ctx.fillStyle = '#0f172a';
-    ctx.fillRect(px + (step ? 3 : 6), py + 24, 7, 4);
-    ctx.fillRect(px + (step ? 18 : 15), py + 24, 7, 4);
+    if (theme === 'UNDERWATER') {
+      // Blooper Squid / Deep-Sea Guard
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(px + 4, py + 2, 20, 16);
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillRect(px + 2, py + 8, 24, 8);
+      // Tentacles
+      const tentH = step ? 8 : 5;
+      ctx.fillStyle = '#f1f5f9';
+      ctx.fillRect(px + 5, py + 18, 4, tentH);
+      ctx.fillRect(px + 12, py + 18, 4, tentH + 2);
+      ctx.fillRect(px + 19, py + 18, 4, tentH);
+      // Eyes
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(px + 6, py + 9, 16, 5);
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(px + 8, py + 10, 4, 3);
+      ctx.fillRect(px + 16, py + 10, 4, 3);
+    } else {
+      // Iron Guard Knight
+      ctx.fillStyle = '#334155';
+      ctx.fillRect(px + 2, py + 2, 24, 24);
+      ctx.fillStyle = '#64748b';
+      ctx.fillRect(px + 4, py + 4, 20, 18);
+      // Horned crest
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(px, py, 6, 6);
+      ctx.fillRect(px + 22, py, 6, 6);
+      // Glowing visor
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(px + 6, py + 10, 16, 4);
+      // Boots
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(px + (step ? 3 : 6), py + 24, 7, 4);
+      ctx.fillRect(px + (step ? 18 : 15), py + 24, 7, 4);
+    }
   } else if (enemy.type === 'FIRE_BAR') {
     // Rotating Fire Bar around pivot enemy.x, enemy.y
     const angle = enemy.angle || 0;

@@ -167,11 +167,13 @@ export class PlatformerEngine {
   }
 
   private createInitialBossState(): BossState {
+    const isWorld2Boss = this.level.id >= 6;
+    const bossHp = isWorld2Boss ? 6 : 5;
     return {
       active: false,
-      name: 'Ironclad King Dredge',
-      hp: 5,
-      maxHp: 5,
+      name: isWorld2Boss ? 'Abyssal Warlord Krakenos' : 'Ironclad King Dredge',
+      hp: bossHp,
+      maxHp: bossHp,
       x: 112 * TILE_SIZE,
       y: 13 * TILE_SIZE,
       vx: 0,
@@ -644,9 +646,17 @@ export class PlatformerEngine {
       this.performRaccoonTailAttack();
     }
 
-    // Horizontal Acceleration & Friction
-    const accel = isRunning ? RUN_ACCEL : WALK_ACCEL;
-    const maxSpeed = isRunning ? MAX_RUN_SPEED : MAX_WALK_SPEED;
+    const isUnderwater = Boolean(this.level.isUnderwater || this.level.theme === 'UNDERWATER');
+
+    // Horizontal Acceleration & Friction (with smooth water resistance in underwater stages)
+    const accel = (isRunning ? RUN_ACCEL : WALK_ACCEL) * (isUnderwater ? 0.72 : 1);
+    const maxSpeed = isUnderwater
+      ? isRunning
+        ? 250
+        : 185
+      : isRunning
+      ? MAX_RUN_SPEED
+      : MAX_WALK_SPEED;
     const friction = this.onGround ? GROUND_FRICTION : AIR_FRICTION;
 
     if (moveLeft && !moveRight) {
@@ -674,72 +684,100 @@ export class PlatformerEngine {
 
     this.pvx = Math.max(-maxSpeed, Math.min(maxSpeed, this.pvx));
 
-    // Coyote Time & Jump Buffering
-    if (this.onGround) {
-      this.coyoteTimer = COYOTE_TIME_WINDOW;
-      this.isRaccoonFlying = false;
-    } else {
-      this.coyoteTimer = Math.max(0, this.coyoteTimer - dt);
-    }
-
-    if (this.jumpJustPressed) {
-      this.jumpBufferTimer = JUMP_BUFFER_WINDOW;
-    } else {
-      this.jumpBufferTimer = Math.max(0, this.jumpBufferTimer - dt);
-    }
-
-    // Execute Jump if buffered and within Coyote window
-    if (this.jumpBufferTimer > 0 && this.coyoteTimer > 0) {
-      const isSprintTakeoff = isRunning || Math.abs(this.pvx) >= MAX_WALK_SPEED * 0.75;
-      const speedBonus = Math.abs(this.pvx) > MAX_WALK_SPEED + 20 ? -35 : 0;
-      this.pvy = JUMP_INITIAL_VEL + speedBonus;
-      this.onGround = false;
-      this.coyoteTimer = 0;
-      this.jumpBufferTimer = 0;
-      this.isJumping = true;
-      this.jumpHoldTimer = MAX_JUMP_HOLD_TIME;
-      if (this.powerState === 'RACCOON' && isSprintTakeoff) {
-        this.isRaccoonFlying = true;
-      }
-      soundManager.playJump(this.powerState !== 'SMALL');
-    }
-
-    // Variable Jump Height while holding Jump button
-    if (this.isJumping && jumpHeld && this.jumpHoldTimer > 0 && this.pvy < 0) {
-      this.pvy += JUMP_HOLD_BOOST * dt;
-      this.jumpHoldTimer -= dt;
-    } else {
-      this.isJumping = false;
-      this.jumpHoldTimer = 0;
-    }
-
-    // Raccoon Tail Flight & Slow Falling:
-    // 1. Flying: During a sprint run jump, keeping Jump pressed/clicked makes Pip fly upward.
-    // 2. Slow Falling: When descending in mid-air, holding or tapping Jump wags the tail to descend slowly!
-    if (this.powerState === 'RACCOON' && !this.onGround) {
-      if (isRunning && Math.abs(this.pvx) >= MAX_WALK_SPEED * 0.75 && (jumpHeld || this.jumpJustPressed)) {
-        this.isRaccoonFlying = true;
+    if (isUnderwater) {
+      // Classic Super Mario Bros. Underwater Swimming Physics:
+      // Every press of Jump (or Up on mobile) executes an upward swimming stroke anywhere in the water!
+      if (this.jumpJustPressed) {
+        this.pvy = -255;
+        this.onGround = false;
+        this.jumpJustPressed = false;
+        soundManager.playSwim();
+        this.spawnBurstParticles(
+          this.px + (this.pFacing === 1 ? 4 : this.pWidth - 4),
+          this.py + this.pHeight * 0.5,
+          '#bae6fd',
+          3
+        );
       }
 
-      if (this.isRaccoonFlying && (jumpHeld || this.jumpJustPressed)) {
-        this.pvy = -195;
-        if (this.py < 36) {
-          this.py = 36;
-          this.pvy = 0;
-        }
-      } else if (this.pvy >= 0 && (jumpHeld || this.jumpJustPressed)) {
-        // Ability 4: Slow Falling while holding or tapping Jump during descent
-        if (this.jumpJustPressed) {
-          this.pvy = Math.min(this.pvy, 75);
-        }
-        this.pvy = Math.min(95, this.pvy + GRAVITY * 0.3 * dt);
+      // Buoyant underwater gravity and gentle sinking speed
+      const uwGravity = 480;
+      const uwMaxSink = this.powerState === 'RACCOON' && jumpHeld ? 95 : 210;
+      this.pvy = Math.min(uwMaxSink, this.pvy + uwGravity * dt);
+
+      // Keep swimmer below the top water surface shimmer
+      if (this.py < 24) {
+        this.py = 24;
+        if (this.pvy < 0) this.pvy = 0;
+      }
+    } else {
+      // Coyote Time & Jump Buffering
+      if (this.onGround) {
+        this.coyoteTimer = COYOTE_TIME_WINDOW;
+        this.isRaccoonFlying = false;
       } else {
-        // Standard descent when Jump is not held
-        this.pvy = Math.min(480, this.pvy + GRAVITY * dt);
+        this.coyoteTimer = Math.max(0, this.coyoteTimer - dt);
       }
-    } else {
-      // Standard Gravity
-      this.pvy = Math.min(MAX_FALL_SPEED, this.pvy + GRAVITY * dt);
+
+      if (this.jumpJustPressed) {
+        this.jumpBufferTimer = JUMP_BUFFER_WINDOW;
+      } else {
+        this.jumpBufferTimer = Math.max(0, this.jumpBufferTimer - dt);
+      }
+
+      // Execute Jump if buffered and within Coyote window
+      if (this.jumpBufferTimer > 0 && this.coyoteTimer > 0) {
+        const isSprintTakeoff = isRunning || Math.abs(this.pvx) >= MAX_WALK_SPEED * 0.75;
+        const speedBonus = Math.abs(this.pvx) > MAX_WALK_SPEED + 20 ? -35 : 0;
+        this.pvy = JUMP_INITIAL_VEL + speedBonus;
+        this.onGround = false;
+        this.coyoteTimer = 0;
+        this.jumpBufferTimer = 0;
+        this.isJumping = true;
+        this.jumpHoldTimer = MAX_JUMP_HOLD_TIME;
+        if (this.powerState === 'RACCOON' && isSprintTakeoff) {
+          this.isRaccoonFlying = true;
+        }
+        soundManager.playJump(this.powerState !== 'SMALL');
+      }
+
+      // Variable Jump Height while holding Jump button
+      if (this.isJumping && jumpHeld && this.jumpHoldTimer > 0 && this.pvy < 0) {
+        this.pvy += JUMP_HOLD_BOOST * dt;
+        this.jumpHoldTimer -= dt;
+      } else {
+        this.isJumping = false;
+        this.jumpHoldTimer = 0;
+      }
+
+      // Raccoon Tail Flight & Slow Falling:
+      // 1. Flying: During a sprint run jump, keeping Jump pressed/clicked makes Pip fly upward.
+      // 2. Slow Falling: When descending in mid-air, holding or tapping Jump wags the tail to descend slowly!
+      if (this.powerState === 'RACCOON' && !this.onGround) {
+        if (isRunning && Math.abs(this.pvx) >= MAX_WALK_SPEED * 0.75 && (jumpHeld || this.jumpJustPressed)) {
+          this.isRaccoonFlying = true;
+        }
+
+        if (this.isRaccoonFlying && (jumpHeld || this.jumpJustPressed)) {
+          this.pvy = -195;
+          if (this.py < 36) {
+            this.py = 36;
+            this.pvy = 0;
+          }
+        } else if (this.pvy >= 0 && (jumpHeld || this.jumpJustPressed)) {
+          // Ability 4: Slow Falling while holding or tapping Jump during descent
+          if (this.jumpJustPressed) {
+            this.pvy = Math.min(this.pvy, 75);
+          }
+          this.pvy = Math.min(95, this.pvy + GRAVITY * 0.3 * dt);
+        } else {
+          // Standard descent when Jump is not held
+          this.pvy = Math.min(480, this.pvy + GRAVITY * dt);
+        }
+      } else {
+        // Standard Gravity
+        this.pvy = Math.min(MAX_FALL_SPEED, this.pvy + GRAVITY * dt);
+      }
     }
 
     // Horizontal Movement & Collision
@@ -1902,7 +1940,7 @@ export class PlatformerEngine {
 
     // 6. Enemies & Boss
     for (const enemy of this.enemies) {
-      drawEnemy(ctx, enemy, this.elapsedTime);
+      drawEnemy(ctx, enemy, this.elapsedTime, this.level.theme);
     }
     if (this.level.hasBoss) {
       drawBoss(ctx, this.boss, this.elapsedTime);
