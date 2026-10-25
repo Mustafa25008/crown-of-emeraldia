@@ -1037,34 +1037,41 @@ export default function App() {
                 </div>
               )}
 
-              {/* PAUSE MODAL OVERLAY */}
+              {/* PAUSE MODAL OVERLAY (Compact & Centered for Mobile Viewports) */}
               {gameState === 'PAUSED' && (
-                <div className="absolute inset-0 bg-slate-950/80 flex items-center justify-center p-4">
-                  <div className="w-full max-w-sm bg-slate-900 border border-slate-700 rounded-2xl p-6 text-center space-y-5 shadow-2xl">
-                    <h3 className="font-pixel text-lg text-amber-400">GAME PAUSED</h3>
-                    <p className="text-xs text-slate-300">{hud.levelName}</p>
-                    <div className="flex flex-col gap-2.5">
+                <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-4 overflow-y-auto z-20">
+                  <div className="w-full max-w-xs sm:max-w-sm bg-slate-900 border border-slate-700 rounded-2xl p-3 sm:p-5 text-center shadow-2xl space-y-2.5 sm:space-y-4 my-auto">
+                    <div>
+                      <h3 className="font-pixel text-sm sm:text-base text-amber-400">GAME PAUSED</h3>
+                      <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5">{hud.levelName}</p>
+                    </div>
+
+                    <div className="flex flex-col gap-2">
                       <button
                         onClick={() => setGameState('PLAYING')}
-                        className="w-full min-h-[44px] py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl transition-colors cursor-pointer"
+                        className="w-full min-h-[38px] py-2 px-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
                       >
                         Resume Game
                       </button>
-                      <button
-                        onClick={() => startLevel(currentLevelId, false)}
-                        className="w-full min-h-[44px] py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
-                      >
-                        Restart Stage
-                      </button>
-                      <button
-                        onClick={() => navigateToMenu('LEVEL_SELECT')}
-                        className="w-full min-h-[44px] py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-300 font-medium text-xs rounded-xl transition-colors cursor-pointer"
-                      >
-                        Level Select
-                      </button>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => startLevel(currentLevelId, false)}
+                          className="min-h-[36px] py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+                        >
+                          Restart
+                        </button>
+                        <button
+                          onClick={() => navigateToMenu('LEVEL_SELECT')}
+                          className="min-h-[36px] py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+                        >
+                          Level Select
+                        </button>
+                      </div>
+
                       <button
                         onClick={() => navigateToMenu('TITLE_MENU')}
-                        className="w-full min-h-[44px] py-2.5 bg-slate-800/60 hover:bg-slate-800 text-slate-400 font-medium text-xs rounded-xl transition-colors cursor-pointer"
+                        className="w-full min-h-[32px] py-1 px-3 bg-slate-800/50 hover:bg-slate-800 text-slate-400 font-medium text-[11px] rounded-lg transition-colors cursor-pointer"
                       >
                         Home Screen
                       </button>
@@ -1073,82 +1080,91 @@ export default function App() {
                 </div>
               )}
 
-              {/* LEVEL COMPLETE OVERLAY */}
+              {/* LEVEL COMPLETE OVERLAY (Compact & Clean for Mobile Screens) */}
               {gameState === 'LEVEL_COMPLETE' && (
-                <div className="absolute inset-0 bg-slate-950/85 flex items-center justify-center p-4">
-                  <div className="w-full max-w-md bg-slate-900 border border-emerald-500/50 rounded-2xl p-6 text-center space-y-5 shadow-2xl">
-                    <div className="text-xs font-bold text-emerald-400">STAGE CLEARED!</div>
-                    <h3 className="font-pixel text-lg text-white">{hud.levelName}</h3>
+                <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-4 overflow-y-auto z-20">
+                  <div className="w-full max-w-sm sm:max-w-md bg-slate-900 border border-emerald-500/50 rounded-2xl p-3 sm:p-5 text-center shadow-2xl space-y-2.5 sm:space-y-3.5 my-auto">
+                    <div>
+                      <div className="text-[10px] sm:text-xs font-bold text-emerald-400 uppercase tracking-wider">
+                        STAGE CLEARED!
+                      </div>
+                      <h3 className="font-pixel text-xs sm:text-base text-white mt-1">{hud.levelName}</h3>
+                    </div>
 
-                    <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex items-center justify-around font-mono-num text-xs">
-                      <div>
-                        <div className="text-slate-400">SCORE</div>
-                        <div className="text-base font-bold text-amber-400 mt-1">
+                    <div className="bg-slate-950 border border-slate-800 rounded-xl p-2 sm:p-3 grid grid-cols-3 gap-1 sm:gap-2 text-center font-mono-num text-xs">
+                      <div className="px-1">
+                        <div className="text-[10px] text-slate-400 truncate">SCORE</div>
+                        <div className="text-xs sm:text-sm font-bold text-amber-400 mt-0.5">
                           {carriedScore.toLocaleString()}
                         </div>
                       </div>
-                      <div className="h-8 w-px bg-slate-800" />
-                      <div>
-                        <div className="text-slate-400">COINS</div>
-                        <div className="text-base font-bold text-yellow-300 mt-1">
+                      <div className="px-1 border-x border-slate-800">
+                        <div className="text-[10px] text-slate-400 truncate">COINS</div>
+                        <div className="text-xs sm:text-sm font-bold text-yellow-300 mt-0.5">
                           {carriedCoins}
                         </div>
                       </div>
-                      <div className="h-8 w-px bg-slate-800" />
-                      <div>
-                        <div className="text-slate-400">NEXT STAGE</div>
-                        <div className="text-base font-bold text-emerald-400 mt-1">
-                          Level {Math.min(5, currentLevelId + 1)} Unlocked
+                      <div className="px-1">
+                        <div className="text-[10px] text-slate-400 truncate">NEXT STAGE</div>
+                        <div className="text-xs sm:text-sm font-bold text-emerald-400 mt-0.5 truncate">
+                          Stage 1-{Math.min(5, currentLevelId + 1)}
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-center gap-3">
-                      <button
-                        onClick={() => navigateToMenu('LEVEL_SELECT')}
-                        className="min-h-[44px] px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-                      >
-                        Level Select
-                      </button>
-                      <button
-                        onClick={() => startLevel(currentLevelId, false)}
-                        className="min-h-[44px] px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-                      >
-                        Replay Stage
-                      </button>
+                    <div className="flex flex-col gap-2">
                       <button
                         onClick={() => startLevel(Math.min(5, currentLevelId + 1), false)}
-                        className="min-h-[44px] flex items-center gap-2 px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                        className="w-full min-h-[38px] flex items-center justify-center gap-2 py-2 px-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
                       >
                         <span>Next Level</span>
                         <ArrowRight className="w-4 h-4" />
                       </button>
+
+                      <div className="grid grid-cols-2 gap-2">
+                        <button
+                          onClick={() => startLevel(currentLevelId, false)}
+                          className="min-h-[36px] py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+                        >
+                          Replay Stage
+                        </button>
+                        <button
+                          onClick={() => navigateToMenu('LEVEL_SELECT')}
+                          className="min-h-[36px] py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+                        >
+                          Level Select
+                        </button>
+                      </div>
                     </div>
                   </div>
                 </div>
               )}
 
-              {/* GAME OVER OVERLAY */}
+              {/* GAME OVER OVERLAY (Compact for Mobile) */}
               {gameState === 'GAME_OVER' && (
-                <div className="absolute inset-0 bg-slate-950/90 flex items-center justify-center p-4">
-                  <div className="w-full max-w-md bg-slate-900 border border-rose-500/50 rounded-2xl p-6 text-center space-y-5 shadow-2xl">
-                    <h3 className="font-pixel text-xl text-rose-500">GAME OVER</h3>
-                    <p className="text-xs text-slate-300">
-                      Ranger Pip ran out of lives in {hud.levelName}.
-                    </p>
-                    <div className="text-xs text-slate-400 font-mono-num">
-                      Final Score: {carriedScore.toLocaleString()} · Coins: {carriedCoins}
+                <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-4 overflow-y-auto z-20">
+                  <div className="w-full max-w-xs sm:max-w-sm bg-slate-900 border border-rose-500/50 rounded-2xl p-3 sm:p-5 text-center shadow-2xl space-y-2.5 sm:space-y-3.5 my-auto">
+                    <div>
+                      <h3 className="font-pixel text-sm sm:text-base text-rose-500">GAME OVER</h3>
+                      <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5">
+                        Ranger Pip ran out of lives in {hud.levelName}.
+                      </p>
                     </div>
-                    <div className="flex items-center justify-center gap-3">
+
+                    <div className="text-xs text-slate-400 font-mono-num bg-slate-950 border border-slate-800 rounded-xl py-1.5 px-3">
+                      Score: {carriedScore.toLocaleString()} · Coins: {carriedCoins}
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={() => navigateToMenu('LEVEL_SELECT')}
-                        className="min-h-[44px] px-4 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                        className="min-h-[38px] py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
                       >
                         Level Select
                       </button>
                       <button
                         onClick={() => startLevel(currentLevelId, true)}
-                        className="min-h-[44px] px-6 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                        className="min-h-[38px] py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
                       >
                         Try Again (3 Lives)
                       </button>
@@ -1157,49 +1173,49 @@ export default function App() {
                 </div>
               )}
 
-              {/* WORLD VICTORY OVERLAY (AFTER DEFEATING BOSS IN LEVEL 5) */}
+              {/* WORLD VICTORY OVERLAY (Compact for Mobile) */}
               {gameState === 'WORLD_VICTORY' && (
-                <div className="absolute inset-0 bg-slate-950/90 flex items-center justify-center p-4">
-                  <div className="w-full max-w-lg bg-slate-900 border border-amber-400/60 rounded-2xl p-8 text-center space-y-5 shadow-2xl">
-                    <div className="w-12 h-12 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center mx-auto">
-                      <Crown className="w-6 h-6 text-amber-300" />
+                <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-4 overflow-y-auto z-20">
+                  <div className="w-full max-w-sm sm:max-w-md bg-slate-900 border border-amber-400/60 rounded-2xl p-3 sm:p-6 text-center shadow-2xl space-y-2 sm:space-y-3.5 my-auto">
+                    <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center mx-auto">
+                      <Crown className="w-4 h-4 sm:w-6 sm:h-6 text-amber-300" />
                     </div>
-                    <div className="text-xs font-bold text-amber-400">
-                      IRONCLAD KING DREDGE DEFEATED!
-                    </div>
-                    <h3 className="font-pixel text-xl text-white leading-relaxed">
-                      PEACE RESTORED TO EMERALDIA!
-                    </h3>
-                    <p className="text-xs text-slate-300 leading-relaxed">
-                      You conquered all five stages of World 1 and recovered the Royal Emerald Crown!
-                    </p>
 
-                    <div className="bg-slate-950 border border-slate-800 rounded-xl p-4 flex items-center justify-around font-mono-num text-xs">
+                    <div>
+                      <div className="text-[10px] sm:text-xs font-bold text-amber-400">
+                        IRONCLAD KING DREDGE DEFEATED!
+                      </div>
+                      <h3 className="font-pixel text-xs sm:text-base text-white mt-0.5">
+                        PEACE RESTORED TO EMERALDIA!
+                      </h3>
+                    </div>
+
+                    <div className="bg-slate-950 border border-slate-800 rounded-xl p-2 sm:p-3 flex items-center justify-around font-mono-num text-xs">
                       <div>
-                        <div className="text-slate-400">FINAL SCORE</div>
-                        <div className="text-lg font-bold text-amber-400 mt-1">
+                        <div className="text-[10px] text-slate-400">FINAL SCORE</div>
+                        <div className="text-sm sm:text-base font-bold text-amber-400 mt-0.5">
                           {carriedScore.toLocaleString()}
                         </div>
                       </div>
-                      <div className="h-8 w-px bg-slate-800" />
+                      <div className="h-6 w-px bg-slate-800" />
                       <div>
-                        <div className="text-slate-400">COINS COLLECTED</div>
-                        <div className="text-lg font-bold text-yellow-300 mt-1">
+                        <div className="text-[10px] text-slate-400">COINS COLLECTED</div>
+                        <div className="text-sm sm:text-base font-bold text-yellow-300 mt-0.5">
                           {carriedCoins}
                         </div>
                       </div>
                     </div>
 
-                    <div className="flex flex-wrap items-center justify-center gap-3 pt-2">
+                    <div className="grid grid-cols-2 gap-2">
                       <button
                         onClick={() => startLevel(1, true)}
-                        className="min-h-[44px] px-5 py-2.5 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                        className="min-h-[38px] py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
                       >
                         Replay World 1
                       </button>
                       <button
                         onClick={() => navigateToMenu('LEVEL_SELECT')}
-                        className="min-h-[44px] px-5 py-2.5 bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold text-xs rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                        className="min-h-[38px] py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
                       >
                         Level Selection
                       </button>
