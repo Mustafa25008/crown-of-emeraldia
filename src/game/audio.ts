@@ -1,7 +1,14 @@
 // Web Audio API Chiptune & Retro Sound Effects Engine
 // Purely synthesized 16-bit sounds and looping background music with zero external audio files
 
-type TrackName = 'OVERWORLD' | 'FOREST' | 'CAVERN' | 'FORTRESS' | 'CASTLE_BOSS' | 'UNDERWATER';
+type TrackName =
+  | 'OVERWORLD'
+  | 'FOREST'
+  | 'CAVERN'
+  | 'FORTRESS'
+  | 'CASTLE_BOSS'
+  | 'UNDERWATER'
+  | 'DESERT';
 
 class SoundManager {
   private ctx: AudioContext | null = null;
@@ -231,6 +238,22 @@ class SoundManager {
         ],
         tempoMs: 185,
         wave: 'triangle',
+      },
+      DESERT: {
+        notes: [
+          330, 0, 349, 415, 440, 0, 415, 349,
+          330, 293, 330, 349, 330, 0, 247, 0,
+          330, 0, 349, 415, 494, 0, 440, 415,
+          349, 330, 293, 247, 330, 0, 0, 0,
+        ],
+        bass: [
+          165, 165, 247, 165, 175, 175, 247, 175,
+          165, 165, 247, 165, 123, 123, 165, 123,
+          165, 165, 247, 165, 220, 220, 165, 220,
+          175, 165, 146, 123, 165, 165, 123, 165,
+        ],
+        tempoMs: 165,
+        wave: 'square',
       },
     };
 

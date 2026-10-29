@@ -13,7 +13,15 @@ export type GameState =
 
 export type PowerState = 'SMALL' | 'BIG' | 'FIRE' | 'RACCOON';
 
-export type LevelTheme = 'HILLS' | 'FOREST' | 'CAVERN' | 'FORTRESS' | 'CASTLE' | 'UNDERWATER';
+export type LevelTheme =
+  | 'HILLS'
+  | 'FOREST'
+  | 'CAVERN'
+  | 'FORTRESS'
+  | 'CASTLE'
+  | 'UNDERWATER'
+  | 'DESERT'
+  | 'PYRAMID';
 
 export enum TileType {
   EMPTY = 0,
@@ -36,6 +44,10 @@ export enum TileType {
   BRIDGE = 17,
   HIDDEN_BONUS = 18,
   QUESTION_FEATHER = 19,
+  QUICKSAND_TOP = 20,
+  QUICKSAND_DEEP = 21,
+  CRUMBLE_BLOCK = 22,
+  CACTUS = 23,
 }
 
 export interface MovingPlatformDef {
@@ -75,7 +87,16 @@ export interface LevelDefinition {
   subtitle: string;
   theme: LevelTheme;
   isUnderwater?: boolean;
-  musicTrack: 'OVERWORLD' | 'FOREST' | 'CAVERN' | 'FORTRESS' | 'CASTLE_BOSS' | 'UNDERWATER';
+  hasSandstorm?: boolean;
+  windForce?: number;
+  musicTrack:
+    | 'OVERWORLD'
+    | 'FOREST'
+    | 'CAVERN'
+    | 'FORTRESS'
+    | 'CASTLE_BOSS'
+    | 'UNDERWATER'
+    | 'DESERT';
   widthInTiles: number;
   heightInTiles: number;
   tiles: number[][];

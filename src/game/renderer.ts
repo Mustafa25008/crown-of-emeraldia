@@ -67,6 +67,29 @@ export function drawParallaxBackground(
       ctx.fillRect(wx, 2, 18, 4);
       ctx.fillRect(wx + 8, 6, 12, 3);
     }
+  } else if (theme === 'DESERT') {
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, '#d97706');
+    grad.addColorStop(0.45, '#f59e0b');
+    grad.addColorStop(0.8, '#fbbf24');
+    grad.addColorStop(1, '#fde68a');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+
+    // Blazing Desert Sun in upper sky
+    ctx.fillStyle = 'rgba(254, 240, 138, 0.35)';
+    ctx.fillRect(width - 148, 22, 68, 68);
+    ctx.fillStyle = '#fef08a';
+    ctx.fillRect(width - 140, 30, 52, 52);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(width - 132, 38, 36, 36);
+  } else if (theme === 'PYRAMID') {
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, '#291507');
+    grad.addColorStop(0.55, '#451a03');
+    grad.addColorStop(1, '#78350f');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
   } else {
     // CASTLE
     const grad = ctx.createLinearGradient(0, 0, 0, height);
@@ -77,7 +100,7 @@ export function drawParallaxBackground(
     ctx.fillRect(0, 0, width, height);
   }
 
-  // Far parallax layer (clouds / glowing crystals / rising bubbles / castle pillars)
+  // Far parallax layer (clouds / glowing crystals / rising bubbles / desert pyramids / temple pillars)
   const farOffset = Math.floor(cameraX * 0.18);
   if (theme === 'HILLS' || theme === 'FOREST') {
     for (let i = -1; i < 8; i++) {
@@ -85,6 +108,17 @@ export function drawParallaxBackground(
       // Keep clouds up high in the upper sky (y: 24 to 90), well above blocks at y: 350+
       const cy = 24 + (Math.abs(i) % 3) * 28;
       drawPixelCloud(ctx, Math.floor(cx), cy, theme === 'FOREST' ? '#a7f3d0' : '#ffffff');
+    }
+  } else if (theme === 'DESERT') {
+    // Warm desert clouds high in sky + Distant Ancient Pyramids on the horizon
+    for (let i = -1; i < 6; i++) {
+      const cx = ((i * 250 - farOffset) % (width + 280) + (width + 280)) % (width + 280) - 100;
+      const cy = 22 + (Math.abs(i) % 2) * 24;
+      drawPixelCloud(ctx, Math.floor(cx), cy, '#fef3c7');
+    }
+    for (let i = -1; i < 5; i++) {
+      const px = ((i * 340 - farOffset) % (width + 380) + (width + 380)) % (width + 380) - 140;
+      drawDistantPyramid(ctx, Math.floor(px), height - 96, 170 + (i % 2) * 40, 115 + (i % 2) * 25);
     }
   } else if (theme === 'UNDERWATER') {
     // Rising air bubbles and sunlit ocean rays
@@ -106,6 +140,30 @@ export function drawParallaxBackground(
       ctx.fillRect(Math.floor(cx), cy, 6, 14);
       ctx.fillRect(Math.floor(cx) - 4, cy + 4, 14, 6);
     }
+  } else if (theme === 'PYRAMID') {
+    // Ancient Sandstone Temple Columns with Hieroglyphs & Golden Braziers
+    for (let i = -1; i < 8; i++) {
+      const px = ((i * 200 - farOffset) % (width + 220) + (width + 220)) % (width + 220) - 60;
+      const xCol = Math.floor(px);
+      ctx.fillStyle = '#5c2808';
+      ctx.fillRect(xCol, 48, 52, height - 48);
+      ctx.fillStyle = '#92400e';
+      ctx.fillRect(xCol + 6, 48, 16, height - 48);
+      // Carved golden hieroglyph bands
+      ctx.fillStyle = '#d97706';
+      for (let hy = 90; hy < height - 120; hy += 64) {
+        ctx.fillRect(xCol + 8, hy, 36, 6);
+        ctx.fillRect(xCol + 18, hy + 14, 16, 8);
+      }
+      // Flickering golden temple torch
+      const flicker = Math.floor(time * 10 + i) % 2 === 0;
+      ctx.fillStyle = '#b45309';
+      ctx.fillRect(xCol + 22, 182, 10, 18);
+      ctx.fillStyle = flicker ? '#fde047' : '#f59e0b';
+      ctx.fillRect(xCol + 19, 166, 16, 16);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(xCol + 23, 170, 8, 8);
+    }
   } else {
     // FORTRESS / CASTLE background brick arches & torches
     for (let i = -1; i < 8; i++) {
@@ -125,21 +183,31 @@ export function drawParallaxBackground(
     }
   }
 
-  // Mid parallax layer (hills / giant mushroom trees / swaying kelp & coral / stalagmites / battlements)
+  // Mid parallax layer (hills / giant mushroom trees / swaying kelp & coral / sand dunes / stalagmites / battlements)
   const midOffset = Math.floor(cameraX * 0.4);
   for (let i = -1; i < 7; i++) {
     const hx = ((i * 260 - midOffset) % (width + 300) + (width + 300)) % (width + 300) - 120;
     if (theme === 'HILLS') {
       drawPixelHill(ctx, Math.floor(hx), height - 96, 180, 130 + (i % 2) * 45, '#16a34a', '#22c55e');
       drawPixelBush(ctx, Math.floor(hx) + 90, height - 96);
+    } else if (theme === 'DESERT') {
+      drawPixelHill(ctx, Math.floor(hx), height - 96, 210, 85 + (i % 2) * 30, '#d97706', '#fbbf24');
+      drawBackdropCactus(ctx, Math.floor(hx) + 115, height - 96, 48 + (i % 2) * 14);
     } else if (theme === 'FOREST') {
       // Keep background mushroom trees lower in the backdrop so caps do not intersect floating blocks
       drawMushroomTree(ctx, Math.floor(hx), height - 96, 95 + (i % 2) * 30);
     } else if (theme === 'UNDERWATER') {
       drawCoralReef(ctx, Math.floor(hx), height - 96, 75 + (i % 2) * 28, i);
       drawSeaweedStalk(ctx, Math.floor(hx) + 110, height - 96, 95 + (i % 3) * 20, time, i);
-    } else if (theme === 'CAVERN') {
-      drawStalagmite(ctx, Math.floor(hx), height - 96, 90 + (i % 3) * 25);
+    } else if (theme === 'CAVERN' || theme === 'PYRAMID') {
+      drawStalagmite(
+        ctx,
+        Math.floor(hx),
+        height - 96,
+        85 + (i % 3) * 22,
+        theme === 'PYRAMID' ? '#78350f' : '#1e293b',
+        theme === 'PYRAMID' ? '#b45309' : '#334155'
+      );
     } else if (theme === 'FORTRESS') {
       drawDistantTower(ctx, Math.floor(hx), height - 96, 120 + (i % 2) * 30);
     }
@@ -204,12 +272,54 @@ function drawMushroomTree(ctx: CanvasRenderingContext2D, x: number, baseY: numbe
   ctx.fillRect(x + 68, baseY - h - 18, 12, 12);
 }
 
-function drawStalagmite(ctx: CanvasRenderingContext2D, x: number, baseY: number, h: number) {
-  ctx.fillStyle = '#1e293b';
+function drawStalagmite(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  baseY: number,
+  h: number,
+  darkColor: string = '#1e293b',
+  lightColor: string = '#334155'
+) {
+  ctx.fillStyle = darkColor;
   ctx.fillRect(x + 10, baseY - h, 36, h);
   ctx.fillRect(x + 18, baseY - h - 24, 20, 24);
-  ctx.fillStyle = '#334155';
+  ctx.fillStyle = lightColor;
   ctx.fillRect(x + 14, baseY - h, 12, h);
+}
+
+function drawDistantPyramid(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  baseY: number,
+  w: number,
+  h: number
+) {
+  const steps = 12;
+  const stepH = Math.floor(h / steps);
+  for (let s = 0; s < steps; s++) {
+    const shrink = s * Math.floor(w / (steps * 2));
+    const sy = baseY - (s + 1) * stepH;
+    const sw = Math.max(12, w - shrink * 2);
+    const sx = x + shrink;
+    // Shadowed right half & sunlit left half
+    ctx.fillStyle = '#b45309';
+    ctx.fillRect(sx, sy, sw, stepH + 1);
+    ctx.fillStyle = '#f59e0b';
+    ctx.fillRect(sx, sy, Math.floor(sw * 0.58), stepH);
+  }
+}
+
+function drawBackdropCactus(ctx: CanvasRenderingContext2D, x: number, baseY: number, h: number) {
+  ctx.fillStyle = '#15803d';
+  ctx.fillRect(x + 10, baseY - h, 12, h);
+  // Left arm
+  ctx.fillRect(x, baseY - Math.floor(h * 0.65), 10, 8);
+  ctx.fillRect(x, baseY - Math.floor(h * 0.85), 8, Math.floor(h * 0.25));
+  // Right arm
+  ctx.fillRect(x + 22, baseY - Math.floor(h * 0.55), 10, 8);
+  ctx.fillRect(x + 24, baseY - Math.floor(h * 0.78), 8, Math.floor(h * 0.25));
+  ctx.fillStyle = '#22c55e';
+  ctx.fillRect(x + 13, baseY - h + 3, 4, h - 6);
 }
 
 function drawDistantTower(ctx: CanvasRenderingContext2D, x: number, baseY: number, h: number) {
@@ -295,6 +405,29 @@ export function drawTile(
         ctx.fillRect(x, y, s, 4);
         ctx.fillRect(x + 6, y + 8, 6, 3);
         ctx.fillRect(x + 20, y + 8, 6, 3);
+      } else if (theme === 'DESERT') {
+        // Sun-baked golden desert sand dune crust
+        ctx.fillStyle = '#d97706';
+        ctx.fillRect(x, y, s, s);
+        ctx.fillStyle = '#b45309';
+        ctx.fillRect(x + 4, y + 14, 10, 10);
+        ctx.fillRect(x + 18, y + 18, 10, 8);
+        ctx.fillStyle = '#fbbf24';
+        ctx.fillRect(x, y, s, 10);
+        ctx.fillStyle = '#fef08a';
+        ctx.fillRect(x, y, s, 4);
+        ctx.fillRect(x + 4, y + 8, 8, 3);
+        ctx.fillRect(x + 18, y + 8, 8, 3);
+      } else if (theme === 'PYRAMID') {
+        // Carved Ancient Pyramid Sandstone Floor
+        ctx.fillStyle = '#78350f';
+        ctx.fillRect(x, y, s, s);
+        ctx.fillStyle = '#b45309';
+        ctx.fillRect(x + 2, y + 2, s - 4, 12);
+        ctx.fillRect(x + 2, y + 16, 13, 14);
+        ctx.fillRect(x + 17, y + 16, 13, 14);
+        ctx.fillStyle = '#f59e0b';
+        ctx.fillRect(x, y, s, 3);
       } else if (theme === 'CAVERN') {
         ctx.fillStyle = '#312e81';
         ctx.fillRect(x, y, s, s);
@@ -320,12 +453,20 @@ export function drawTile(
     }
 
     case TileType.GROUND_DEEP: {
-      if (theme === 'HILLS' || theme === 'FOREST' || theme === 'UNDERWATER') {
-        ctx.fillStyle = theme === 'UNDERWATER' ? '#92400e' : '#78350f';
+      if (theme === 'HILLS' || theme === 'FOREST' || theme === 'UNDERWATER' || theme === 'DESERT') {
+        ctx.fillStyle =
+          theme === 'DESERT' ? '#b45309' : theme === 'UNDERWATER' ? '#92400e' : '#78350f';
         ctx.fillRect(x, y, s, s);
-        ctx.fillStyle = theme === 'UNDERWATER' ? '#b45309' : '#92400e';
+        ctx.fillStyle =
+          theme === 'DESERT' ? '#d97706' : theme === 'UNDERWATER' ? '#b45309' : '#92400e';
         ctx.fillRect(x + 4, y + 4, 10, 10);
         ctx.fillRect(x + 18, y + 16, 10, 10);
+      } else if (theme === 'PYRAMID') {
+        ctx.fillStyle = '#451a03';
+        ctx.fillRect(x, y, s, s);
+        ctx.fillStyle = '#78350f';
+        ctx.fillRect(x + 2, y + 2, 12, 12);
+        ctx.fillRect(x + 16, y + 16, 12, 12);
       } else if (theme === 'CAVERN') {
         ctx.fillStyle = '#1e1b4b';
         ctx.fillRect(x, y, s, s);
@@ -496,6 +637,73 @@ export function drawTile(
       ctx.fillStyle = '#f59e0b';
       ctx.fillRect(x + 2, y + 2, 12, 3);
       ctx.fillRect(x + 16, y + 2, 14, 3);
+      break;
+    }
+
+    case TileType.QUICKSAND_TOP: {
+      const shift = Math.floor(time * 10) % 8;
+      ctx.fillStyle = '#b45309';
+      ctx.fillRect(x, y + 2, s, s - 2);
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(x, y + 4, s, 12);
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(x + shift, y + 3, 12, 4);
+      ctx.fillRect(x + ((shift + 16) % 24), y + 9, 10, 4);
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(x + ((16 - shift) % 24), y + 18, 10, 4);
+      break;
+    }
+
+    case TileType.QUICKSAND_DEEP: {
+      const shift = Math.floor(time * 8) % 8;
+      ctx.fillStyle = '#92400e';
+      ctx.fillRect(x, y, s, s);
+      ctx.fillStyle = '#b45309';
+      ctx.fillRect(x + 4, y + shift, 12, 8);
+      ctx.fillRect(x + 18, y + ((shift + 14) % 24), 10, 8);
+      break;
+    }
+
+    case TileType.CRUMBLE_BLOCK: {
+      // Cracked unstable sandstone platform block
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(x, y, s, 18);
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(x + 2, y + 2, s - 4, 13);
+      ctx.fillStyle = '#fde68a';
+      ctx.fillRect(x + 4, y + 2, s - 8, 3);
+      // Visible cracks & loose sand teeth underneath
+      ctx.fillStyle = '#451a03';
+      ctx.fillRect(x + 10, y + 4, 2, 10);
+      ctx.fillRect(x + 12, y + 8, 4, 2);
+      ctx.fillRect(x + 21, y + 5, 2, 9);
+      ctx.fillRect(x + 4, y + 18, 6, 4);
+      ctx.fillRect(x + 14, y + 18, 6, 5);
+      ctx.fillRect(x + 24, y + 18, 5, 4);
+      break;
+    }
+
+    case TileType.CACTUS: {
+      // Prickly Saguaro Desert Cactus Hazard
+      ctx.fillStyle = '#14532d';
+      ctx.fillRect(x + 10, y + 4, 12, 28);
+      // Left & Right Cactus Arms
+      ctx.fillRect(x + 2, y + 12, 8, 6);
+      ctx.fillRect(x + 2, y + 8, 6, 8);
+      ctx.fillRect(x + 22, y + 14, 8, 6);
+      ctx.fillRect(x + 24, y + 10, 6, 8);
+      // Bright green inner ribs
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(x + 12, y + 6, 4, 24);
+      ctx.fillRect(x + 18, y + 6, 2, 24);
+      // Sharp white needles & desert flower on top
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(x + 8, y + 8, 2, 2);
+      ctx.fillRect(x + 22, y + 8, 2, 2);
+      ctx.fillRect(x + 8, y + 22, 2, 2);
+      ctx.fillRect(x + 22, y + 22, 2, 2);
+      ctx.fillStyle = '#f43f5e';
+      ctx.fillRect(x + 13, y + 1, 6, 4);
       break;
     }
     default:
@@ -850,10 +1058,35 @@ export function drawEnemy(
 
   if (enemy.type === 'SLIME') {
     if (enemy.state === 'SQUISHED') {
-      ctx.fillStyle = '#be123c';
+      ctx.fillStyle = theme === 'DESERT' || theme === 'PYRAMID' ? '#b45309' : '#be123c';
       ctx.fillRect(px + 2, py + 18, 24, 10);
-      ctx.fillStyle = '#fda4af';
+      ctx.fillStyle = theme === 'DESERT' || theme === 'PYRAMID' ? '#fde68a' : '#fda4af';
       ctx.fillRect(px + 6, py + 20, 16, 4);
+      return;
+    }
+    if (theme === 'DESERT' || theme === 'PYRAMID') {
+      // Dune Scorpion / Sand Scarab
+      ctx.fillStyle = '#92400e';
+      ctx.fillRect(px + 4, py + 10 + step, 20, 14 - step);
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(px + 6, py + 12 + step, 16, 10 - step);
+      // Raised Scorpion Tail & Stinger
+      const tailX = enemy.facing === 1 ? px + 2 : px + 22;
+      ctx.fillStyle = '#b45309';
+      ctx.fillRect(tailX, py + 2, 4, 10);
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(tailX + (enemy.facing === 1 ? 2 : -2), py, 5, 4);
+      // Snapping Pincer Claws
+      const clawX = enemy.facing === 1 ? px + 22 : px;
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(clawX, py + 12, 6, 6);
+      // Glowing eyes & legs
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(px + 8, py + 14, 3, 3);
+      ctx.fillRect(px + 17, py + 14, 3, 3);
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(px + (step ? 3 : 5), py + 24, 6, 4);
+      ctx.fillRect(px + (step ? 17 : 15), py + 24, 6, 4);
       return;
     }
     // Bouncing Spore Slime / Reef Crab
@@ -873,13 +1106,14 @@ export function drawEnemy(
     ctx.fillRect(px + (step ? 2 : 4), py + 24, 8, 4);
     ctx.fillRect(px + (step ? 18 : 16), py + 24, 8, 4);
   } else if (enemy.type === 'BEETLE') {
-    // Armored Shell Beetle / Sea Turtle
+    // Armored Shell Beetle / Sea Turtle / Golden Scarab Tortoise
     const isShell = enemy.state === 'SHELL_IDLE' || enemy.state === 'SHELL_MOVING';
-    ctx.fillStyle = '#1e3a8a';
+    const isDesert = theme === 'DESERT' || theme === 'PYRAMID';
+    ctx.fillStyle = isDesert ? '#78350f' : '#1e3a8a';
     ctx.fillRect(px + 2, py + (isShell ? 6 : 4), 24, isShell ? 22 : 20);
-    ctx.fillStyle = '#2563eb';
+    ctx.fillStyle = isDesert ? '#d97706' : '#2563eb';
     ctx.fillRect(px + 4, py + (isShell ? 8 : 6), 20, 16);
-    ctx.fillStyle = '#93c5fd';
+    ctx.fillStyle = isDesert ? '#fef08a' : '#93c5fd';
     ctx.fillRect(px + 8, py + (isShell ? 10 : 8), 12, 6);
     if (!isShell) {
       // Head & legs
@@ -913,6 +1147,18 @@ export function drawEnemy(
       ctx.fillRect(eyeX, py + 8, 5, 5);
       ctx.fillStyle = '#0f172a';
       ctx.fillRect(eyeX + (enemy.facing === 1 ? 2 : 0), py + 9, 3, 3);
+    } else if (theme === 'DESERT' || theme === 'PYRAMID') {
+      // Swooping Desert Vulture / Sand Hawk
+      const wingY = step === 0 ? py + 2 : py + 12;
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(px, wingY, 9, 10);
+      ctx.fillRect(px + 19, wingY, 9, 10);
+      ctx.fillStyle = '#b45309';
+      ctx.fillRect(px + 8, py + 6, 12, 14);
+      ctx.fillStyle = '#fbbf24';
+      ctx.fillRect(px + (enemy.facing === 1 ? 18 : 4), py + 10, 6, 5);
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(px + 11, py + 9, 3, 3);
     } else {
       // Swooping Cave Bat
       const wingY = step === 0 ? py + 2 : py + 12;
@@ -944,6 +1190,28 @@ export function drawEnemy(
       ctx.fillStyle = '#38bdf8';
       ctx.fillRect(px + 8, py + 10, 4, 3);
       ctx.fillRect(px + 16, py + 10, 4, 3);
+    } else if (theme === 'DESERT' || theme === 'PYRAMID') {
+      // Anubis Temple Guardian / Mummy Phalanx
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(px + 2, py + 2, 24, 24);
+      ctx.fillStyle = '#fef3c7';
+      ctx.fillRect(px + 4, py + 6, 20, 16);
+      // Mummy bandage stripes & golden Nemes crown
+      ctx.fillStyle = '#b45309';
+      ctx.fillRect(px + 4, py + 14, 20, 2);
+      ctx.fillRect(px + 4, py + 19, 20, 2);
+      ctx.fillStyle = '#1d4ed8';
+      ctx.fillRect(px + 2, py, 24, 6);
+      // Glowing ruby eyes
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(px + 6, py + 8, 16, 5);
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(px + 8, py + 9, 4, 3);
+      ctx.fillRect(px + 16, py + 9, 4, 3);
+      // Sandaled feet
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(px + (step ? 3 : 6), py + 24, 7, 4);
+      ctx.fillRect(px + (step ? 18 : 15), py + 24, 7, 4);
     } else {
       // Iron Guard Knight
       ctx.fillStyle = '#334155';
@@ -1060,6 +1328,64 @@ export function drawBoss(ctx: CanvasRenderingContext2D, boss: BossState, time: n
   const isVulnerable = boss.phase === 'VULNERABLE';
   const step = Math.floor(time * 6) % 2;
 
+  if (boss.name.includes('Solkar')) {
+    // SOLKAR, THE SAND TITAN (Giant Armored Desert Scorpion Boss)
+    // Segmented Golden-Chitin Carapace
+    ctx.fillStyle = isVulnerable ? '#fde047' : '#92400e';
+    ctx.fillRect(px + 6, py + 18, w - 12, h - 26);
+    ctx.fillStyle = isVulnerable ? '#fef9c3' : '#d97706';
+    ctx.fillRect(px + 10, py + 22, w - 20, h - 34);
+    // Chitin Armor Ribs
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(px + 20, py + 20, 4, h - 30);
+    ctx.fillRect(px + 32, py + 20, 4, h - 30);
+    ctx.fillRect(px + 44, py + 20, 4, h - 30);
+
+    // Towering Arched Scorpion Tail & Glowing Venom Stinger
+    const tailBaseX = boss.facing === -1 ? px + w - 18 : px + 6;
+    const stingerX = boss.facing === -1 ? px + 10 : px + w - 24;
+    const tailSway = Math.floor(Math.sin(time * 7) * 3);
+    ctx.fillStyle = '#b45309';
+    ctx.fillRect(tailBaseX, py + 2, 12, 18);
+    ctx.fillRect(px + 22, py - 10 + tailSway, 20, 12);
+    ctx.fillStyle = isVulnerable ? '#38bdf8' : '#ef4444';
+    ctx.fillRect(stingerX, py - 8 + tailSway, 14, 12);
+    ctx.fillStyle = '#fef08a';
+    ctx.fillRect(stingerX + 4, py - 4 + tailSway, 6, 4);
+
+    // Scorpion Head & Heavy Crushing Pincer Claws
+    const headX = boss.facing === -1 ? px : px + w - 26;
+    const clawX = boss.facing === -1 ? px - 12 : px + w - 6;
+    ctx.fillStyle = '#78350f';
+    ctx.fillRect(headX, py + 16, 26, 24);
+    ctx.fillStyle = '#f59e0b';
+    ctx.fillRect(clawX, py + 22 + step * 3, 18, 14);
+    ctx.fillStyle = '#451a03';
+    ctx.fillRect(clawX + (boss.facing === -1 ? 0 : 10), py + 26 + step * 3, 8, 4);
+
+    // Glowing Ruby Eyes
+    ctx.fillStyle = isVulnerable ? '#38bdf8' : '#fef08a';
+    ctx.fillRect(headX + (boss.facing === -1 ? 4 : 14), py + 22, 8, 6);
+    ctx.fillStyle = '#dc2626';
+    ctx.fillRect(headX + (boss.facing === -1 ? 5 : 16), py + 24, 4, 4);
+
+    // Arachnid Walking Legs
+    ctx.fillStyle = '#451a03';
+    for (let i = 0; i < 4; i++) {
+      const lx = px + 8 + i * 14;
+      const legLift = (i + step) % 2 === 0 ? 0 : 3;
+      ctx.fillRect(lx, py + h - 10 + legLift, 8, 10 - legLift);
+    }
+
+    if (isVulnerable) {
+      const starOffset = Math.floor(Math.sin(time * 10) * 10);
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(px + 20 + starOffset, py - 24, 8, 8);
+      ctx.fillRect(px + 36 - starOffset, py - 24, 8, 8);
+    }
+    return;
+  }
+
   // Armored Shell & Spikes
   ctx.fillStyle = isVulnerable ? '#f59e0b' : '#7f1d1d';
   ctx.fillRect(px + 6, py + 8, w - 12, h - 16);
@@ -1099,6 +1425,28 @@ export function drawBoss(ctx: CanvasRenderingContext2D, boss: BossState, time: n
     ctx.fillStyle = '#fde047';
     ctx.fillRect(px + 20 + starOffset, py - 22, 8, 8);
     ctx.fillRect(px + 36 - starOffset, py - 22, 8, 8);
+  }
+}
+
+export function drawSandstormOverlay(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  time: number,
+  windActive: boolean
+) {
+  // Warm golden sandstorm atmospheric veil
+  ctx.fillStyle = windActive ? 'rgba(217, 119, 6, 0.22)' : 'rgba(245, 158, 11, 0.12)';
+  ctx.fillRect(0, 0, width, height);
+
+  // Swirling high-velocity sand streaks across viewport
+  const speed = windActive ? 540 : 260;
+  for (let i = 0; i < 36; i++) {
+    const sx = width - (((time * speed + i * 97) % (width + 80)) - 40);
+    const sy = ((i * 53 + Math.sin(time * 4 + i) * 18) % height + height) % height;
+    const len = windActive ? 22 + (i % 3) * 10 : 12 + (i % 2) * 8;
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(254, 240, 138, 0.65)' : 'rgba(251, 191, 36, 0.55)';
+    ctx.fillRect(Math.floor(sx), Math.floor(sy), len, 3);
   }
 }
 

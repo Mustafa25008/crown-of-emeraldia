@@ -124,7 +124,7 @@ export default function App() {
       }
       const level = getLevelById(levelId);
       setCurrentLevelId(levelId);
-      setSelectedWorldId(level.worldId || (levelId > 5 ? 2 : 1));
+      setSelectedWorldId(level.worldId || (levelId > 10 ? 3 : levelId > 5 ? 2 : 1));
 
       if (resetRunStats) {
         setCarriedScore(0);
@@ -172,7 +172,9 @@ export default function App() {
           setSaveData((prev) => recordLevelCompletion(prev, level.id, finalScore, finalCoins));
           setGameState((prev) => {
             if (prev !== 'PLAYING' && prev !== 'PAUSED') return prev;
-            return level.id === 5 || level.id === 10 ? 'WORLD_VICTORY' : 'LEVEL_COMPLETE';
+            return level.id === 5 || level.id === 10 || level.id === 15
+              ? 'WORLD_VICTORY'
+              : 'LEVEL_COMPLETE';
           });
         },
         onGameOver: (finalScore, finalCoins) => {
@@ -292,7 +294,7 @@ export default function App() {
   const currentLevelDef = getLevelById(currentLevelId);
 
   const isStageUnlocked = (lvlId: number): boolean => {
-    if (lvlId === 1 || lvlId === 6) return true;
+    if (lvlId === 1 || lvlId === 6 || lvlId === 11) return true;
     const prevHigh = saveData.highScores[lvlId - 1] || 0;
     const prevCoins = saveData.bestCoins[lvlId - 1] || 0;
     if (prevHigh > 0 || prevCoins > 0) return true;
@@ -449,7 +451,7 @@ export default function App() {
 
         {/* 2. COMPACT WORLD SELECT SCREEN */}
         {gameState === 'WORLD_SELECT' && (
-          <div className="w-full max-w-2xl bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-2xl">
+          <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-2xl">
             <div className="flex items-center justify-between gap-4 border-b border-slate-800 pb-4">
               <button
                 onClick={() => navigateToMenu('TITLE_MENU')}
@@ -464,7 +466,7 @@ export default function App() {
               <div className="w-16 hidden sm:block" />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
               {WORLDS.map((world) => {
                 const worldCompletedCount = world.levels.filter(
                   (l) => (saveData.highScores[l.id] || 0) > 0 || (saveData.bestCoins[l.id] || 0) > 0
@@ -474,6 +476,7 @@ export default function App() {
                   0
                 );
                 const isOceanWorld = world.id === 2;
+                const isDesertWorld = world.id === 3;
 
                 return (
                   <button
@@ -483,16 +486,23 @@ export default function App() {
                       navigateToMenu('LEVEL_SELECT');
                     }}
                     className={`w-full bg-slate-950 border-2 ${
-                      isOceanWorld
+                      isDesertWorld
+                        ? 'border-amber-500/70 hover:border-amber-400'
+                        : isOceanWorld
                         ? 'border-cyan-500/70 hover:border-cyan-400'
                         : 'border-emerald-500/70 hover:border-emerald-400'
                     } active:scale-[0.98] rounded-xl p-5 text-center space-y-2.5 transition-all cursor-pointer shadow-lg`}
                   >
                     <div className="font-pixel text-base text-white">WORLD {world.id}</div>
                     <div className="text-xs font-semibold text-slate-300">{world.name}</div>
+                    <div className="text-[11px] text-slate-400">{world.subtitle}</div>
                     <div
                       className={`text-xs font-mono-num font-semibold ${
-                        isOceanWorld ? 'text-cyan-400' : 'text-emerald-400'
+                        isDesertWorld
+                          ? 'text-amber-400'
+                          : isOceanWorld
+                          ? 'text-cyan-400'
+                          : 'text-emerald-400'
                       }`}
                     >
                       {worldCompletedCount}/{world.levels.length} STAGES
@@ -1154,7 +1164,7 @@ export default function App() {
                       <div className="px-1">
                         <div className="text-[10px] text-slate-400 truncate">NEXT STAGE</div>
                         <div className="text-xs sm:text-sm font-bold text-emerald-400 mt-0.5 truncate">
-                          Stage {currentLevelDef.worldId || (currentLevelId > 5 ? 2 : 1)}-
+                          Stage {currentLevelDef.worldId || (currentLevelId > 10 ? 3 : currentLevelId > 5 ? 2 : 1)}-
                           {(currentLevelDef.stageNumber || ((currentLevelId - 1) % 5) + 1) + 1}
                         </div>
                       </div>
@@ -1162,7 +1172,7 @@ export default function App() {
 
                     <div className="flex flex-col gap-2">
                       <button
-                        onClick={() => startLevel(Math.min(10, currentLevelId + 1), false)}
+                        onClick={() => startLevel(Math.min(15, currentLevelId + 1), false)}
                         className="w-full min-h-[38px] flex items-center justify-center gap-2 py-2 px-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
                       >
                         <span>Next Level</span>
@@ -1231,12 +1241,16 @@ export default function App() {
 
                     <div>
                       <div className="text-[10px] sm:text-xs font-bold text-amber-400">
-                        {currentLevelId >= 6
+                        {currentLevelId >= 11
+                          ? 'SOLKAR, THE SAND TITAN DEFEATED!'
+                          : currentLevelId >= 6
                           ? 'ABYSSAL WARLORD KRAKENOS DEFEATED!'
                           : 'IRONCLAD KING DREDGE DEFEATED!'}
                       </div>
                       <h3 className="font-pixel text-xs sm:text-base text-white mt-0.5">
-                        {currentLevelId >= 6
+                        {currentLevelId >= 11
+                          ? 'WORLD 3: SUNSCORCH DESERT CONQUERED!'
+                          : currentLevelId >= 6
                           ? 'WORLD 2: CORAL ABYSS CONQUERED!'
                           : 'WORLD 1: EMERALDIA SAVED!'}
                       </h3>
@@ -1266,12 +1280,24 @@ export default function App() {
                         >
                           Enter World 2
                         </button>
+                      ) : currentLevelId === 10 ? (
+                        <button
+                          onClick={() => startLevel(11, false)}
+                          className="min-h-[38px] py-2 px-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
+                        >
+                          Enter World 3
+                        </button>
                       ) : (
                         <button
-                          onClick={() => startLevel(currentLevelId >= 6 ? 6 : 1, true)}
+                          onClick={() =>
+                            startLevel(
+                              currentLevelId >= 11 ? 11 : currentLevelId >= 6 ? 6 : 1,
+                              true
+                            )
+                          }
                           className="min-h-[38px] py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
                         >
-                          Replay World {currentLevelId >= 6 ? 2 : 1}
+                          Replay World {currentLevelId >= 11 ? 3 : currentLevelId >= 6 ? 2 : 1}
                         </button>
                       )}
                       <button

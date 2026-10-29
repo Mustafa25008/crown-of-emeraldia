@@ -4,8 +4,16 @@ const STORAGE_KEY = 'crown_of_emeraldia_save_v1';
 
 const DEFAULT_SAVE: SaveProgress = {
   unlockedLevel: 1,
-  highScores: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 },
-  bestCoins: { 1: 0, 2: 0, 3: 0, 4: 0, 5: 0, 6: 0, 7: 0, 8: 0, 9: 0, 10: 0 },
+  highScores: {
+    1: 0, 2: 0, 3: 0, 4: 0, 5: 0,
+    6: 0, 7: 0, 8: 0, 9: 0, 10: 0,
+    11: 0, 12: 0, 13: 0, 14: 0, 15: 0,
+  },
+  bestCoins: {
+    1: 0, 2: 0, 3: 0, 4: 0, 5: 0,
+    6: 0, 7: 0, 8: 0, 9: 0, 10: 0,
+    11: 0, 12: 0, 13: 0, 14: 0, 15: 0,
+  },
   totalCoinsCollected: 0,
   soundEnabled: true,
   musicEnabled: true,
@@ -18,7 +26,7 @@ export function loadProgress(): SaveProgress {
     if (!raw) return { ...DEFAULT_SAVE };
     const parsed = JSON.parse(raw);
     return {
-      unlockedLevel: Math.max(1, Math.min(10, Number(parsed.unlockedLevel) || 1)),
+      unlockedLevel: Math.max(1, Math.min(15, Number(parsed.unlockedLevel) || 1)),
       highScores: { ...DEFAULT_SAVE.highScores, ...(parsed.highScores || {}) },
       bestCoins: { ...DEFAULT_SAVE.bestCoins, ...(parsed.bestCoins || {}) },
       totalCoinsCollected: Number(parsed.totalCoinsCollected) || 0,
@@ -45,7 +53,7 @@ export function recordLevelCompletion(
   score: number,
   coins: number
 ): SaveProgress {
-  const nextUnlocked = Math.min(10, Math.max(current.unlockedLevel, levelId + 1));
+  const nextUnlocked = Math.min(15, Math.max(current.unlockedLevel, levelId + 1));
   const prevBestScore = current.highScores[levelId] || 0;
   const prevBestCoins = current.bestCoins[levelId] || 0;
 

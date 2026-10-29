@@ -49,3 +49,21 @@ export function addCoinRow(coins: CoinDef[], prefix: string, startCol: number, c
     });
   }
 }
+
+export function addQuicksandPit(grid: number[][], startCol: number, endCol: number, topRow: number = 16) {
+  for (let c = startCol; c <= endCol; c++) {
+    if (c < 0 || c >= grid[0].length) continue;
+    grid[topRow][c] = TileType.QUICKSAND_TOP;
+    for (let r = topRow + 1; r < LEVEL_ROWS; r++) {
+      grid[r][c] = TileType.QUICKSAND_DEEP;
+    }
+  }
+}
+
+export function addCrumbleBridge(grid: number[][], startCol: number, endCol: number, row: number) {
+  for (let c = startCol; c <= endCol; c++) {
+    if (c < 0 || c >= grid[0].length) continue;
+    grid[row][c] = TileType.CRUMBLE_BLOCK;
+  }
+}
+

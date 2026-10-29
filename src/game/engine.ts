@@ -24,6 +24,7 @@ import {
   drawPowerUpItem,
   drawFireball,
   drawBoss,
+  drawSandstormOverlay,
   drawParticlesAndFloatingText,
 } from './renderer';
 
@@ -122,6 +123,7 @@ export class PlatformerEngine {
   private fireballs: ActiveFireball[] = [];
   private movingPlatforms: RuntimeMovingPlatform[] = [];
   private bumpedTiles: BumpedTile[] = [];
+  private crumblingBlocks: Array<{ col: number; row: number; state: 'SHAKING' | 'BROKEN'; timer: number }> = [];
   private particles: Particle[] = [];
   private floatingTexts: FloatingText[] = [];
   private boss: BossState;
@@ -167,11 +169,17 @@ export class PlatformerEngine {
   }
 
   private createInitialBossState(): BossState {
-    const isWorld2Boss = this.level.id >= 6;
-    const bossHp = isWorld2Boss ? 6 : 5;
+    const isWorld3Boss = this.level.worldId === 3 || this.level.id >= 11;
+    const isWorld2Boss = !isWorld3Boss && (this.level.worldId === 2 || this.level.id >= 6);
+    const bossHp = isWorld3Boss || isWorld2Boss ? 6 : 5;
+    const bossName = isWorld3Boss
+      ? 'Solkar, the Sand Titan'
+      : isWorld2Boss
+      ? 'Abyssal Warlord Krakenos'
+      : 'Ironclad King Dredge';
     return {
       active: false,
-      name: isWorld2Boss ? 'Abyssal Warlord Krakenos' : 'Ironclad King Dredge',
+      name: bossName,
       hp: bossHp,
       maxHp: bossHp,
       x: 112 * TILE_SIZE,
@@ -220,6 +228,12 @@ export class PlatformerEngine {
     this.powerUps = [];
     this.fireballs = [];
     this.bumpedTiles = [];
+    for (const cb of this.crumblingBlocks) {
+      if (cb.state === 'BROKEN') {
+        this.tiles[cb.row][cb.col] = TileType.CRUMBLE_BLOCK;
+      }
+    }
+    this.crumblingBlocks = [];
 
     // Spawn Enemies
     this.enemies = this.level.enemies.map((e) => ({
@@ -543,8 +557,9 @@ export class PlatformerEngine {
     // 2. Update Player Controls, Physics, and Solid Tile Collisions
     this.updatePlayer(dt);
 
-    // 3. Update Bumped Tiles, Coins, Power-Ups, Fireballs, Enemies, and Boss
+    // 3. Update Bumped Tiles, Crumbling Blocks, Coins, Power-Ups, Fireballs, Enemies, and Boss
     this.updateBumpedTiles(dt);
+    this.updateCrumblingBlocks(dt);
     this.updateCoins();
     this.updatePowerUps(dt);
     this.updateFireballs(dt);
@@ -778,10 +793,36 @@ export class PlatformerEngine {
         // Standard Gravity
         this.pvy = Math.min(MAX_FALL_SPEED, this.pvy + GRAVITY * dt);
       }
+      // Quicksand Sinking & Escape Jump Mechanics (World 3 Desert)
+      if (this.isPlayerInQuicksand()) {
+        this.pvx *= 0.78;
+        this.coyoteTimer = COYOTE_TIME_WINDOW;
+        if (this.jumpJustPressed) {
+          this.pvy = JUMP_INITIAL_VEL * 0.86;
+          this.jumpJustPressed = false;
+          this.jumpBufferTimer = 0;
+          this.isJumping = true;
+          this.jumpHoldTimer = MAX_JUMP_HOLD_TIME * 0.75;
+          soundManager.playJump(this.powerState !== 'SMALL');
+          this.spawnBurstParticles(this.px + this.pWidth * 0.5, this.py + this.pHeight, '#fbbf24', 5);
+        } else if (this.pvy > -80) {
+          // Slow steady sinking into quicksand
+          this.pvy = 42;
+        }
+      }
+    }
+
+    // Desert Wind / Sandstorm Horizontal Gusts
+    let windDeltaX = 0;
+    if (this.level.windForce || this.level.hasSandstorm) {
+      const baseWind = this.level.windForce ?? -55;
+      const gustWave = Math.sin(this.elapsedTime * 1.1);
+      const gustMult = gustWave > -0.25 ? 1.0 : 0.35;
+      windDeltaX = baseWind * gustMult * dt;
     }
 
     // Horizontal Movement & Collision
-    this.px += this.pvx * dt;
+    this.px += this.pvx * dt + windDeltaX;
     if (this.px < this.minCameraX) {
       this.px = this.minCameraX;
       this.pvx = 0;
@@ -883,7 +924,58 @@ export class PlatformerEngine {
       t === TileType.PIPE_BODY_L ||
       t === TileType.PIPE_BODY_R ||
       t === TileType.BRIDGE ||
-      t === TileType.SPIKE
+      t === TileType.CRUMBLE_BLOCK ||
+      t === TileType.SPIKE ||
+      t === TileType.CACTUS
+    );
+  }
+
+  private isHazardContactTile(t: TileType): boolean {
+    return t === TileType.SPIKE || t === TileType.CACTUS;
+  }
+
+  private isPlayerInQuicksand(): boolean {
+    const startCol = Math.floor((this.px + 4) / TILE_SIZE);
+    const endCol = Math.floor((this.px + this.pWidth - 4) / TILE_SIZE);
+    const startRow = Math.floor((this.py + 8) / TILE_SIZE);
+    const endRow = Math.floor((this.py + this.pHeight) / TILE_SIZE);
+    for (let r = startRow; r <= endRow; r++) {
+      for (let c = startCol; c <= endCol; c++) {
+        const t = this.getTileAt(c, r);
+        if (t === TileType.QUICKSAND_TOP || t === TileType.QUICKSAND_DEEP) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private triggerCrumbleBlock(col: number, row: number) {
+    const existing = this.crumblingBlocks.find((cb) => cb.col === col && cb.row === row);
+    if (!existing) {
+      this.crumblingBlocks.push({ col, row, state: 'SHAKING', timer: 0.42 });
+    }
+  }
+
+  private updateCrumblingBlocks(dt: number) {
+    for (const cb of this.crumblingBlocks) {
+      cb.timer -= dt;
+      if (cb.state === 'SHAKING') {
+        if (cb.timer <= 0) {
+          cb.state = 'BROKEN';
+          cb.timer = 3.0;
+          this.tiles[cb.row][cb.col] = TileType.EMPTY;
+          soundManager.playBreakBlock();
+          this.spawnBurstParticles(cb.col * TILE_SIZE + 16, cb.row * TILE_SIZE + 10, '#d97706', 8);
+        }
+      } else if (cb.state === 'BROKEN') {
+        if (cb.timer <= 0) {
+          this.tiles[cb.row][cb.col] = TileType.CRUMBLE_BLOCK;
+        }
+      }
+    }
+    this.crumblingBlocks = this.crumblingBlocks.filter(
+      (cb) => !(cb.state === 'BROKEN' && cb.timer <= 0)
     );
   }
 
@@ -894,6 +986,48 @@ export class PlatformerEngine {
     return this.tiles[row][col];
   }
 
+  private getTileOffsetY(col: number, row: number): number {
+    const bumped = this.bumpedTiles.find((b) => b.tx === col && b.ty === row);
+    return bumped ? bumped.offsetY : 0;
+  }
+
+  private getTileHitbox(
+    col: number,
+    row: number
+  ): { x: number; y: number; width: number; height: number; tile: TileType; offsetY: number } | null {
+    const tile = this.getTileAt(col, row);
+    if (!this.isSolidTile(tile)) return null;
+    const offsetY = this.getTileOffsetY(col, row);
+    return {
+      x: col * TILE_SIZE,
+      y: row * TILE_SIZE + offsetY,
+      width: TILE_SIZE,
+      height: TILE_SIZE,
+      tile,
+      offsetY,
+    };
+  }
+
+  private carryPowerUpsOnBumpedTile(col: number, row: number, newOffsetY: number) {
+    if (!this.isSolidTile(this.getTileAt(col, row))) return;
+    const brickLeft = col * TILE_SIZE;
+    const brickRight = (col + 1) * TILE_SIZE;
+    const bumpedTopY = row * TILE_SIZE + newOffsetY;
+    const unbumpedTopY = row * TILE_SIZE;
+
+    for (const item of this.powerUps) {
+      if (item.collected) continue;
+      const overlapsHoriz = item.x + item.width - 0.1 > brickLeft && item.x + 0.1 < brickRight;
+      const itemBottom = item.y + item.height;
+      if (overlapsHoriz && itemBottom > bumpedTopY && itemBottom <= unbumpedTopY + 2) {
+        item.y = bumpedTopY - item.height;
+        if (item.vy > 0) {
+          item.vy = 0;
+        }
+      }
+    }
+  }
+
   private resolveHorizontalTileCollisions() {
     const startRow = Math.floor((this.py + 2) / TILE_SIZE);
     const endRow = Math.floor((this.py + this.pHeight - 2) / TILE_SIZE);
@@ -902,13 +1036,13 @@ export class PlatformerEngine {
     if (this.pvx > 0) {
       const rightCol = Math.floor((this.px + this.pWidth) / TILE_SIZE);
       for (let r = startRow; r <= endRow; r++) {
-        if (this.getTileAt(rightCol, r) === TileType.SPIKE) {
+        if (this.isHazardContactTile(this.getTileAt(rightCol, r))) {
           touchedSpike = true;
         }
       }
       for (let r = startRow; r <= endRow; r++) {
         const tile = this.getTileAt(rightCol, r);
-        if (this.isSolidTile(tile) && tile !== TileType.BRIDGE) {
+        if (this.isSolidTile(tile) && tile !== TileType.BRIDGE && tile !== TileType.CRUMBLE_BLOCK) {
           this.px = rightCol * TILE_SIZE - this.pWidth - 0.01;
           this.pvx = 0;
           break;
@@ -917,13 +1051,13 @@ export class PlatformerEngine {
     } else if (this.pvx < 0) {
       const leftCol = Math.floor(this.px / TILE_SIZE);
       for (let r = startRow; r <= endRow; r++) {
-        if (this.getTileAt(leftCol, r) === TileType.SPIKE) {
+        if (this.isHazardContactTile(this.getTileAt(leftCol, r))) {
           touchedSpike = true;
         }
       }
       for (let r = startRow; r <= endRow; r++) {
         const tile = this.getTileAt(leftCol, r);
-        if (this.isSolidTile(tile) && tile !== TileType.BRIDGE) {
+        if (this.isSolidTile(tile) && tile !== TileType.BRIDGE && tile !== TileType.CRUMBLE_BLOCK) {
           this.px = (leftCol + 1) * TILE_SIZE + 0.01;
           this.pvx = 0;
           break;
@@ -945,21 +1079,29 @@ export class PlatformerEngine {
       // Falling down
       const bottomRow = Math.floor((this.py + this.pHeight) / TILE_SIZE);
       for (let c = startCol; c <= endCol; c++) {
-        if (this.getTileAt(c, bottomRow) === TileType.SPIKE) {
+        if (this.isHazardContactTile(this.getTileAt(c, bottomRow))) {
           touchedSpike = true;
         }
       }
       for (let c = startCol; c <= endCol; c++) {
         const tile = this.getTileAt(c, bottomRow);
         if (this.isSolidTile(tile)) {
-          // Bridge is one-way from above
-          if (tile === TileType.BRIDGE && this.py + this.pHeight - this.pvy * 0.02 > bottomRow * TILE_SIZE + 8) {
+          // Bridge and Crumble Block are one-way from above
+          if (
+            (tile === TileType.BRIDGE || tile === TileType.CRUMBLE_BLOCK) &&
+            this.py + this.pHeight - this.pvy * 0.02 > bottomRow * TILE_SIZE + 8
+          ) {
             continue;
           }
           this.py = bottomRow * TILE_SIZE - this.pHeight;
           this.pvy = 0;
           this.onGround = true;
           this.isJumping = false;
+          for (let cc = startCol; cc <= endCol; cc++) {
+            if (this.getTileAt(cc, bottomRow) === TileType.CRUMBLE_BLOCK) {
+              this.triggerCrumbleBlock(cc, bottomRow);
+            }
+          }
           break;
         }
       }
@@ -967,17 +1109,17 @@ export class PlatformerEngine {
       // Jumping up into underside of blocks
       const topRow = Math.floor(this.py / TILE_SIZE);
       for (let c = startCol; c <= endCol; c++) {
-        if (this.getTileAt(c, topRow) === TileType.SPIKE) {
+        if (this.isHazardContactTile(this.getTileAt(c, topRow))) {
           touchedSpike = true;
         }
       }
       for (let c = startCol; c <= endCol; c++) {
         const tile = this.getTileAt(c, topRow);
-        if (this.isSolidTile(tile) && tile !== TileType.BRIDGE) {
+        if (this.isSolidTile(tile) && tile !== TileType.BRIDGE && tile !== TileType.CRUMBLE_BLOCK) {
           this.py = (topRow + 1) * TILE_SIZE + 0.01;
           this.pvy = 40;
           this.isJumping = false;
-          if (tile !== TileType.SPIKE) {
+          if (!this.isHazardContactTile(tile)) {
             this.handleBlockHitFromBelow(c, topRow, tile);
           }
           break;
@@ -1040,6 +1182,13 @@ export class PlatformerEngine {
       } else {
         soundManager.playBump();
       }
+    }
+
+    // Carry or push any power-up item standing on top of this bumped block upward with its surface
+    this.carryPowerUpsOnBumpedTile(col, row, -8);
+
+    if (tile === TileType.BRICK) {
+      return;
     } else if (tile === TileType.QUESTION_COIN) {
       this.tiles[row][col] = TileType.USED_BLOCK;
       soundManager.playCoin();
@@ -1132,7 +1281,7 @@ export class PlatformerEngine {
   }
 
   private checkHazardTiles() {
-    // Check inner bounds for lava
+    // Check inner bounds for lava or deep quicksand submersion
     const lavaStartCol = Math.floor((this.px + 4) / TILE_SIZE);
     const lavaEndCol = Math.floor((this.px + this.pWidth - 4) / TILE_SIZE);
     const lavaStartRow = Math.floor((this.py + 4) / TILE_SIZE);
@@ -1145,11 +1294,15 @@ export class PlatformerEngine {
           this.killPlayer();
           return;
         }
+        if (tile === TileType.QUICKSAND_DEEP && this.py + this.pHeight > r * TILE_SIZE + 22) {
+          this.killPlayer();
+          return;
+        }
       }
     }
 
-    // Since SPIKE is now a solid tile, check a 1px contact margin around the player so standing
-    // on top of or pressing against a spike continues to apply spike damage once invuln expires
+    // Since SPIKE and CACTUS are solid tiles, check a 1px contact margin around the player so standing
+    // on top of or pressing against a spike/cactus continues to apply damage once invuln expires
     const spikeStartCol = Math.floor((this.px - 1) / TILE_SIZE);
     const spikeEndCol = Math.floor((this.px + this.pWidth + 1) / TILE_SIZE);
     const spikeStartRow = Math.floor((this.py - 1) / TILE_SIZE);
@@ -1157,7 +1310,7 @@ export class PlatformerEngine {
 
     for (let r = spikeStartRow; r <= spikeEndRow; r++) {
       for (let c = spikeStartCol; c <= spikeEndCol; c++) {
-        if (this.getTileAt(c, r) === TileType.SPIKE) {
+        if (this.isHazardContactTile(this.getTileAt(c, r))) {
           if (!this.isInvincibleStar) {
             this.damagePlayer();
           }
@@ -1169,8 +1322,12 @@ export class PlatformerEngine {
 
   private updateBumpedTiles(dt: number) {
     for (const b of this.bumpedTiles) {
+      const prevOffsetY = b.offsetY;
       b.timer -= dt;
       b.offsetY = b.timer > 0.07 ? -8 : -4;
+      if (b.offsetY < prevOffsetY) {
+        this.carryPowerUpsOnBumpedTile(b.tx, b.ty, b.offsetY);
+      }
     }
     this.bumpedTiles = this.bumpedTiles.filter((b) => b.timer > 0);
   }
@@ -1217,28 +1374,86 @@ export class PlatformerEngine {
       if (item.type !== 'FIRE_FLOWER') {
         const gravMult = item.type === 'FEATHER' ? 0.28 : 0.85;
         const maxFall = item.type === 'FEATHER' ? 110 : MAX_FALL_SPEED;
+        const prevX = item.x;
+        const prevY = item.y;
+        const prevBottom = prevY + item.height;
+
         item.vy = Math.min(maxFall, item.vy + GRAVITY * gravMult * dt);
         item.x += item.vx * dt;
 
-        // Horizontal bounce off walls
-        const checkCol = item.vx > 0 ? Math.floor((item.x + item.width) / TILE_SIZE) : Math.floor(item.x / TILE_SIZE);
-        const midRow = Math.floor((item.y + item.height / 2) / TILE_SIZE);
-        if (this.isSolidTile(this.getTileAt(checkCol, midRow))) {
-          item.vx = -item.vx;
-          item.x += item.vx * dt * 2;
+        // Horizontal collision with solid tiles (accounting for bumped tile offsets)
+        const hStartCol = Math.floor(item.x / TILE_SIZE);
+        const hEndCol = Math.floor((item.x + item.width - 0.001) / TILE_SIZE);
+        const hStartRow = Math.floor(prevY / TILE_SIZE);
+        const hEndRow = Math.floor((prevY + item.height - 0.001) / TILE_SIZE) + 1;
+
+        for (let r = hStartRow; r <= hEndRow; r++) {
+          let hitWall = false;
+          for (let c = hStartCol; c <= hEndCol; c++) {
+            const hb = this.getTileHitbox(c, r);
+            if (!hb || hb.tile === TileType.BRIDGE) continue;
+
+            const overlapsX = item.x < hb.x + hb.width && item.x + item.width > hb.x;
+            const overlapsY = prevY + 1 < hb.y + hb.height && prevY + item.height - 1 > hb.y;
+            if (overlapsX && overlapsY) {
+              if (item.vx > 0 && prevX + item.width <= hb.x + 4) {
+                item.x = hb.x - item.width - 0.01;
+                item.vx = -item.vx;
+                hitWall = true;
+                break;
+              } else if (item.vx < 0 && prevX >= hb.x + hb.width - 4) {
+                item.x = hb.x + hb.width + 0.01;
+                item.vx = -item.vx;
+                hitWall = true;
+                break;
+              }
+            }
+          }
+          if (hitWall) break;
         }
 
-        // Vertical floor collision
+        // Vertical floor/ceiling collision (accounting for bumped tile offsets)
         item.y += item.vy * dt;
-        const bottomRow = Math.floor((item.y + item.height) / TILE_SIZE);
-        const c1 = Math.floor((item.x + 4) / TILE_SIZE);
-        const c2 = Math.floor((item.x + item.width - 4) / TILE_SIZE);
-        if (this.isSolidTile(this.getTileAt(c1, bottomRow)) || this.isSolidTile(this.getTileAt(c2, bottomRow))) {
-          item.y = bottomRow * TILE_SIZE - item.height;
-          if (item.type === 'STAR') {
-            item.vy = -340; // Star bounces!
-          } else {
-            item.vy = 0;
+        const vStartCol = Math.floor((item.x + 0.1) / TILE_SIZE);
+        const vEndCol = Math.floor((item.x + item.width - 0.1) / TILE_SIZE);
+        const vStartRow = Math.floor(item.y / TILE_SIZE);
+        const vEndRow = Math.floor((item.y + item.height) / TILE_SIZE) + 1;
+
+        if (item.vy >= 0) {
+          let highestFloorY: number | null = null;
+          for (let r = vStartRow; r <= vEndRow; r++) {
+            for (let c = vStartCol; c <= vEndCol; c++) {
+              const hb = this.getTileHitbox(c, r);
+              if (!hb) continue;
+              if (item.y + item.height >= hb.y && item.y < hb.y + hb.height && prevBottom <= hb.y + 8) {
+                if (highestFloorY === null || hb.y < highestFloorY) {
+                  highestFloorY = hb.y;
+                }
+              }
+            }
+          }
+          if (highestFloorY !== null) {
+            item.y = highestFloorY - item.height;
+            if (item.type === 'STAR') {
+              item.vy = -340; // Star bounces!
+            } else {
+              item.vy = 0;
+            }
+          }
+        } else {
+          for (let r = vStartRow; r <= vEndRow; r++) {
+            let hitCeiling = false;
+            for (let c = vStartCol; c <= vEndCol; c++) {
+              const hb = this.getTileHitbox(c, r);
+              if (!hb || hb.tile === TileType.BRIDGE) continue;
+              if (item.y < hb.y + hb.height && item.y + item.height > hb.y && prevY >= hb.y + hb.height - 8) {
+                item.y = hb.y + hb.height + 0.01;
+                item.vy = 0;
+                hitCeiling = true;
+                break;
+              }
+            }
+            if (hitCeiling) break;
           }
         }
       }
@@ -1433,10 +1648,13 @@ export class PlatformerEngine {
 
         const sideTile = this.getTileAt(sideCol, midRow);
         const belowTile = this.getTileAt(sideCol, belowRow);
-        const hitWall = this.isSolidTile(sideTile) && sideTile !== TileType.BRIDGE;
+        const hitWall =
+          this.isSolidTile(sideTile) &&
+          sideTile !== TileType.BRIDGE &&
+          sideTile !== TileType.CRUMBLE_BLOCK;
         const atLedge =
           enemy.state === 'PATROL' &&
-          (!this.isSolidTile(belowTile) || belowTile === TileType.SPIKE);
+          (!this.isSolidTile(belowTile) || this.isHazardContactTile(belowTile));
 
         if (hitWall || atLedge) {
           if (hitWall) {
@@ -1904,8 +2122,19 @@ export class PlatformerEngine {
         const tile = this.tiles[r][c];
         if (tile === TileType.EMPTY) continue;
         const bumped = this.bumpedTiles.find((b) => b.tx === c && b.ty === r);
+        const crumbling = this.crumblingBlocks.find(
+          (cb) => cb.col === c && cb.row === r && cb.state === 'SHAKING'
+        );
+        const offsetX = crumbling ? (Math.floor(this.elapsedTime * 45) % 2 === 0 ? -2 : 2) : 0;
         const offsetY = bumped ? bumped.offsetY : 0;
-        drawTile(ctx, tile, c * TILE_SIZE, r * TILE_SIZE + offsetY, this.level.theme, this.elapsedTime);
+        drawTile(
+          ctx,
+          tile,
+          c * TILE_SIZE + offsetX,
+          r * TILE_SIZE + offsetY,
+          this.level.theme,
+          this.elapsedTime
+        );
       }
     }
 
@@ -1974,5 +2203,11 @@ export class PlatformerEngine {
     drawParticlesAndFloatingText(ctx, this.particles, this.floatingTexts);
 
     ctx.restore();
+
+    // 10. Atmospheric Sandstorm Overlay (Screen-Space)
+    if (this.level.hasSandstorm) {
+      const windActive = Math.sin(this.elapsedTime * 1.1) > -0.25;
+      drawSandstormOverlay(ctx, CANVAS_WIDTH, CANVAS_HEIGHT, this.elapsedTime, windActive);
+    }
   }
 }
