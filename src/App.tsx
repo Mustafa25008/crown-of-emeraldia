@@ -733,7 +733,7 @@ export default function App() {
                   </div>
                   <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
                     <span>Charged Super Jump (Big / Fire)</span>
-                    <span className="font-mono-num text-amber-300">2x Down (Hold) + Jump</span>
+                    <span className="font-mono-num text-amber-300">Hold Down (1.5s) + Jump</span>
                   </div>
                   <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
                     <span>Jump / Fly / Slow Fall</span>
@@ -755,7 +755,7 @@ export default function App() {
                 <ul className="space-y-2 text-xs text-slate-300 leading-relaxed list-disc list-inside">
                   <li>Hold the Jump key longer for higher leaps across wide chasms.</li>
                   <li>Hold Shift while moving to build sprint momentum and jump farther.</li>
-                  <li>In Big or Fire form, quickly press Down twice (holding the 2nd press) to blink and charge for 2.5s, then press Jump for a massive Super Jump!</li>
+                  <li>In Big or Fire form, hold Down for 1.5 seconds until your character blinks, then press Jump for a massive Charged Super Jump!</li>
                   <li>In Raccoon form, press Fire/Attack to spin your tail and hit enemies or blocks!</li>
                   <li>In boss stages, wait for the boss to tire after attacking, then stomp its head, whip your Raccoon tail, or blast it with Fireballs to win!</li>
                 </ul>

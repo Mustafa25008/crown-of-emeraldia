@@ -47,10 +47,8 @@ const MAX_WALK_SPEED = 230;
 const MAX_RUN_SPEED = 350;
 const JUMP_INITIAL_VEL = -500;
 const SUPER_JUMP_INITIAL_VEL = -760; // Charged Super Jump velocity (significantly higher than long jump)
-const SUPER_JUMP_CHARGE_DURATION = 2.5; // ~2.5s active charging window
-const SUPER_JUMP_DOUBLE_TAP_WINDOW = 0.4; // max seconds between 1st and 2nd Down press
-const SUPER_JUMP_FIRST_TAP_MAX_HOLD = 0.28; // 1st press must be a quick tap, not a long crouch
-const SINGLE_CROUCH_HOLD_DELAY = 0.12; // prevents brief 1st tap from flickering crouch
+const SUPER_JUMP_HOLD_REQUIRED = 1.5; // Hold Down for 1.5s while grounded in BIG/FIRE form to activate charge
+const SUPER_JUMP_CHARGE_DURATION = 2.5; // ~2.5s active charging window once ready
 const JUMP_HOLD_BOOST = -1150; // extra upward force while jump held
 const MAX_JUMP_HOLD_TIME = 0.21; // 210ms variable jump window
 const COYOTE_TIME_WINDOW = 0.11; // 110ms grace period after leaving ledge
@@ -107,10 +105,8 @@ export class PlatformerEngine {
   // Charged Super Jump state (BIG and FIRE forms only)
   private isSuperJumpCharging: boolean = false;
   private superJumpChargeTimer: number = 0;
-  private downTapCount: number = 0;
-  private firstDownPressTime: number = -10;
   private currentDownHoldTime: number = 0;
-  private ignoreCrouchForCurrentHold: boolean = false;
+  private superJumpConsumedForHold: boolean = false;
 
   // Game progression & counters
   private score: number = 0;
@@ -251,10 +247,8 @@ export class PlatformerEngine {
     this.isCrouching = false;
     this.isRaccoonFlying = false;
     this.cancelSuperJumpCharge();
-    this.downTapCount = 0;
-    this.firstDownPressTime = -10;
     this.currentDownHoldTime = 0;
-    this.ignoreCrouchForCurrentHold = false;
+    this.superJumpConsumedForHold = false;
     this.tailSpinTimer = 0;
     this.tailSpinCooldown = 0;
     this.isDead = false;
@@ -458,51 +452,14 @@ export class PlatformerEngine {
   }
 
   private handleDownPress() {
-    const now = performance.now() / 1000;
     this.currentDownHoldTime = 0;
-
-    if (
-      this.isSuperJumpEligible() &&
-      this.onGround &&
-      !this.isDead &&
-      this.downTapCount === 1 &&
-      now - this.firstDownPressTime <= SUPER_JUMP_DOUBLE_TAP_WINDOW
-    ) {
-      // Second quick Down press (held): activate Charged Super Jump state for ~2.5s
-      this.downTapCount = 2;
-      this.isSuperJumpCharging = true;
-      this.superJumpChargeTimer = SUPER_JUMP_CHARGE_DURATION;
-      this.ignoreCrouchForCurrentHold = true;
-      if (this.isCrouching) {
-        this.isCrouching = false;
-        this.updatePlayerDimensions();
-      }
-    } else {
-      // First Down press
-      this.downTapCount = 1;
-      this.firstDownPressTime = now;
-      this.cancelSuperJumpCharge();
-      this.ignoreCrouchForCurrentHold = false;
-    }
+    this.superJumpConsumedForHold = false;
   }
 
   private handleDownRelease() {
-    if (this.downTapCount === 1) {
-      // If the first press was held for a normal sit/crouch, don't treat the next press as a double-tap
-      if (this.currentDownHoldTime > SUPER_JUMP_FIRST_TAP_MAX_HOLD) {
-        this.downTapCount = 0;
-        this.firstDownPressTime = -10;
-      }
-    } else if (this.downTapCount === 2) {
-      // The second press must be held (>= 100ms) to sustain the 2.5s charging state
-      if (this.currentDownHoldTime < 0.1) {
-        this.cancelSuperJumpCharge();
-      }
-      this.downTapCount = 0;
-      this.firstDownPressTime = -10;
-    }
+    // Releasing Down before the 1.5s hold completes cancels the activation progress
     this.currentDownHoldTime = 0;
-    this.ignoreCrouchForCurrentHold = false;
+    this.superJumpConsumedForHold = false;
   }
 
   private handleKeyDown = (e: KeyboardEvent) => {
@@ -559,9 +516,8 @@ export class PlatformerEngine {
     this.jumpJustPressed = false;
     this.fireJustPressed = false;
     this.cancelSuperJumpCharge();
-    this.downTapCount = 0;
     this.currentDownHoldTime = 0;
-    this.ignoreCrouchForCurrentHold = false;
+    this.superJumpConsumedForHold = false;
   };
 
   public setVirtualKey(code: string, pressed: boolean) {
@@ -618,9 +574,8 @@ export class PlatformerEngine {
     this.jumpJustPressed = false;
     this.fireJustPressed = false;
     this.cancelSuperJumpCharge();
-    this.downTapCount = 0;
     this.currentDownHoldTime = 0;
-    this.ignoreCrouchForCurrentHold = false;
+    this.superJumpConsumedForHold = false;
     this.lastFrameTime = performance.now();
   }
 
@@ -750,11 +705,25 @@ export class PlatformerEngine {
     const isRunning = this.keys['ShiftLeft'] || this.keys['ShiftRight'] || this.keys['KeyX'] || this.keys['KeyJ'];
     const jumpHeld = this.keys['Space'] || this.keys['KeyW'] || this.keys['ArrowUp'];
 
-    if (downHeld) {
-      this.currentDownHoldTime += dt;
+    // Charged Super Jump activation:
+    // Press and hold Down while grounded in BIG or FIRE form for 1.5s to activate the blinking charge state.
+    // Releasing Down before the 1.5s charge completes resets progress and cancels activation.
+    if (!downHeld) {
+      this.currentDownHoldTime = 0;
+      this.superJumpConsumedForHold = false;
+    } else if (this.onGround && this.isSuperJumpEligible() && !this.isDead) {
+      if (!this.isSuperJumpCharging && !this.superJumpConsumedForHold) {
+        this.currentDownHoldTime += dt;
+        if (this.currentDownHoldTime >= SUPER_JUMP_HOLD_REQUIRED) {
+          this.isSuperJumpCharging = true;
+          this.superJumpChargeTimer = SUPER_JUMP_CHARGE_DURATION;
+        }
+      }
+    } else {
+      this.currentDownHoldTime = 0;
     }
 
-    // Update & validate Charged Super Jump state (BIG and FIRE forms only, ~2.5s active window)
+    // Update & validate active Charged Super Jump state (BIG and FIRE forms only)
     if (this.isSuperJumpCharging) {
       if (!this.onGround || !this.isSuperJumpEligible() || this.isDead) {
         this.cancelSuperJumpCharge();
@@ -762,23 +731,17 @@ export class PlatformerEngine {
         this.superJumpChargeTimer -= dt;
         if (this.superJumpChargeTimer <= 0) {
           this.cancelSuperJumpCharge();
+          this.currentDownHoldTime = 0;
+          this.superJumpConsumedForHold = true;
         }
       }
     }
 
     // Classic Crouch / Sit Mechanic when character is grown (BIG, FIRE, or RACCOON):
     // Holding Down makes the grown character sit/crouch and disables Left/Right movement while held.
-    // Suppress crouching during double-press & hold Super Jump charging so it never interferes with other controls.
-    const crouchDelayMet =
-      !this.isSuperJumpEligible() ||
-      this.isCrouching ||
-      this.currentDownHoldTime >= SINGLE_CROUCH_HOLD_DELAY;
     const nextCrouching =
       this.powerState !== 'SMALL' &&
       !!downHeld &&
-      !this.isSuperJumpCharging &&
-      !this.ignoreCrouchForCurrentHold &&
-      crouchDelayMet &&
       (this.onGround || this.isCrouching);
     if (nextCrouching !== this.isCrouching) {
       this.isCrouching = nextCrouching;
@@ -918,10 +881,14 @@ export class PlatformerEngine {
 
         if (canSuperJump) {
           // Charged Super Jump: significantly higher than normal or long jump; immediately consumes charge
+          if (this.isCrouching) {
+            this.isCrouching = false;
+            this.updatePlayerDimensions();
+          }
           this.pvy = SUPER_JUMP_INITIAL_VEL;
           this.cancelSuperJumpCharge();
-          this.downTapCount = 0;
-          this.firstDownPressTime = -10;
+          this.currentDownHoldTime = 0;
+          this.superJumpConsumedForHold = true;
           this.spawnBurstParticles(
             this.px + this.pWidth * 0.5,
             this.py + this.pHeight,
