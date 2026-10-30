@@ -124,7 +124,10 @@ export default function App() {
       }
       const level = getLevelById(levelId);
       setCurrentLevelId(levelId);
-      setSelectedWorldId(level.worldId || (levelId > 10 ? 3 : levelId > 5 ? 2 : 1));
+      setSelectedWorldId(
+        level.worldId ||
+          (levelId > 20 ? 5 : levelId > 15 ? 4 : levelId > 10 ? 3 : levelId > 5 ? 2 : 1)
+      );
 
       if (resetRunStats) {
         setCarriedScore(0);
@@ -172,7 +175,11 @@ export default function App() {
           setSaveData((prev) => recordLevelCompletion(prev, level.id, finalScore, finalCoins));
           setGameState((prev) => {
             if (prev !== 'PLAYING' && prev !== 'PAUSED') return prev;
-            return level.id === 5 || level.id === 10 || level.id === 15
+            return level.id === 5 ||
+              level.id === 10 ||
+              level.id === 15 ||
+              level.id === 20 ||
+              level.id === 25
               ? 'WORLD_VICTORY'
               : 'LEVEL_COMPLETE';
           });
@@ -294,7 +301,7 @@ export default function App() {
   const currentLevelDef = getLevelById(currentLevelId);
 
   const isStageUnlocked = (lvlId: number): boolean => {
-    if (lvlId === 1 || lvlId === 6 || lvlId === 11) return true;
+    if (lvlId === 1 || lvlId === 6 || lvlId === 11 || lvlId === 16 || lvlId === 21) return true;
     const prevHigh = saveData.highScores[lvlId - 1] || 0;
     const prevCoins = saveData.bestCoins[lvlId - 1] || 0;
     if (prevHigh > 0 || prevCoins > 0) return true;
@@ -451,7 +458,7 @@ export default function App() {
 
         {/* 2. COMPACT WORLD SELECT SCREEN */}
         {gameState === 'WORLD_SELECT' && (
-          <div className="w-full max-w-4xl bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-2xl">
+          <div className="w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-2xl">
             <div className="flex items-center justify-between gap-4 border-b border-slate-800 pb-4">
               <button
                 onClick={() => navigateToMenu('TITLE_MENU')}
@@ -466,7 +473,7 @@ export default function App() {
               <div className="w-16 hidden sm:block" />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
               {WORLDS.map((world) => {
                 const worldCompletedCount = world.levels.filter(
                   (l) => (saveData.highScores[l.id] || 0) > 0 || (saveData.bestCoins[l.id] || 0) > 0
@@ -477,6 +484,8 @@ export default function App() {
                 );
                 const isOceanWorld = world.id === 2;
                 const isDesertWorld = world.id === 3;
+                const isFrostWorld = world.id === 4;
+                const isInfernoWorld = world.id === 5;
 
                 return (
                   <button
@@ -486,7 +495,11 @@ export default function App() {
                       navigateToMenu('LEVEL_SELECT');
                     }}
                     className={`w-full bg-slate-950 border-2 ${
-                      isDesertWorld
+                      isInfernoWorld
+                        ? 'border-orange-500/75 hover:border-orange-400'
+                        : isFrostWorld
+                        ? 'border-sky-400/70 hover:border-sky-300'
+                        : isDesertWorld
                         ? 'border-amber-500/70 hover:border-amber-400'
                         : isOceanWorld
                         ? 'border-cyan-500/70 hover:border-cyan-400'
@@ -498,7 +511,11 @@ export default function App() {
                     <div className="text-[11px] text-slate-400">{world.subtitle}</div>
                     <div
                       className={`text-xs font-mono-num font-semibold ${
-                        isDesertWorld
+                        isInfernoWorld
+                          ? 'text-orange-400'
+                          : isFrostWorld
+                          ? 'text-sky-300'
+                          : isDesertWorld
                           ? 'text-amber-400'
                           : isOceanWorld
                           ? 'text-cyan-400'
@@ -715,6 +732,10 @@ export default function App() {
                     <span className="font-mono-num text-amber-300">S or Down Arrow</span>
                   </div>
                   <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                    <span>Charged Super Jump (Big / Fire)</span>
+                    <span className="font-mono-num text-amber-300">2x Down (Hold) + Jump</span>
+                  </div>
+                  <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
                     <span>Jump / Fly / Slow Fall</span>
                     <span className="font-mono-num text-amber-300">Space, W, or Up Arrow</span>
                   </div>
@@ -734,8 +755,9 @@ export default function App() {
                 <ul className="space-y-2 text-xs text-slate-300 leading-relaxed list-disc list-inside">
                   <li>Hold the Jump key longer for higher leaps across wide chasms.</li>
                   <li>Hold Shift while moving to build sprint momentum and jump farther.</li>
+                  <li>In Big or Fire form, quickly press Down twice (holding the 2nd press) to blink and charge for 2.5s, then press Jump for a massive Super Jump!</li>
                   <li>In Raccoon form, press Fire/Attack to spin your tail and hit enemies or blocks!</li>
-                  <li>In Level 5, wait for Ironclad King Dredge to tire after his attack, then stomp his head, whip your Raccoon tail, or blast him with Fireballs 5 times to win!</li>
+                  <li>In boss stages, wait for the boss to tire after attacking, then stomp its head, whip your Raccoon tail, or blast it with Fireballs to win!</li>
                 </ul>
               </div>
             </div>
@@ -1164,15 +1186,25 @@ export default function App() {
                       <div className="px-1">
                         <div className="text-[10px] text-slate-400 truncate">NEXT STAGE</div>
                         <div className="text-xs sm:text-sm font-bold text-emerald-400 mt-0.5 truncate">
-                          Stage {currentLevelDef.worldId || (currentLevelId > 10 ? 3 : currentLevelId > 5 ? 2 : 1)}-
-                          {(currentLevelDef.stageNumber || ((currentLevelId - 1) % 5) + 1) + 1}
+                          Stage{' '}
+                          {currentLevelDef.worldId ||
+                            (currentLevelId > 20
+                              ? 5
+                              : currentLevelId > 15
+                              ? 4
+                              : currentLevelId > 10
+                              ? 3
+                              : currentLevelId > 5
+                              ? 2
+                              : 1)}
+                          -{(currentLevelDef.stageNumber || ((currentLevelId - 1) % 5) + 1) + 1}
                         </div>
                       </div>
                     </div>
 
                     <div className="flex flex-col gap-2">
                       <button
-                        onClick={() => startLevel(Math.min(15, currentLevelId + 1), false)}
+                        onClick={() => startLevel(Math.min(25, currentLevelId + 1), false)}
                         className="w-full min-h-[38px] flex items-center justify-center gap-2 py-2 px-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
                       >
                         <span>Next Level</span>
@@ -1241,14 +1273,22 @@ export default function App() {
 
                     <div>
                       <div className="text-[10px] sm:text-xs font-bold text-amber-400">
-                        {currentLevelId >= 11
+                        {currentLevelId >= 21
+                          ? 'IGNAROK, THE INFERNO KING DEFEATED!'
+                          : currentLevelId >= 16
+                          ? 'GLACIOR, THE FROST DRAGON DEFEATED!'
+                          : currentLevelId >= 11
                           ? 'SOLKAR, THE SAND TITAN DEFEATED!'
                           : currentLevelId >= 6
                           ? 'ABYSSAL WARLORD KRAKENOS DEFEATED!'
                           : 'IRONCLAD KING DREDGE DEFEATED!'}
                       </div>
                       <h3 className="font-pixel text-xs sm:text-base text-white mt-0.5">
-                        {currentLevelId >= 11
+                        {currentLevelId >= 21
+                          ? 'WORLD 5: INFERNO KINGDOM CONQUERED!'
+                          : currentLevelId >= 16
+                          ? 'WORLD 4: FROSTFALL KINGDOM CONQUERED!'
+                          : currentLevelId >= 11
                           ? 'WORLD 3: SUNSCORCH DESERT CONQUERED!'
                           : currentLevelId >= 6
                           ? 'WORLD 2: CORAL ABYSS CONQUERED!'
@@ -1287,17 +1327,48 @@ export default function App() {
                         >
                           Enter World 3
                         </button>
+                      ) : currentLevelId === 15 ? (
+                        <button
+                          onClick={() => startLevel(16, false)}
+                          className="min-h-[38px] py-2 px-3 bg-sky-400 hover:bg-sky-300 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
+                        >
+                          Enter World 4
+                        </button>
+                      ) : currentLevelId === 20 ? (
+                        <button
+                          onClick={() => startLevel(21, false)}
+                          className="min-h-[38px] py-2 px-3 bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
+                        >
+                          Enter World 5
+                        </button>
                       ) : (
                         <button
                           onClick={() =>
                             startLevel(
-                              currentLevelId >= 11 ? 11 : currentLevelId >= 6 ? 6 : 1,
+                              currentLevelId >= 21
+                                ? 21
+                                : currentLevelId >= 16
+                                ? 16
+                                : currentLevelId >= 11
+                                ? 11
+                                : currentLevelId >= 6
+                                ? 6
+                                : 1,
                               true
                             )
                           }
                           className="min-h-[38px] py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
                         >
-                          Replay World {currentLevelId >= 11 ? 3 : currentLevelId >= 6 ? 2 : 1}
+                          Replay World{' '}
+                          {currentLevelId >= 21
+                            ? 5
+                            : currentLevelId >= 16
+                            ? 4
+                            : currentLevelId >= 11
+                            ? 3
+                            : currentLevelId >= 6
+                            ? 2
+                            : 1}
                         </button>
                       )}
                       <button

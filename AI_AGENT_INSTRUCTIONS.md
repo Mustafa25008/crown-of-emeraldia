@@ -29,18 +29,32 @@ All worlds and levels must be organized modularly by world folder so new stages 
 │   ├── level_3.ts            # Stage 2-3 definition (Sunken Galleon Reef - Underwater)
 │   ├── level_4.ts            # Stage 2-4 definition (Abyssal Whirlpool - Underwater)
 │   └── level_5.ts            # Stage 2-5 boss stage definition (Tidal Citadel & Boss Fight)
-└── world_3/                  # World 3: Sunscorch Desert (Desert & Pyramid Stages 3-1 to 3-5)
-    ├── index.ts              # Exports WORLD_3 and WORLD_3_LEVELS array (Levels 11-15)
-    ├── level_1.ts            # Stage 3-1 definition (Dune Dash)
-    ├── level_2.ts            # Stage 3-2 definition (Shifting Sands - Quicksand & Crumble Blocks)
-    ├── level_3.ts            # Stage 3-3 definition (Temple of Echoes - Pyramid Temple)
-    ├── level_4.ts            # Stage 3-4 definition (The Sandstorm - Wind & Sandstorm Overlay)
-    └── level_5.ts            # Stage 3-5 boss stage definition (Sunken Pyramid & Solkar Boss Fight)
+├── world_3/                  # World 3: Sunscorch Desert (Desert & Pyramid Stages 3-1 to 3-5)
+│   ├── index.ts              # Exports WORLD_3 and WORLD_3_LEVELS array (Levels 11-15)
+│   ├── level_1.ts            # Stage 3-1 definition (Dune Dash)
+│   ├── level_2.ts            # Stage 3-2 definition (Shifting Sands - Quicksand & Crumble Blocks)
+│   ├── level_3.ts            # Stage 3-3 definition (Temple of Echoes - Pyramid Temple)
+│   ├── level_4.ts            # Stage 3-4 definition (The Sandstorm - Wind & Sandstorm Overlay)
+│   └── level_5.ts            # Stage 3-5 boss stage definition (Sunken Pyramid & Solkar Boss Fight)
+├── world_4/                  # World 4: Frostfall Kingdom (Snow, Ice Cavern & Frost Castle Stages 4-1 to 4-5)
+│   ├── index.ts              # Exports WORLD_4 and WORLD_4_LEVELS array (Levels 16-20)
+│   ├── level_1.ts            # Stage 4-1 definition (Snowbound Trails)
+│   ├── level_2.ts            # Stage 4-2 definition (Slippery Slopes - Reduced Friction & Stepped Glaciers)
+│   ├── level_3.ts            # Stage 4-3 definition (Frozen Depths - Ice Cavern, Icicles & Freezing Water)
+│   ├── level_4.ts            # Stage 4-4 definition (Blizzard Pass - Blizzard Wind & Exposed Ice Ledges)
+│   └── level_5.ts            # Stage 4-5 boss stage definition (Frostfang Castle & Glacior Boss Fight)
+└── world_5/                  # World 5: Inferno Kingdom (Volcano, Molten Cavern & Inferno Citadel Stages 5-1 to 5-5)
+    ├── index.ts              # Exports WORLD_5 and WORLD_5_LEVELS array (Levels 21-25)
+    ├── level_1.ts            # Stage 5-1 definition (Ashen Outskirts - Ash Ground, Burning Rocks & Lava Pools)
+    ├── level_2.ts            # Stage 5-2 definition (Molten Caverns - Flowing Lava, Falling Rocks & Magma Crumble)
+    ├── level_3.ts            # Stage 5-3 definition (Firefall Cliffs - Erupting Lava Geysers & Falling Debris)
+    ├── level_4.ts            # Stage 5-4 definition (The Burning Fortress - Fire Traps, Lava Chambers & Rotating Bars)
+    └── level_5.ts            # Stage 5-5 boss stage definition (Inferno Citadel & Ignarok Boss Fight)
 ```
 
 ### Rules for Adding New Levels or Worlds:
 1. **One File Per Level**: Every stage must live in its own file (`src/game/world_<W>/level_<L>.ts`) and export both `buildWorld<W>Level<L>(): LevelDefinition` and the built constant.
-2. **Use `level_builder.ts` Helpers**: Always use `createEmptyGrid(cols)`, `fillGroundRange(grid, startCol, endCol)`, `addPipe(...)`, `addStairs(...)`, `addCoinRow(...)`, `addQuicksandPit(...)`, and `addCrumbleBridge(...)` from `src/game/level_builder.ts`.
+2. **Use `level_builder.ts` Helpers**: Always use `createEmptyGrid(cols)`, `fillGroundRange(grid, startCol, endCol)`, `fillIceGroundRange(grid, startCol, endCol)`, `addPipe(...)`, `addStairs(...)`, `addCoinRow(...)`, `addQuicksandPit(...)`, `addCrumbleBridge(...)`, `addFragileIceBridge(...)`, `addFreezingWaterPit(...)`, `addLavaPit(...)`, and `addMagmaCrumbleBridge(...)` from `src/game/level_builder.ts`.
 3. **Register in World Index**: Export all levels of a world from `src/game/world_<W>/index.ts` and register them in `src/game/levels.ts`.
 4. **Underwater Stages (`isUnderwater: true`, `theme: 'UNDERWATER'`, `musicTrack: 'UNDERWATER'`)**:
    - In underwater worlds (such as World 2 Stages 2-1 through 2-4), set `isUnderwater: true`, `theme: 'UNDERWATER'`, and `musicTrack: 'UNDERWATER'`, while keeping the final Stage X-5 Castle Boss fight non-underwater (`isUnderwater: false`, `theme: 'CASTLE'`, `musicTrack: 'BOSS'`).
@@ -50,6 +64,14 @@ All worlds and levels must be organized modularly by world folder so new stages 
    - **Collapsing Sandstone (`TileType.CRUMBLE_BLOCK`)**: Solid sandstone blocks (`addCrumbleBridge(grid, row, startCol, endCol)`) that shake and crumble away `0.42s` after the player stands on them, then respawn `3.2s` later.
    - **Solid Cactus Hazards (`TileType.CACTUS`)**: Solid hazard tiles (`isSolidTile` and `isHazardContactTile`) that block player movement while applying contact damage and reflect ground enemies horizontally just like `TileType.SPIKE`.
    - **Sandstorm & Wind (`hasSandstorm: true`, `windForce?: number`)**: Applies periodic desert wind gusts that push the player horizontally while rendering blowing sand particles and a golden sandstorm haze overlay.
+6. **Frostfall Kingdom Stages (`theme: 'SNOW' | 'ICE_CAVERN' | 'FROST_CASTLE'`, `musicTrack: 'SNOW' | 'CAVERN' | 'CASTLE_BOSS'`)**:
+   - **Slippery Ice Surfaces (`TileType.ICE_GROUND`)**: Solid ice blocks (`fillIceGroundRange`) that reduce ground friction (`0.22x`) and turnaround skid traction while slightly boosting top glide speed.
+   - **Fragile Ice Platforms (`TileType.FRAGILE_ICE`)**: One-way ice ledges (`addFragileIceBridge`) that crack and shatter into cyan shards `0.36s` after the player lands on them, then refreeze `3.0s` later.
+   - **Solid Icicle Hazards (`TileType.ICICLE`) & Sub-Zero Freezing Water (`TileType.FREEZING_WATER_TOP`, `TileType.FREEZING_WATER_DEEP`)**: Icicles act as solid contact hazards that reflect enemies horizontally; freezing water pools chill and damage the player while allowing an escape jump before sinking into deep freezing water.
+   - **Blizzard Pass (`hasBlizzard: true`, `windForce?: number`)**: Combines strong mountain headwinds with swirling snowfall and whiteout frost haze (`drawBlizzardOverlay`).
+7. **Inferno Kingdom Stages (`theme: 'VOLCANO' | 'MOLTEN_CAVERN' | 'INFERNO_CASTLE'`, `musicTrack: 'VOLCANO' | 'CAVERN' | 'FORTRESS' | 'CASTLE_BOSS'`)**:
+   - **Burning Rocks (`TileType.BURNING_ROCK`) & Collapsing Magma Ledges (`TileType.MAGMA_CRUMBLE`)**: Burning rocks act as solid glowing magma hazards that reflect patrolling enemies and damage the player on contact; magma crumble ledges (`addMagmaCrumbleBridge`) shake and shatter into fiery embers `0.38s` after being stepped on, then reform `3.0s` later.
+   - **Erupting Lava Geysers (`lavaGeysers`), Rising Lava (`hasRisingLava: true`) & Falling Volcanic Debris (`hasFallingRocks: true`)**: Timed volcanic geysers telegraph with bubbling magma sparks before erupting upward; surging lava waves and falling volcanic meteors challenge platforming timing across World 5.
 
 ---
 

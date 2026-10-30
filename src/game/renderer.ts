@@ -90,6 +90,64 @@ export function drawParallaxBackground(
     grad.addColorStop(1, '#78350f');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, width, height);
+  } else if (theme === 'SNOW') {
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, '#0284c7');
+    grad.addColorStop(0.45, '#38bdf8');
+    grad.addColorStop(0.8, '#bae6fd');
+    grad.addColorStop(1, '#f0f9ff');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+
+    // Pale Winter Sun & Aurora Shimmer in upper sky
+    ctx.fillStyle = 'rgba(224, 242, 254, 0.35)';
+    ctx.fillRect(width - 144, 24, 60, 60);
+    ctx.fillStyle = '#f0f9ff';
+    ctx.fillRect(width - 136, 32, 44, 44);
+  } else if (theme === 'ICE_CAVERN') {
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, '#082f49');
+    grad.addColorStop(0.55, '#0c4a6e');
+    grad.addColorStop(1, '#0369a1');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+  } else if (theme === 'FROST_CASTLE') {
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, '#090d16');
+    grad.addColorStop(0.55, '#0f172a');
+    grad.addColorStop(1, '#1e3a8a');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+  } else if (theme === 'VOLCANO') {
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, '#1c1917');
+    grad.addColorStop(0.45, '#450a0a');
+    grad.addColorStop(0.8, '#991b1b');
+    grad.addColorStop(1, '#ea580c');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+
+    // Blood-red volcanic glow in upper sky
+    ctx.fillStyle = 'rgba(249, 115, 22, 0.28)';
+    ctx.fillRect(width - 152, 22, 68, 68);
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(width - 144, 30, 52, 52);
+    ctx.fillStyle = '#fde047';
+    ctx.fillRect(width - 134, 40, 32, 32);
+  } else if (theme === 'MOLTEN_CAVERN') {
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, '#140707');
+    grad.addColorStop(0.55, '#450a0a');
+    grad.addColorStop(1, '#9a3412');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+  } else if (theme === 'INFERNO_CASTLE') {
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, '#0c0a09');
+    grad.addColorStop(0.55, '#290909');
+    grad.addColorStop(1, '#7f1d1d');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
   } else {
     // CASTLE
     const grad = ctx.createLinearGradient(0, 0, 0, height);
@@ -100,7 +158,7 @@ export function drawParallaxBackground(
     ctx.fillRect(0, 0, width, height);
   }
 
-  // Far parallax layer (clouds / glowing crystals / rising bubbles / desert pyramids / temple pillars)
+  // Far parallax layer (clouds / glowing crystals / rising bubbles / desert pyramids / temple pillars / snowy peaks)
   const farOffset = Math.floor(cameraX * 0.18);
   if (theme === 'HILLS' || theme === 'FOREST') {
     for (let i = -1; i < 8; i++) {
@@ -108,6 +166,17 @@ export function drawParallaxBackground(
       // Keep clouds up high in the upper sky (y: 24 to 90), well above blocks at y: 350+
       const cy = 24 + (Math.abs(i) % 3) * 28;
       drawPixelCloud(ctx, Math.floor(cx), cy, theme === 'FOREST' ? '#a7f3d0' : '#ffffff');
+    }
+  } else if (theme === 'SNOW') {
+    // Crisp winter clouds + Distant Snow-Capped Mountain Peaks
+    for (let i = -1; i < 6; i++) {
+      const cx = ((i * 240 - farOffset) % (width + 280) + (width + 280)) % (width + 280) - 100;
+      const cy = 20 + (Math.abs(i) % 2) * 24;
+      drawPixelCloud(ctx, Math.floor(cx), cy, '#f8fafc');
+    }
+    for (let i = -1; i < 5; i++) {
+      const mx = ((i * 330 - farOffset) % (width + 380) + (width + 380)) % (width + 380) - 140;
+      drawSnowMountain(ctx, Math.floor(mx), height - 96, 180 + (i % 2) * 40, 130 + (i % 2) * 28);
     }
   } else if (theme === 'DESERT') {
     // Warm desert clouds high in sky + Distant Ancient Pyramids on the horizon
@@ -131,11 +200,33 @@ export function drawParallaxBackground(
       ctx.fillStyle = '#ffffff';
       ctx.fillRect(Math.floor(bx) + 1, by + 1, 2, 2);
     }
-  } else if (theme === 'CAVERN') {
+  } else if (theme === 'VOLCANO') {
+    // Dark volcanic ash clouds + Distant Erupting Volcanoes with magma plumes
+    for (let i = -1; i < 6; i++) {
+      const cx = ((i * 250 - farOffset) % (width + 280) + (width + 280)) % (width + 280) - 100;
+      const cy = 20 + (Math.abs(i) % 2) * 24;
+      drawPixelCloud(ctx, Math.floor(cx), cy, '#57534e');
+    }
+    for (let i = -1; i < 5; i++) {
+      const vx = ((i * 340 - farOffset) % (width + 380) + (width + 380)) % (width + 380) - 140;
+      drawEruptingVolcano(ctx, Math.floor(vx), height - 96, 185 + (i % 2) * 35, 130 + (i % 2) * 25, time, i);
+    }
+  } else if (theme === 'CAVERN' || theme === 'ICE_CAVERN' || theme === 'MOLTEN_CAVERN') {
     for (let i = 0; i < 12; i++) {
       const cx = ((i * 150 - farOffset) % (width + 200) + (width + 200)) % (width + 200) - 50;
       const cy = 50 + (i % 4) * 45;
-      const pulse = Math.sin(time * 3 + i) > 0 ? '#38bdf8' : '#818cf8';
+      const pulse =
+        theme === 'MOLTEN_CAVERN'
+          ? Math.sin(time * 4 + i) > 0
+            ? '#f97316'
+            : '#fde047'
+          : theme === 'ICE_CAVERN'
+          ? Math.sin(time * 3 + i) > 0
+            ? '#7dd3fc'
+            : '#e0f2fe'
+          : Math.sin(time * 3 + i) > 0
+          ? '#38bdf8'
+          : '#818cf8';
       ctx.fillStyle = pulse;
       ctx.fillRect(Math.floor(cx), cy, 6, 14);
       ctx.fillRect(Math.floor(cx) - 4, cy + 4, 14, 6);
@@ -165,31 +256,60 @@ export function drawParallaxBackground(
       ctx.fillRect(xCol + 23, 170, 8, 8);
     }
   } else {
-    // FORTRESS / CASTLE background brick arches & torches
+    // FORTRESS / CASTLE / FROST_CASTLE / INFERNO_CASTLE background brick arches & torches
     for (let i = -1; i < 8; i++) {
       const px = ((i * 200 - farOffset) % (width + 220) + (width + 220)) % (width + 220) - 60;
-      ctx.fillStyle = theme === 'CASTLE' ? '#27272a' : '#431407';
+      const isFrost = theme === 'FROST_CASTLE';
+      const isInferno = theme === 'INFERNO_CASTLE';
+      ctx.fillStyle = isFrost
+        ? '#1e3a8a'
+        : isInferno
+        ? '#1c1917'
+        : theme === 'CASTLE'
+        ? '#27272a'
+        : '#431407';
       ctx.fillRect(Math.floor(px), 60, 48, height - 60);
-      ctx.fillStyle = theme === 'CASTLE' ? '#3f3f46' : '#7c2d12';
+      ctx.fillStyle = isFrost
+        ? '#0284c7'
+        : isInferno
+        ? '#7f1d1d'
+        : theme === 'CASTLE'
+        ? '#3f3f46'
+        : '#7c2d12';
       ctx.fillRect(Math.floor(px) + 6, 60, 12, height - 60);
-      // Animated wall torch
+      // Animated wall torch (icy blue flame in FROST_CASTLE, roaring hellfire in INFERNO_CASTLE)
       const flicker = Math.floor(time * 10 + i) % 2 === 0;
-      ctx.fillStyle = '#78350f';
+      ctx.fillStyle = isFrost ? '#334155' : '#78350f';
       ctx.fillRect(Math.floor(px) + 20, 180, 8, 20);
-      ctx.fillStyle = flicker ? '#fbbf24' : '#f97316';
+      ctx.fillStyle = isFrost
+        ? flicker
+          ? '#38bdf8'
+          : '#0ea5e9'
+        : isInferno
+        ? flicker
+          ? '#ef4444'
+          : '#f97316'
+        : flicker
+        ? '#fbbf24'
+        : '#f97316';
       ctx.fillRect(Math.floor(px) + 18, 166, 12, 14);
-      ctx.fillStyle = '#fef08a';
+      ctx.fillStyle = isFrost ? '#e0f2fe' : '#fef08a';
       ctx.fillRect(Math.floor(px) + 21, 170, 6, 8);
     }
   }
 
-  // Mid parallax layer (hills / giant mushroom trees / swaying kelp & coral / sand dunes / stalagmites / battlements)
+  // Mid parallax layer (hills / giant mushroom trees / swaying kelp & coral / sand dunes / stalagmites / snowy pines / volcanic ridges)
   const midOffset = Math.floor(cameraX * 0.4);
   for (let i = -1; i < 7; i++) {
     const hx = ((i * 260 - midOffset) % (width + 300) + (width + 300)) % (width + 300) - 120;
     if (theme === 'HILLS') {
       drawPixelHill(ctx, Math.floor(hx), height - 96, 180, 130 + (i % 2) * 45, '#16a34a', '#22c55e');
       drawPixelBush(ctx, Math.floor(hx) + 90, height - 96);
+    } else if (theme === 'SNOW') {
+      drawPixelHill(ctx, Math.floor(hx), height - 96, 190, 95 + (i % 2) * 35, '#7dd3fc', '#f0f9ff');
+      drawSnowPineTree(ctx, Math.floor(hx) + 110, height - 96, 68 + (i % 2) * 18);
+    } else if (theme === 'VOLCANO') {
+      drawPixelHill(ctx, Math.floor(hx), height - 96, 195, 90 + (i % 2) * 32, '#292524', '#44403c');
     } else if (theme === 'DESERT') {
       drawPixelHill(ctx, Math.floor(hx), height - 96, 210, 85 + (i % 2) * 30, '#d97706', '#fbbf24');
       drawBackdropCactus(ctx, Math.floor(hx) + 115, height - 96, 48 + (i % 2) * 14);
@@ -199,16 +319,33 @@ export function drawParallaxBackground(
     } else if (theme === 'UNDERWATER') {
       drawCoralReef(ctx, Math.floor(hx), height - 96, 75 + (i % 2) * 28, i);
       drawSeaweedStalk(ctx, Math.floor(hx) + 110, height - 96, 95 + (i % 3) * 20, time, i);
-    } else if (theme === 'CAVERN' || theme === 'PYRAMID') {
+    } else if (
+      theme === 'CAVERN' ||
+      theme === 'PYRAMID' ||
+      theme === 'ICE_CAVERN' ||
+      theme === 'MOLTEN_CAVERN'
+    ) {
       drawStalagmite(
         ctx,
         Math.floor(hx),
         height - 96,
         85 + (i % 3) * 22,
-        theme === 'PYRAMID' ? '#78350f' : '#1e293b',
-        theme === 'PYRAMID' ? '#b45309' : '#334155'
+        theme === 'MOLTEN_CAVERN'
+          ? '#292524'
+          : theme === 'ICE_CAVERN'
+          ? '#0369a1'
+          : theme === 'PYRAMID'
+          ? '#78350f'
+          : '#1e293b',
+        theme === 'MOLTEN_CAVERN'
+          ? '#dc2626'
+          : theme === 'ICE_CAVERN'
+          ? '#38bdf8'
+          : theme === 'PYRAMID'
+          ? '#b45309'
+          : '#334155'
       );
-    } else if (theme === 'FORTRESS') {
+    } else if (theme === 'FORTRESS' || theme === 'FROST_CASTLE' || theme === 'INFERNO_CASTLE') {
       drawDistantTower(ctx, Math.floor(hx), height - 96, 120 + (i % 2) * 30);
     }
   }
@@ -322,6 +459,47 @@ function drawBackdropCactus(ctx: CanvasRenderingContext2D, x: number, baseY: num
   ctx.fillRect(x + 13, baseY - h + 3, 4, h - 6);
 }
 
+function drawSnowMountain(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  baseY: number,
+  w: number,
+  h: number
+) {
+  const steps = 12;
+  const stepH = Math.floor(h / steps);
+  for (let s = 0; s < steps; s++) {
+    const shrink = s * Math.floor(w / (steps * 2));
+    const sy = baseY - (s + 1) * stepH;
+    const sw = Math.max(12, w - shrink * 2);
+    const sx = x + shrink;
+    const isSnowCap = s >= 7;
+    ctx.fillStyle = isSnowCap ? '#cbd5e1' : '#334155';
+    ctx.fillRect(sx, sy, sw, stepH + 1);
+    ctx.fillStyle = isSnowCap ? '#ffffff' : '#64748b';
+    ctx.fillRect(sx, sy, Math.floor(sw * 0.58), stepH);
+  }
+}
+
+function drawSnowPineTree(ctx: CanvasRenderingContext2D, x: number, baseY: number, h: number) {
+  // Trunk
+  ctx.fillStyle = '#451a03';
+  ctx.fillRect(x + 18, baseY - 18, 12, 18);
+  // 3 Tiered Snow-Frosted Pine Boughs
+  const tiers = [
+    { y: baseY - Math.floor(h * 0.45), w: 48, th: 20 },
+    { y: baseY - Math.floor(h * 0.75), w: 36, th: 18 },
+    { y: baseY - h, w: 24, th: 16 },
+  ];
+  for (const t of tiers) {
+    const tx = x + 24 - Math.floor(t.w / 2);
+    ctx.fillStyle = '#0f766e';
+    ctx.fillRect(tx, t.y, t.w, t.th);
+    ctx.fillStyle = '#f8fafc';
+    ctx.fillRect(tx, t.y, t.w, 6);
+  }
+}
+
 function drawDistantTower(ctx: CanvasRenderingContext2D, x: number, baseY: number, h: number) {
   ctx.fillStyle = '#27272a';
   ctx.fillRect(x, baseY - h, 64, h);
@@ -331,6 +509,39 @@ function drawDistantTower(ctx: CanvasRenderingContext2D, x: number, baseY: numbe
   ctx.fillRect(x + 52, baseY - h - 12, 16, 12);
   ctx.fillStyle = '#fb923c';
   ctx.fillRect(x + 26, baseY - h + 28, 12, 24);
+}
+
+function drawEruptingVolcano(
+  ctx: CanvasRenderingContext2D,
+  x: number,
+  baseY: number,
+  w: number,
+  h: number,
+  time: number,
+  idx: number
+) {
+  const steps = 11;
+  const stepH = Math.floor(h / steps);
+  for (let s = 0; s < steps; s++) {
+    const shrink = s * Math.floor(w / (steps * 2.3));
+    const sy = baseY - (s + 1) * stepH;
+    const sw = Math.max(28, w - shrink * 2);
+    const sx = x + shrink;
+    const isCraterRim = s >= 9;
+    ctx.fillStyle = isCraterRim ? '#7f1d1d' : '#1c1917';
+    ctx.fillRect(sx, sy, sw, stepH + 1);
+    ctx.fillStyle = isCraterRim ? '#ea580c' : '#292524';
+    ctx.fillRect(sx, sy, Math.floor(sw * 0.55), stepH);
+  }
+  // Glowing lava river flowing down volcano slope
+  const pulse = Math.floor(time * 6 + idx) % 2 === 0;
+  const craterCenterX = x + Math.floor(w * 0.5);
+  ctx.fillStyle = pulse ? '#fde047' : '#f97316';
+  ctx.fillRect(craterCenterX - 10, baseY - h - 4, 20, 8);
+  ctx.fillStyle = '#ef4444';
+  ctx.fillRect(craterCenterX - 5, baseY - h + 4, 10, Math.floor(h * 0.55));
+  ctx.fillStyle = '#fbbf24';
+  ctx.fillRect(craterCenterX - 2, baseY - h + 4, 4, Math.floor(h * 0.4));
 }
 
 function drawCoralReef(ctx: CanvasRenderingContext2D, x: number, baseY: number, h: number, idx: number) {
@@ -428,6 +639,76 @@ export function drawTile(
         ctx.fillRect(x + 17, y + 16, 13, 14);
         ctx.fillStyle = '#f59e0b';
         ctx.fillRect(x, y, s, 3);
+      } else if (theme === 'SNOW') {
+        // Frosted alpine rock with thick white snowdrifts on top
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(x, y, s, s);
+        ctx.fillStyle = '#475569';
+        ctx.fillRect(x + 4, y + 14, 10, 10);
+        ctx.fillRect(x + 18, y + 18, 10, 8);
+        ctx.fillStyle = '#bae6fd';
+        ctx.fillRect(x, y, s, 11);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(x, y, s, 6);
+        ctx.fillRect(x + 4, y + 6, 8, 4);
+        ctx.fillRect(x + 18, y + 6, 8, 4);
+      } else if (theme === 'ICE_CAVERN') {
+        // Deep glacial crystal floor
+        ctx.fillStyle = '#0c4a6e';
+        ctx.fillRect(x, y, s, s);
+        ctx.fillStyle = '#0284c7';
+        ctx.fillRect(x, y, s, 9);
+        ctx.fillStyle = '#7dd3fc';
+        ctx.fillRect(x + 4, y + 2, 14, 3);
+        ctx.fillStyle = '#082f49';
+        ctx.fillRect(x + 6, y + 14, 8, 8);
+        ctx.fillRect(x + 18, y + 20, 10, 8);
+      } else if (theme === 'FROST_CASTLE') {
+        // Frost-covered royal citadel masonry
+        ctx.fillStyle = '#1e293b';
+        ctx.fillRect(x, y, s, s);
+        ctx.fillStyle = '#334155';
+        ctx.fillRect(x + 2, y + 2, s - 4, 12);
+        ctx.fillRect(x + 2, y + 18, 14, 12);
+        ctx.fillRect(x + 18, y + 18, 12, 12);
+        ctx.fillStyle = '#7dd3fc';
+        ctx.fillRect(x, y, s, 4);
+      } else if (theme === 'VOLCANO') {
+        // Ash-covered scorched volcanic basalt with glowing magma cracks
+        ctx.fillStyle = '#1c1917';
+        ctx.fillRect(x, y, s, s);
+        ctx.fillStyle = '#292524';
+        ctx.fillRect(x + 4, y + 14, 10, 10);
+        ctx.fillRect(x + 18, y + 18, 10, 8);
+        // Ash crust & glowing ember seam
+        ctx.fillStyle = '#57534e';
+        ctx.fillRect(x, y, s, 9);
+        ctx.fillStyle = '#78716c';
+        ctx.fillRect(x, y, s, 4);
+        ctx.fillStyle = '#f97316';
+        ctx.fillRect(x + 6, y + 10, 8, 2);
+        ctx.fillRect(x + 20, y + 24, 6, 2);
+      } else if (theme === 'MOLTEN_CAVERN') {
+        // Subterranean obsidian rock with glowing magma veins
+        ctx.fillStyle = '#1c1917';
+        ctx.fillRect(x, y, s, s);
+        ctx.fillStyle = '#7f1d1d';
+        ctx.fillRect(x, y, s, 8);
+        ctx.fillStyle = '#f97316';
+        ctx.fillRect(x + 4, y + 2, 14, 3);
+        ctx.fillRect(x + 16, y + 18, 10, 3);
+        ctx.fillStyle = '#0c0a09';
+        ctx.fillRect(x + 6, y + 12, 8, 8);
+      } else if (theme === 'INFERNO_CASTLE') {
+        // Forged Obsidian Inferno Citadel masonry with molten trim
+        ctx.fillStyle = '#18181b';
+        ctx.fillRect(x, y, s, s);
+        ctx.fillStyle = '#27272a';
+        ctx.fillRect(x + 2, y + 2, s - 4, 12);
+        ctx.fillRect(x + 2, y + 18, 14, 12);
+        ctx.fillRect(x + 18, y + 18, 12, 12);
+        ctx.fillStyle = '#f97316';
+        ctx.fillRect(x, y, s, 3);
       } else if (theme === 'CAVERN') {
         ctx.fillStyle = '#312e81';
         ctx.fillRect(x, y, s, s);
@@ -461,6 +742,20 @@ export function drawTile(
           theme === 'DESERT' ? '#d97706' : theme === 'UNDERWATER' ? '#b45309' : '#92400e';
         ctx.fillRect(x + 4, y + 4, 10, 10);
         ctx.fillRect(x + 18, y + 16, 10, 10);
+      } else if (theme === 'VOLCANO' || theme === 'MOLTEN_CAVERN' || theme === 'INFERNO_CASTLE') {
+        ctx.fillStyle = '#141210';
+        ctx.fillRect(x, y, s, s);
+        ctx.fillStyle = '#292524';
+        ctx.fillRect(x + 4, y + 4, 12, 12);
+        ctx.fillRect(x + 18, y + 18, 10, 10);
+        ctx.fillStyle = '#991b1b';
+        ctx.fillRect(x + 14, y + 12, 6, 3);
+      } else if (theme === 'SNOW' || theme === 'ICE_CAVERN') {
+        ctx.fillStyle = theme === 'ICE_CAVERN' ? '#082f49' : '#1e293b';
+        ctx.fillRect(x, y, s, s);
+        ctx.fillStyle = theme === 'ICE_CAVERN' ? '#0c4a6e' : '#334155';
+        ctx.fillRect(x + 4, y + 4, 12, 12);
+        ctx.fillRect(x + 18, y + 18, 10, 10);
       } else if (theme === 'PYRAMID') {
         ctx.fillStyle = '#451a03';
         ctx.fillRect(x, y, s, s);
@@ -474,9 +769,9 @@ export function drawTile(
         ctx.fillRect(x + 4, y + 4, 12, 12);
         ctx.fillRect(x + 18, y + 18, 10, 10);
       } else {
-        ctx.fillStyle = '#27272a';
+        ctx.fillStyle = theme === 'FROST_CASTLE' ? '#0f172a' : '#27272a';
         ctx.fillRect(x, y, s, s);
-        ctx.fillStyle = '#3f3f46';
+        ctx.fillStyle = theme === 'FROST_CASTLE' ? '#1e293b' : '#3f3f46';
         ctx.fillRect(x + 2, y + 2, 12, 12);
         ctx.fillRect(x + 16, y + 16, 12, 12);
       }
@@ -706,6 +1001,121 @@ export function drawTile(
       ctx.fillRect(x + 13, y + 1, 6, 4);
       break;
     }
+
+    case TileType.ICE_GROUND: {
+      // Glossy translucent slippery ice block with diagonal specular shine
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(x, y, s, s);
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(x + 2, y + 2, s - 4, s - 4);
+      ctx.fillStyle = '#bae6fd';
+      ctx.fillRect(x, y, s, 6);
+      // Diagonal ice sheen
+      ctx.fillStyle = '#f0f9ff';
+      ctx.fillRect(x + 6, y + 10, 8, 3);
+      ctx.fillRect(x + 12, y + 13, 8, 3);
+      ctx.fillRect(x + 18, y + 20, 8, 3);
+      break;
+    }
+
+    case TileType.FRAGILE_ICE: {
+      // Cracked fragile ice ledge that shatters shortly after being stepped on
+      ctx.fillStyle = '#0369a1';
+      ctx.fillRect(x, y, s, 18);
+      ctx.fillStyle = '#7dd3fc';
+      ctx.fillRect(x + 2, y + 2, s - 4, 13);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x + 4, y + 2, s - 8, 3);
+      // Fracture lines & hanging mini icicles
+      ctx.fillStyle = '#0c4a6e';
+      ctx.fillRect(x + 9, y + 4, 2, 10);
+      ctx.fillRect(x + 11, y + 9, 5, 2);
+      ctx.fillRect(x + 22, y + 5, 2, 9);
+      ctx.fillStyle = '#bae6fd';
+      ctx.fillRect(x + 4, y + 18, 4, 5);
+      ctx.fillRect(x + 14, y + 18, 4, 6);
+      ctx.fillRect(x + 24, y + 18, 4, 5);
+      break;
+    }
+
+    case TileType.ICICLE: {
+      // Razor-sharp crystalline ice spikes
+      for (let i = 0; i < 2; i++) {
+        const sx = x + i * 16;
+        ctx.fillStyle = '#0284c7';
+        ctx.fillRect(sx + 6, y + 6, 4, 26);
+        ctx.fillRect(sx + 4, y + 12, 8, 20);
+        ctx.fillRect(sx + 2, y + 18, 12, 14);
+        ctx.fillStyle = '#7dd3fc';
+        ctx.fillRect(sx + 5, y + 8, 5, 22);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(sx + 6, y + 4, 2, 20);
+      }
+      break;
+    }
+
+    case TileType.FREEZING_WATER_TOP: {
+      const wave = Math.floor(time * 7) % 2;
+      ctx.fillStyle = '#0369a1';
+      ctx.fillRect(x, y + 4, s, s - 4);
+      ctx.fillStyle = '#0ea5e9';
+      ctx.fillRect(x, y + (wave ? 4 : 6), s, 10);
+      // Floating ice floe chunks on top of sub-zero water
+      ctx.fillStyle = '#e0f2fe';
+      ctx.fillRect(x + (wave ? 3 : 14), y + 3, 14, 4);
+      break;
+    }
+
+    case TileType.FREEZING_WATER_DEEP: {
+      ctx.fillStyle = '#082f49';
+      ctx.fillRect(x, y, s, s);
+      ctx.fillStyle = '#0369a1';
+      ctx.fillRect(x + 4, y + 6, 12, 10);
+      ctx.fillRect(x + 18, y + 18, 10, 10);
+      break;
+    }
+
+    case TileType.BURNING_ROCK: {
+      // Superheated Volcanic Burning Rock Hazard with pulsing magma cracks & flames
+      const glow = Math.floor(time * 8) % 2 === 0;
+      ctx.fillStyle = '#1c1917';
+      ctx.fillRect(x + 2, y + 6, s - 4, s - 6);
+      ctx.fillStyle = '#44403c';
+      ctx.fillRect(x + 4, y + 8, s - 8, s - 10);
+      // Glowing magma fissures & flame tips
+      ctx.fillStyle = glow ? '#ef4444' : '#f97316';
+      ctx.fillRect(x + 6, y + 2, 6, 8);
+      ctx.fillRect(x + 18, y + 2, 8, 8);
+      ctx.fillRect(x + 8, y + 12, 16, 4);
+      ctx.fillRect(x + 6, y + 20, 8, 6);
+      ctx.fillRect(x + 18, y + 18, 8, 8);
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(x + 8, y + 4, 3, 4);
+      ctx.fillRect(x + 20, y + 4, 4, 4);
+      ctx.fillRect(x + 12, y + 13, 8, 2);
+      break;
+    }
+
+    case TileType.MAGMA_CRUMBLE: {
+      // Unstable Cracked Obsidian & Magma Platform that collapses after being stepped on
+      ctx.fillStyle = '#1c1917';
+      ctx.fillRect(x, y, s, 18);
+      ctx.fillStyle = '#44403c';
+      ctx.fillRect(x + 2, y + 2, s - 4, 13);
+      ctx.fillStyle = '#f97316';
+      ctx.fillRect(x + 4, y + 2, s - 8, 3);
+      // Glowing lava fracture lines & jagged obsidian teeth
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(x + 9, y + 5, 2, 10);
+      ctx.fillRect(x + 11, y + 9, 5, 2);
+      ctx.fillRect(x + 21, y + 5, 2, 9);
+      ctx.fillStyle = '#292524';
+      ctx.fillRect(x + 4, y + 18, 5, 5);
+      ctx.fillRect(x + 14, y + 18, 5, 6);
+      ctx.fillRect(x + 24, y + 18, 5, 5);
+      break;
+    }
+
     default:
       break;
   }
@@ -826,7 +1236,8 @@ export function drawPlayer(
   onGround: boolean,
   time: number,
   tailSpinTimer: number = 0,
-  isCrouching: boolean = false
+  isCrouching: boolean = false,
+  isSuperJumpCharging: boolean = false
 ) {
   // Damage blink protection
   if (invulnBlinkTimer > 0 && Math.floor(invulnBlinkTimer * 18) % 2 === 0) {
@@ -843,7 +1254,7 @@ export function drawPlayer(
     ctx.translate(-(px + width / 2), -py);
   }
 
-  // Palette based on power-up or star invincibility
+  // Palette based on power-up, star invincibility, or Charged Super Jump visual blink
   let tunicColor = '#10b981'; // Emerald Ranger
   let capeColor = '#fbbf24';
   let armorColor = '#047857';
@@ -858,11 +1269,14 @@ export function drawPlayer(
     armorColor = '#1d4ed8';
   }
 
-  if (isInvincibleStar) {
+  if (isInvincibleStar || isSuperJumpCharging) {
     const starColors = ['#fbbf24', '#38bdf8', '#f43f5e', '#a855f7', '#4ade80'];
     const idx = Math.floor(time * 20) % starColors.length;
     tunicColor = starColors[idx];
     capeColor = starColors[(idx + 2) % starColors.length];
+    if (isSuperJumpCharging && !isInvincibleStar) {
+      armorColor = starColors[(idx + 1) % starColors.length];
+    }
   }
 
   const walkCycle = Math.abs(vx) > 15 ? Math.floor(time * 12) % 2 : 0;
@@ -1056,12 +1470,63 @@ export function drawEnemy(
   const py = Math.floor(enemy.y);
   const step = Math.floor(time * 8) % 2;
 
+  const isIceTheme = theme === 'SNOW' || theme === 'ICE_CAVERN' || theme === 'FROST_CASTLE';
+  const isVolcanicTheme =
+    theme === 'VOLCANO' || theme === 'MOLTEN_CAVERN' || theme === 'INFERNO_CASTLE';
+
   if (enemy.type === 'SLIME') {
     if (enemy.state === 'SQUISHED') {
-      ctx.fillStyle = theme === 'DESERT' || theme === 'PYRAMID' ? '#b45309' : '#be123c';
+      ctx.fillStyle = isVolcanicTheme
+        ? '#9a3412'
+        : isIceTheme
+        ? '#0284c7'
+        : theme === 'DESERT' || theme === 'PYRAMID'
+        ? '#b45309'
+        : '#be123c';
       ctx.fillRect(px + 2, py + 18, 24, 10);
-      ctx.fillStyle = theme === 'DESERT' || theme === 'PYRAMID' ? '#fde68a' : '#fda4af';
+      ctx.fillStyle = isVolcanicTheme
+        ? '#fde047'
+        : isIceTheme
+        ? '#e0f2fe'
+        : theme === 'DESERT' || theme === 'PYRAMID'
+        ? '#fde68a'
+        : '#fda4af';
       ctx.fillRect(px + 6, py + 20, 16, 4);
+      return;
+    }
+    if (isVolcanicTheme) {
+      // Magma Cinder Imp / Living Lava Blob
+      ctx.fillStyle = '#991b1b';
+      ctx.fillRect(px + 2, py + 6 + step * 2, 24, 22 - step * 2);
+      ctx.fillStyle = '#f97316';
+      ctx.fillRect(px + 4, py + 8 + step * 2, 20, 16 - step * 2);
+      // Flickering flame crest on top
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(px + 8, py + 2 + step * 2, 12, 6);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(px + 7, py + 13, 4, 4);
+      ctx.fillRect(px + 17, py + 13, 4, 4);
+      ctx.fillStyle = '#1c1917';
+      ctx.fillRect(px + (step ? 2 : 4), py + 24, 8, 4);
+      ctx.fillRect(px + (step ? 18 : 16), py + 24, 8, 4);
+      return;
+    }
+    if (isIceTheme) {
+      // Frost Sprite / Crystal Snow Fluff
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(px + 2, py + 6 + step * 2, 24, 22 - step * 2);
+      ctx.fillStyle = '#7dd3fc';
+      ctx.fillRect(px + 4, py + 8 + step * 2, 20, 16 - step * 2);
+      ctx.fillStyle = '#f0f9ff';
+      ctx.fillRect(px + 6, py + 4 + step * 2, 4, 4);
+      ctx.fillRect(px + 18, py + 4 + step * 2, 4, 4);
+      // Glowing eyes & icy boots
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(px + 7, py + 13, 3, 4);
+      ctx.fillRect(px + 18, py + 13, 3, 4);
+      ctx.fillStyle = '#0369a1';
+      ctx.fillRect(px + (step ? 2 : 4), py + 24, 8, 4);
+      ctx.fillRect(px + (step ? 18 : 16), py + 24, 8, 4);
       return;
     }
     if (theme === 'DESERT' || theme === 'PYRAMID') {
@@ -1106,18 +1571,36 @@ export function drawEnemy(
     ctx.fillRect(px + (step ? 2 : 4), py + 24, 8, 4);
     ctx.fillRect(px + (step ? 18 : 16), py + 24, 8, 4);
   } else if (enemy.type === 'BEETLE') {
-    // Armored Shell Beetle / Sea Turtle / Golden Scarab Tortoise
+    // Armored Shell Beetle / Sea Turtle / Golden Scarab Tortoise / Glacier Tortoise / Obsidian Flame Tortoise
     const isShell = enemy.state === 'SHELL_IDLE' || enemy.state === 'SHELL_MOVING';
     const isDesert = theme === 'DESERT' || theme === 'PYRAMID';
-    ctx.fillStyle = isDesert ? '#78350f' : '#1e3a8a';
+    ctx.fillStyle = isVolcanicTheme
+      ? '#1c1917'
+      : isIceTheme
+      ? '#0369a1'
+      : isDesert
+      ? '#78350f'
+      : '#1e3a8a';
     ctx.fillRect(px + 2, py + (isShell ? 6 : 4), 24, isShell ? 22 : 20);
-    ctx.fillStyle = isDesert ? '#d97706' : '#2563eb';
+    ctx.fillStyle = isVolcanicTheme
+      ? '#dc2626'
+      : isIceTheme
+      ? '#38bdf8'
+      : isDesert
+      ? '#d97706'
+      : '#2563eb';
     ctx.fillRect(px + 4, py + (isShell ? 8 : 6), 20, 16);
-    ctx.fillStyle = isDesert ? '#fef08a' : '#93c5fd';
+    ctx.fillStyle = isVolcanicTheme
+      ? '#fde047'
+      : isIceTheme
+      ? '#f0f9ff'
+      : isDesert
+      ? '#fef08a'
+      : '#93c5fd';
     ctx.fillRect(px + 8, py + (isShell ? 10 : 8), 12, 6);
     if (!isShell) {
       // Head & legs
-      ctx.fillStyle = '#fde047';
+      ctx.fillStyle = isVolcanicTheme ? '#f97316' : isIceTheme ? '#bae6fd' : '#fde047';
       const headX = enemy.facing === 1 ? px + 20 : px;
       ctx.fillRect(headX, py + 10, 8, 10);
       ctx.fillStyle = '#0f172a';
@@ -1147,6 +1630,30 @@ export function drawEnemy(
       ctx.fillRect(eyeX, py + 8, 5, 5);
       ctx.fillStyle = '#0f172a';
       ctx.fillRect(eyeX + (enemy.facing === 1 ? 2 : 0), py + 9, 3, 3);
+    } else if (isVolcanicTheme) {
+      // Swooping Firewing Hellbat / Phoenix Cinderbat
+      const wingY = step === 0 ? py + 2 : py + 12;
+      ctx.fillStyle = '#ea580c';
+      ctx.fillRect(px, wingY, 9, 10);
+      ctx.fillRect(px + 19, wingY, 9, 10);
+      ctx.fillStyle = '#dc2626';
+      ctx.fillRect(px + 8, py + 6, 12, 14);
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(px + 10, py + 9, 3, 3);
+      ctx.fillRect(px + 15, py + 9, 3, 3);
+    } else if (isIceTheme) {
+      // Swooping Snowy Owl / Frostwing Bat
+      const wingY = step === 0 ? py + 2 : py + 12;
+      ctx.fillStyle = '#bae6fd';
+      ctx.fillRect(px, wingY, 9, 10);
+      ctx.fillRect(px + 19, wingY, 9, 10);
+      ctx.fillStyle = '#f8fafc';
+      ctx.fillRect(px + 8, py + 6, 12, 14);
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(px + 12, py + 12, 4, 4);
+      ctx.fillStyle = '#0284c7';
+      ctx.fillRect(px + 10, py + 9, 3, 3);
+      ctx.fillRect(px + 15, py + 9, 3, 3);
     } else if (theme === 'DESERT' || theme === 'PYRAMID') {
       // Swooping Desert Vulture / Sand Hawk
       const wingY = step === 0 ? py + 2 : py + 12;
@@ -1190,6 +1697,46 @@ export function drawEnemy(
       ctx.fillStyle = '#38bdf8';
       ctx.fillRect(px + 8, py + 10, 4, 3);
       ctx.fillRect(px + 16, py + 10, 4, 3);
+    } else if (isVolcanicTheme) {
+      // Dread Magma Knight / Obsidian Pyromancer Guard
+      ctx.fillStyle = '#1c1917';
+      ctx.fillRect(px + 2, py + 2, 24, 24);
+      ctx.fillStyle = '#7f1d1d';
+      ctx.fillRect(px + 4, py + 4, 20, 18);
+      // Blazing Flame Horns
+      ctx.fillStyle = '#f97316';
+      ctx.fillRect(px, py - 2, 6, 7);
+      ctx.fillRect(px + 22, py - 2, 6, 7);
+      // Glowing Molten Visor
+      ctx.fillStyle = '#0c0a09';
+      ctx.fillRect(px + 6, py + 9, 16, 5);
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(px + 8, py + 10, 4, 3);
+      ctx.fillRect(px + 16, py + 10, 4, 3);
+      // Obsidian Greaves
+      ctx.fillStyle = '#292524';
+      ctx.fillRect(px + (step ? 3 : 6), py + 24, 7, 4);
+      ctx.fillRect(px + (step ? 18 : 15), py + 24, 7, 4);
+    } else if (isIceTheme) {
+      // Frost Viking / Ice Golem Guard
+      ctx.fillStyle = '#0369a1';
+      ctx.fillRect(px + 2, py + 2, 24, 24);
+      ctx.fillStyle = '#7dd3fc';
+      ctx.fillRect(px + 4, py + 4, 20, 18);
+      // Ice Crystal Horns
+      ctx.fillStyle = '#f0f9ff';
+      ctx.fillRect(px, py - 2, 6, 7);
+      ctx.fillRect(px + 22, py - 2, 6, 7);
+      // Glowing Cyan Visor
+      ctx.fillStyle = '#0f172a';
+      ctx.fillRect(px + 6, py + 9, 16, 5);
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillRect(px + 8, py + 10, 4, 3);
+      ctx.fillRect(px + 16, py + 10, 4, 3);
+      // Frost Boots
+      ctx.fillStyle = '#1e3a8a';
+      ctx.fillRect(px + (step ? 3 : 6), py + 24, 7, 4);
+      ctx.fillRect(px + (step ? 18 : 15), py + 24, 7, 4);
     } else if (theme === 'DESERT' || theme === 'PYRAMID') {
       // Anubis Temple Guardian / Mummy Phalanx
       ctx.fillStyle = '#d97706';
@@ -1231,15 +1778,21 @@ export function drawEnemy(
       ctx.fillRect(px + (step ? 18 : 15), py + 24, 7, 4);
     }
   } else if (enemy.type === 'FIRE_BAR') {
-    // Rotating Fire Bar around pivot enemy.x, enemy.y
+    // Rotating Fire / Frost Crystal Bar around pivot enemy.x, enemy.y
     const angle = enemy.angle || 0;
     for (let i = 0; i < 5; i++) {
       const dist = i * 18;
       const fx = Math.floor(enemy.x + Math.cos(angle) * dist - 7);
       const fy = Math.floor(enemy.y + Math.sin(angle) * dist - 7);
-      ctx.fillStyle = i % 2 === 0 ? '#f97316' : '#ef4444';
+      ctx.fillStyle = isIceTheme
+        ? i % 2 === 0
+          ? '#0ea5e9'
+          : '#38bdf8'
+        : i % 2 === 0
+        ? '#f97316'
+        : '#ef4444';
       ctx.fillRect(fx, fy, 14, 14);
-      ctx.fillStyle = '#fef08a';
+      ctx.fillStyle = isIceTheme ? '#f0f9ff' : '#fef08a';
       ctx.fillRect(fx + 3, fy + 3, 8, 8);
     }
   }
@@ -1327,6 +1880,138 @@ export function drawBoss(ctx: CanvasRenderingContext2D, boss: BossState, time: n
 
   const isVulnerable = boss.phase === 'VULNERABLE';
   const step = Math.floor(time * 6) % 2;
+
+  if (boss.name.includes('Ignarok')) {
+    // IGNAROK, THE INFERNO KING (Gigantic Multi-Phase Horned Fire Demon Boss)
+    const isPhase3 = boss.hp <= 2;
+    const isPhase2 = boss.hp <= 5;
+    const wingLift = Math.floor(Math.sin(time * (isPhase2 ? 13 : 9)) * 7);
+    const wingX = boss.facing === -1 ? px + 24 : px + 6;
+
+    // Blazing Infernal Demon Wings
+    ctx.fillStyle = isPhase3 ? '#f97316' : '#991b1b';
+    ctx.fillRect(wingX, py - 12 + wingLift, 36, 26);
+    ctx.fillStyle = isPhase3 ? '#fef08a' : '#ef4444';
+    ctx.fillRect(wingX + 4, py - 8 + wingLift, 26, 18);
+
+    // Obsidian & Molten Magma Armor Torso
+    ctx.fillStyle = isVulnerable ? '#fde047' : '#1c1917';
+    ctx.fillRect(px + 6, py + 12, w - 12, h - 20);
+    ctx.fillStyle = isVulnerable
+      ? '#fef9c3'
+      : isPhase3
+      ? '#f97316'
+      : isPhase2
+      ? '#dc2626'
+      : '#991b1b';
+    ctx.fillRect(px + 10, py + 16, w - 20, h - 28);
+
+    // Glowing Molten Core Chestplate
+    ctx.fillStyle = isPhase3 ? '#ffffff' : '#fde047';
+    ctx.fillRect(px + 22, py + 24, w - 44, 14);
+    ctx.fillStyle = '#f97316';
+    ctx.fillRect(px + 26, py + 27, w - 52, 8);
+
+    // Demon Head, Curved Obsidian Horns & Blazing Inferno Crown
+    const headX = boss.facing === -1 ? px - 2 : px + w - 28;
+    ctx.fillStyle = '#1c1917';
+    ctx.fillRect(headX, py + 2, 30, 24);
+    // Blazing Inferno Crown & Twin Demon Horns
+    ctx.fillStyle = '#fbbf24';
+    ctx.fillRect(headX + 4, py - 8, 22, 10);
+    ctx.fillStyle = '#fef08a';
+    ctx.fillRect(headX + 2, py - 16, 6, 12);
+    ctx.fillRect(headX + 12, py - 18, 6, 12);
+    ctx.fillRect(headX + 22, py - 16, 6, 12);
+
+    // Glowing Hellfire Eyes & Roaring Jaws
+    ctx.fillStyle = isVulnerable ? '#38bdf8' : '#fef08a';
+    ctx.fillRect(headX + (boss.facing === -1 ? 4 : 16), py + 10, 9, 6);
+    ctx.fillStyle = '#ef4444';
+    ctx.fillRect(headX + (boss.facing === -1 ? 6 : 18), py + 12, 5, 4);
+
+    if (boss.phase === 'FIRE_BREATH') {
+      const breathX = boss.facing === -1 ? headX - 22 : headX + 30;
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(breathX, py + 14, 22, 12);
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(breathX + 4, py + 16, 14, 8);
+    }
+
+    // Heavy Magma-Forged Demon Hooves
+    ctx.fillStyle = '#0c0a09';
+    ctx.fillRect(px + 10, py + h - 10 + step * 2, 18, 10);
+    ctx.fillRect(px + w - 28, py + h - 10 + (1 - step) * 2, 18, 10);
+
+    if (isVulnerable) {
+      const starOffset = Math.floor(Math.sin(time * 10) * 10);
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(px + 20 + starOffset, py - 26, 8, 8);
+      ctx.fillRect(px + 38 - starOffset, py - 26, 8, 8);
+    }
+    return;
+  }
+
+  if (boss.name.includes('Glacior')) {
+    // GLACIOR, THE FROST DRAGON (Winged Sapphire & Cyan Ice Dragon Boss)
+    // Flapping Crystalline Dragon Wings
+    const wingLift = Math.floor(Math.sin(time * 9) * 6);
+    const wingX = boss.facing === -1 ? px + 22 : px + 8;
+    ctx.fillStyle = '#0284c7';
+    ctx.fillRect(wingX, py - 10 + wingLift, 32, 24);
+    ctx.fillStyle = '#bae6fd';
+    ctx.fillRect(wingX + 4, py - 6 + wingLift, 24, 16);
+
+    // Armored Frost Scales Body
+    ctx.fillStyle = isVulnerable ? '#fde047' : '#0369a1';
+    ctx.fillRect(px + 8, py + 14, w - 16, h - 22);
+    ctx.fillStyle = isVulnerable ? '#fef9c3' : '#38bdf8';
+    ctx.fillRect(px + 12, py + 18, w - 24, h - 30);
+
+    // Spiked Ice Tail
+    const tailX = boss.facing === -1 ? px + w - 12 : px - 8;
+    ctx.fillStyle = '#0284c7';
+    ctx.fillRect(tailX, py + 30, 18, 12);
+    ctx.fillStyle = '#f0f9ff';
+    ctx.fillRect(tailX + (boss.facing === -1 ? 10 : 0), py + 24, 8, 8);
+
+    // Dragon Head, Jaws & Crystal Horns
+    const headX = boss.facing === -1 ? px - 4 : px + w - 24;
+    ctx.fillStyle = '#0284c7';
+    ctx.fillRect(headX, py + 4, 28, 24);
+    // Twin Crystalline Frost Horns
+    ctx.fillStyle = '#f0f9ff';
+    ctx.fillRect(headX + 4, py - 10, 6, 14);
+    ctx.fillRect(headX + 16, py - 12, 6, 16);
+    ctx.fillStyle = '#7dd3fc';
+    ctx.fillRect(headX + 6, py - 8, 4, 10);
+
+    // Glowing Frost Dragon Eyes & Open Freezing Jaws
+    ctx.fillStyle = isVulnerable ? '#f59e0b' : '#e0f2fe';
+    ctx.fillRect(headX + (boss.facing === -1 ? 4 : 16), py + 10, 8, 6);
+    ctx.fillStyle = '#0ea5e9';
+    ctx.fillRect(headX + (boss.facing === -1 ? 6 : 18), py + 12, 4, 4);
+    if (boss.phase === 'FIRE_BREATH') {
+      const breathX = boss.facing === -1 ? headX - 18 : headX + 28;
+      ctx.fillStyle = '#7dd3fc';
+      ctx.fillRect(breathX, py + 16, 18, 10);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(breathX + 4, py + 18, 10, 6);
+    }
+
+    // Dragon Claws
+    ctx.fillStyle = '#0c4a6e';
+    ctx.fillRect(px + 10, py + h - 10 + step * 2, 16, 10);
+    ctx.fillRect(px + w - 26, py + h - 10 + (1 - step) * 2, 16, 10);
+
+    if (isVulnerable) {
+      const starOffset = Math.floor(Math.sin(time * 10) * 10);
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(px + 20 + starOffset, py - 24, 8, 8);
+      ctx.fillRect(px + 36 - starOffset, py - 24, 8, 8);
+    }
+    return;
+  }
 
   if (boss.name.includes('Solkar')) {
     // SOLKAR, THE SAND TITAN (Giant Armored Desert Scorpion Boss)
@@ -1447,6 +2132,130 @@ export function drawSandstormOverlay(
     const len = windActive ? 22 + (i % 3) * 10 : 12 + (i % 2) * 8;
     ctx.fillStyle = i % 2 === 0 ? 'rgba(254, 240, 138, 0.65)' : 'rgba(251, 191, 36, 0.55)';
     ctx.fillRect(Math.floor(sx), Math.floor(sy), len, 3);
+  }
+}
+
+export function drawBlizzardOverlay(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  time: number,
+  isHeavyBlizzard: boolean,
+  windActive: boolean
+) {
+  if (isHeavyBlizzard) {
+    // Frosty whiteout mist during blizzard pass
+    ctx.fillStyle = windActive ? 'rgba(186, 230, 253, 0.22)' : 'rgba(224, 242, 254, 0.11)';
+    ctx.fillRect(0, 0, width, height);
+  }
+
+  const count = isHeavyBlizzard ? 42 : 22;
+  const speedX = isHeavyBlizzard ? (windActive ? 460 : 220) : 70;
+  const speedY = isHeavyBlizzard ? 160 : 85;
+
+  for (let i = 0; i < count; i++) {
+    const sx = width - (((time * speedX + i * 97) % (width + 60)) - 30);
+    const sy = ((time * speedY + i * 67) % (height + 20)) - 10;
+    const flakeW = isHeavyBlizzard && windActive ? 10 + (i % 3) * 4 : 4 + (i % 2) * 2;
+    const flakeH = isHeavyBlizzard && windActive ? 3 : 4;
+    ctx.fillStyle = i % 2 === 0 ? 'rgba(255, 255, 255, 0.8)' : 'rgba(186, 230, 253, 0.7)';
+    ctx.fillRect(Math.floor(sx), Math.floor(sy), flakeW, flakeH);
+  }
+}
+
+export function drawLavaGeyser(
+  ctx: CanvasRenderingContext2D,
+  col: number,
+  baseRow: number,
+  currentTopY: number,
+  isWarning: boolean,
+  time: number
+) {
+  const x = col * 32;
+  const baseY = baseRow * 32;
+  const flicker = Math.floor(time * 14) % 2 === 0;
+
+  // Volcanic geyser vent rim at baseRow
+  ctx.fillStyle = '#1c1917';
+  ctx.fillRect(x, baseY, 32, 10);
+  ctx.fillStyle = isWarning || currentTopY < baseY ? '#f97316' : '#7f1d1d';
+  ctx.fillRect(x + 4, baseY, 24, 6);
+
+  if (isWarning && currentTopY >= baseY) {
+    // Telegraph bubbling magma sparks before eruption
+    const bubbleLift = Math.floor((time * 40) % 18);
+    ctx.fillStyle = flicker ? '#fde047' : '#f97316';
+    ctx.fillRect(x + 8, baseY - 6 - bubbleLift, 6, 6);
+    ctx.fillRect(x + 18, baseY - 10 - ((bubbleLift + 8) % 16), 6, 6);
+    return;
+  }
+
+  if (currentTopY < baseY) {
+    const colH = baseY - currentTopY;
+    // Outer crimson magma plume
+    ctx.fillStyle = '#dc2626';
+    ctx.fillRect(x + 3, Math.floor(currentTopY), 26, Math.ceil(colH) + 4);
+    // Inner orange-gold molten core
+    ctx.fillStyle = flicker ? '#f97316' : '#fbbf24';
+    ctx.fillRect(x + 8, Math.floor(currentTopY) + 4, 16, Math.max(4, Math.ceil(colH)));
+    ctx.fillStyle = '#fef08a';
+    ctx.fillRect(x + 12, Math.floor(currentTopY) + 6, 8, Math.max(4, Math.ceil(colH) - 4));
+    // Foaming eruption crown at top of geyser
+    ctx.fillStyle = '#fde047';
+    ctx.fillRect(x, Math.floor(currentTopY) - 4, 32, 10);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x + 6, Math.floor(currentTopY) - 2, 20, 4);
+  }
+}
+
+export function drawRisingLavaTide(
+  ctx: CanvasRenderingContext2D,
+  cameraX: number,
+  width: number,
+  tideTopY: number,
+  bottomY: number,
+  time: number
+) {
+  if (tideTopY >= bottomY) return;
+  const startX = Math.floor(cameraX) - 16;
+  const endX = Math.ceil(cameraX + width) + 16;
+  const topY = Math.floor(tideTopY);
+  const wave = Math.floor(time * 8) % 2;
+
+  ctx.fillStyle = 'rgba(185, 28, 28, 0.88)';
+  ctx.fillRect(startX, topY + 6, endX - startX, bottomY - topY);
+  ctx.fillStyle = '#f97316';
+  ctx.fillRect(startX, topY + 2, endX - startX, 10);
+  ctx.fillStyle = '#fde047';
+  for (let lx = startX - (startX % 32); lx < endX; lx += 32) {
+    ctx.fillRect(lx + (wave ? 4 : 16), topY, 14, 4);
+  }
+}
+
+export function drawVolcanicAshOverlay(
+  ctx: CanvasRenderingContext2D,
+  width: number,
+  height: number,
+  time: number
+) {
+  // Subtle warm volcanic heat shimmer
+  ctx.fillStyle = 'rgba(234, 88, 12, 0.07)';
+  ctx.fillRect(0, 0, width, height);
+
+  // Falling grey volcanic ash flakes & rising glowing orange embers
+  for (let i = 0; i < 28; i++) {
+    const isEmber = i % 3 === 0;
+    const sx = ((i * 89 + Math.sin(time * 2 + i) * 24 - time * 35) % (width + 40) + (width + 40)) % (width + 40) - 20;
+    const sy = isEmber
+      ? height - (((time * 75 + i * 61) % (height + 20)) - 10)
+      : ((time * 55 + i * 73) % (height + 20)) - 10;
+    ctx.fillStyle = isEmber
+      ? i % 2 === 0
+        ? 'rgba(253, 224, 71, 0.85)'
+        : 'rgba(249, 115, 22, 0.85)'
+      : 'rgba(214, 211, 209, 0.55)';
+    const sz = isEmber ? 3 : 4;
+    ctx.fillRect(Math.floor(sx), Math.floor(sy), sz, sz);
   }
 }
 

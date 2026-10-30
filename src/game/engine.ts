@@ -25,6 +25,10 @@ import {
   drawFireball,
   drawBoss,
   drawSandstormOverlay,
+  drawBlizzardOverlay,
+  drawLavaGeyser,
+  drawRisingLavaTide,
+  drawVolcanicAshOverlay,
   drawParticlesAndFloatingText,
 } from './renderer';
 
@@ -42,6 +46,11 @@ const AIR_FRICTION = 450;
 const MAX_WALK_SPEED = 230;
 const MAX_RUN_SPEED = 350;
 const JUMP_INITIAL_VEL = -500;
+const SUPER_JUMP_INITIAL_VEL = -760; // Charged Super Jump velocity (significantly higher than long jump)
+const SUPER_JUMP_CHARGE_DURATION = 2.5; // ~2.5s active charging window
+const SUPER_JUMP_DOUBLE_TAP_WINDOW = 0.4; // max seconds between 1st and 2nd Down press
+const SUPER_JUMP_FIRST_TAP_MAX_HOLD = 0.28; // 1st press must be a quick tap, not a long crouch
+const SINGLE_CROUCH_HOLD_DELAY = 0.12; // prevents brief 1st tap from flickering crouch
 const JUMP_HOLD_BOOST = -1150; // extra upward force while jump held
 const MAX_JUMP_HOLD_TIME = 0.21; // 210ms variable jump window
 const COYOTE_TIME_WINDOW = 0.11; // 110ms grace period after leaving ledge
@@ -95,6 +104,13 @@ export class PlatformerEngine {
   private tailSpinTimer: number = 0;
   private tailSpinCooldown: number = 0;
   private fireballCooldown: number = 0;
+  // Charged Super Jump state (BIG and FIRE forms only)
+  private isSuperJumpCharging: boolean = false;
+  private superJumpChargeTimer: number = 0;
+  private downTapCount: number = 0;
+  private firstDownPressTime: number = -10;
+  private currentDownHoldTime: number = 0;
+  private ignoreCrouchForCurrentHold: boolean = false;
 
   // Game progression & counters
   private score: number = 0;
@@ -123,10 +139,18 @@ export class PlatformerEngine {
   private fireballs: ActiveFireball[] = [];
   private movingPlatforms: RuntimeMovingPlatform[] = [];
   private bumpedTiles: BumpedTile[] = [];
-  private crumblingBlocks: Array<{ col: number; row: number; state: 'SHAKING' | 'BROKEN'; timer: number }> = [];
+  private crumblingBlocks: Array<{
+    col: number;
+    row: number;
+    state: 'SHAKING' | 'BROKEN';
+    timer: number;
+    originalTile: TileType;
+  }> = [];
   private particles: Particle[] = [];
   private floatingTexts: FloatingText[] = [];
   private boss: BossState;
+  private fallingRockTimer: number = 1.8;
+  private risingLavaY: number = 608;
 
   // Input state
   private keys: Record<string, boolean> = {};
@@ -169,10 +193,21 @@ export class PlatformerEngine {
   }
 
   private createInitialBossState(): BossState {
-    const isWorld3Boss = this.level.worldId === 3 || this.level.id >= 11;
-    const isWorld2Boss = !isWorld3Boss && (this.level.worldId === 2 || this.level.id >= 6);
-    const bossHp = isWorld3Boss || isWorld2Boss ? 6 : 5;
-    const bossName = isWorld3Boss
+    const isWorld5Boss = this.level.worldId === 5 || this.level.id >= 21;
+    const isWorld4Boss = !isWorld5Boss && (this.level.worldId === 4 || this.level.id >= 16);
+    const isWorld3Boss =
+      !isWorld5Boss && !isWorld4Boss && (this.level.worldId === 3 || this.level.id >= 11);
+    const isWorld2Boss =
+      !isWorld5Boss &&
+      !isWorld4Boss &&
+      !isWorld3Boss &&
+      (this.level.worldId === 2 || this.level.id >= 6);
+    const bossHp = isWorld5Boss ? 8 : isWorld4Boss || isWorld3Boss || isWorld2Boss ? 6 : 5;
+    const bossName = isWorld5Boss
+      ? 'Ignarok, the Inferno King'
+      : isWorld4Boss
+      ? 'Glacior, the Frost Dragon'
+      : isWorld3Boss
       ? 'Solkar, the Sand Titan'
       : isWorld2Boss
       ? 'Abyssal Warlord Krakenos'
@@ -186,8 +221,8 @@ export class PlatformerEngine {
       y: 13 * TILE_SIZE,
       vx: 0,
       vy: 0,
-      width: 64,
-      height: 64,
+      width: isWorld5Boss ? 68 : 64,
+      height: isWorld5Boss ? 68 : 64,
       facing: -1,
       phase: 'IDLE',
       phaseTimer: 1.5,
@@ -215,6 +250,11 @@ export class PlatformerEngine {
     this.onGround = false;
     this.isCrouching = false;
     this.isRaccoonFlying = false;
+    this.cancelSuperJumpCharge();
+    this.downTapCount = 0;
+    this.firstDownPressTime = -10;
+    this.currentDownHoldTime = 0;
+    this.ignoreCrouchForCurrentHold = false;
     this.tailSpinTimer = 0;
     this.tailSpinCooldown = 0;
     this.isDead = false;
@@ -230,7 +270,7 @@ export class PlatformerEngine {
     this.bumpedTiles = [];
     for (const cb of this.crumblingBlocks) {
       if (cb.state === 'BROKEN') {
-        this.tiles[cb.row][cb.col] = TileType.CRUMBLE_BLOCK;
+        this.tiles[cb.row][cb.col] = cb.originalTile;
       }
     }
     this.crumblingBlocks = [];
@@ -408,6 +448,63 @@ export class PlatformerEngine {
     }
   }
 
+  private isSuperJumpEligible(): boolean {
+    return this.powerState === 'BIG' || this.powerState === 'FIRE';
+  }
+
+  private cancelSuperJumpCharge() {
+    this.isSuperJumpCharging = false;
+    this.superJumpChargeTimer = 0;
+  }
+
+  private handleDownPress() {
+    const now = performance.now() / 1000;
+    this.currentDownHoldTime = 0;
+
+    if (
+      this.isSuperJumpEligible() &&
+      this.onGround &&
+      !this.isDead &&
+      this.downTapCount === 1 &&
+      now - this.firstDownPressTime <= SUPER_JUMP_DOUBLE_TAP_WINDOW
+    ) {
+      // Second quick Down press (held): activate Charged Super Jump state for ~2.5s
+      this.downTapCount = 2;
+      this.isSuperJumpCharging = true;
+      this.superJumpChargeTimer = SUPER_JUMP_CHARGE_DURATION;
+      this.ignoreCrouchForCurrentHold = true;
+      if (this.isCrouching) {
+        this.isCrouching = false;
+        this.updatePlayerDimensions();
+      }
+    } else {
+      // First Down press
+      this.downTapCount = 1;
+      this.firstDownPressTime = now;
+      this.cancelSuperJumpCharge();
+      this.ignoreCrouchForCurrentHold = false;
+    }
+  }
+
+  private handleDownRelease() {
+    if (this.downTapCount === 1) {
+      // If the first press was held for a normal sit/crouch, don't treat the next press as a double-tap
+      if (this.currentDownHoldTime > SUPER_JUMP_FIRST_TAP_MAX_HOLD) {
+        this.downTapCount = 0;
+        this.firstDownPressTime = -10;
+      }
+    } else if (this.downTapCount === 2) {
+      // The second press must be held (>= 100ms) to sustain the 2.5s charging state
+      if (this.currentDownHoldTime < 0.1) {
+        this.cancelSuperJumpCharge();
+      }
+      this.downTapCount = 0;
+      this.firstDownPressTime = -10;
+    }
+    this.currentDownHoldTime = 0;
+    this.ignoreCrouchForCurrentHold = false;
+  }
+
   private handleKeyDown = (e: KeyboardEvent) => {
     const code = e.code;
     if (
@@ -434,18 +531,37 @@ export class PlatformerEngine {
       if (code === 'ShiftLeft' || code === 'ShiftRight' || code === 'KeyX' || code === 'KeyJ') {
         this.fireJustPressed = true;
       }
+      if (
+        (code === 'ArrowDown' || code === 'KeyS') &&
+        !this.keys['ArrowDown'] &&
+        !this.keys['KeyS']
+      ) {
+        this.handleDownPress();
+      }
     }
     this.keys[code] = true;
   };
 
   private handleKeyUp = (e: KeyboardEvent) => {
-    this.keys[e.code] = false;
+    const code = e.code;
+    this.keys[code] = false;
+    if (
+      (code === 'ArrowDown' || code === 'KeyS') &&
+      !this.keys['ArrowDown'] &&
+      !this.keys['KeyS']
+    ) {
+      this.handleDownRelease();
+    }
   };
 
   private handleBlur = () => {
     this.keys = {};
     this.jumpJustPressed = false;
     this.fireJustPressed = false;
+    this.cancelSuperJumpCharge();
+    this.downTapCount = 0;
+    this.currentDownHoldTime = 0;
+    this.ignoreCrouchForCurrentHold = false;
   };
 
   public setVirtualKey(code: string, pressed: boolean) {
@@ -457,10 +573,26 @@ export class PlatformerEngine {
         if (code === 'ShiftLeft' || code === 'ShiftRight' || code === 'KeyX' || code === 'KeyJ') {
           this.fireJustPressed = true;
         }
+        if (
+          (code === 'ArrowDown' || code === 'KeyS') &&
+          !this.keys['ArrowDown'] &&
+          !this.keys['KeyS']
+        ) {
+          this.handleDownPress();
+        }
       }
       this.keys[code] = true;
     } else {
+      const wasDown = this.keys[code];
       this.keys[code] = false;
+      if (
+        wasDown &&
+        (code === 'ArrowDown' || code === 'KeyS') &&
+        !this.keys['ArrowDown'] &&
+        !this.keys['KeyS']
+      ) {
+        this.handleDownRelease();
+      }
     }
   }
 
@@ -485,6 +617,10 @@ export class PlatformerEngine {
     this.keys = {};
     this.jumpJustPressed = false;
     this.fireJustPressed = false;
+    this.cancelSuperJumpCharge();
+    this.downTapCount = 0;
+    this.currentDownHoldTime = 0;
+    this.ignoreCrouchForCurrentHold = false;
     this.lastFrameTime = performance.now();
   }
 
@@ -564,6 +700,7 @@ export class PlatformerEngine {
     this.updatePowerUps(dt);
     this.updateFireballs(dt);
     this.updateEnemies(dt);
+    this.updateVolcanicHazards(dt);
     if (this.level.hasBoss) {
       this.updateBoss(dt);
     }
@@ -613,9 +750,36 @@ export class PlatformerEngine {
     const isRunning = this.keys['ShiftLeft'] || this.keys['ShiftRight'] || this.keys['KeyX'] || this.keys['KeyJ'];
     const jumpHeld = this.keys['Space'] || this.keys['KeyW'] || this.keys['ArrowUp'];
 
+    if (downHeld) {
+      this.currentDownHoldTime += dt;
+    }
+
+    // Update & validate Charged Super Jump state (BIG and FIRE forms only, ~2.5s active window)
+    if (this.isSuperJumpCharging) {
+      if (!this.onGround || !this.isSuperJumpEligible() || this.isDead) {
+        this.cancelSuperJumpCharge();
+      } else {
+        this.superJumpChargeTimer -= dt;
+        if (this.superJumpChargeTimer <= 0) {
+          this.cancelSuperJumpCharge();
+        }
+      }
+    }
+
     // Classic Crouch / Sit Mechanic when character is grown (BIG, FIRE, or RACCOON):
     // Holding Down makes the grown character sit/crouch and disables Left/Right movement while held.
-    const nextCrouching = this.powerState !== 'SMALL' && !!downHeld && (this.onGround || this.isCrouching);
+    // Suppress crouching during double-press & hold Super Jump charging so it never interferes with other controls.
+    const crouchDelayMet =
+      !this.isSuperJumpEligible() ||
+      this.isCrouching ||
+      this.currentDownHoldTime >= SINGLE_CROUCH_HOLD_DELAY;
+    const nextCrouching =
+      this.powerState !== 'SMALL' &&
+      !!downHeld &&
+      !this.isSuperJumpCharging &&
+      !this.ignoreCrouchForCurrentHold &&
+      crouchDelayMet &&
+      (this.onGround || this.isCrouching);
     if (nextCrouching !== this.isCrouching) {
       this.isCrouching = nextCrouching;
       this.updatePlayerDimensions();
@@ -662,30 +826,35 @@ export class PlatformerEngine {
     }
 
     const isUnderwater = Boolean(this.level.isUnderwater || this.level.theme === 'UNDERWATER');
+    const onSlipperyIce = this.onGround && this.isPlayerOnIce();
 
-    // Horizontal Acceleration & Friction (with smooth water resistance in underwater stages)
-    const accel = (isRunning ? RUN_ACCEL : WALK_ACCEL) * (isUnderwater ? 0.72 : 1);
+    // Horizontal Acceleration & Friction (with water resistance in underwater stages and low friction on ice)
+    const accel =
+      (isRunning ? RUN_ACCEL : WALK_ACCEL) *
+      (isUnderwater ? 0.72 : onSlipperyIce ? 0.65 : 1);
     const maxSpeed = isUnderwater
       ? isRunning
         ? 250
         : 185
-      : isRunning
-      ? MAX_RUN_SPEED
-      : MAX_WALK_SPEED;
-    const friction = this.onGround ? GROUND_FRICTION : AIR_FRICTION;
+      : (isRunning ? MAX_RUN_SPEED : MAX_WALK_SPEED) + (onSlipperyIce ? 20 : 0);
+    const friction = this.onGround
+      ? onSlipperyIce
+        ? GROUND_FRICTION * 0.22
+        : GROUND_FRICTION
+      : AIR_FRICTION;
 
     if (moveLeft && !moveRight) {
       this.pFacing = -1;
       if (this.pvx > 0 && this.onGround) {
-        // Quick turnaround skid traction
-        this.pvx -= friction * 1.8 * dt;
+        // Turnaround skid traction (slides longer on slippery ice)
+        this.pvx -= friction * (onSlipperyIce ? 1.15 : 1.8) * dt;
       } else {
         this.pvx -= accel * dt;
       }
     } else if (moveRight && !moveLeft) {
       this.pFacing = 1;
       if (this.pvx < 0 && this.onGround) {
-        this.pvx += friction * 1.8 * dt;
+        this.pvx += friction * (onSlipperyIce ? 1.15 : 1.8) * dt;
       } else {
         this.pvx += accel * dt;
       }
@@ -742,17 +911,36 @@ export class PlatformerEngine {
 
       // Execute Jump if buffered and within Coyote window
       if (this.jumpBufferTimer > 0 && this.coyoteTimer > 0) {
-        const isSprintTakeoff = isRunning || Math.abs(this.pvx) >= MAX_WALK_SPEED * 0.75;
-        const speedBonus = Math.abs(this.pvx) > MAX_WALK_SPEED + 20 ? -35 : 0;
-        this.pvy = JUMP_INITIAL_VEL + speedBonus;
+        const canSuperJump =
+          this.isSuperJumpCharging &&
+          this.superJumpChargeTimer > 0 &&
+          this.isSuperJumpEligible();
+
+        if (canSuperJump) {
+          // Charged Super Jump: significantly higher than normal or long jump; immediately consumes charge
+          this.pvy = SUPER_JUMP_INITIAL_VEL;
+          this.cancelSuperJumpCharge();
+          this.downTapCount = 0;
+          this.firstDownPressTime = -10;
+          this.spawnBurstParticles(
+            this.px + this.pWidth * 0.5,
+            this.py + this.pHeight,
+            '#fde047',
+            16
+          );
+        } else {
+          const isSprintTakeoff = isRunning || Math.abs(this.pvx) >= MAX_WALK_SPEED * 0.75;
+          const speedBonus = Math.abs(this.pvx) > MAX_WALK_SPEED + 20 ? -35 : 0;
+          this.pvy = JUMP_INITIAL_VEL + speedBonus;
+          if (this.powerState === 'RACCOON' && isSprintTakeoff) {
+            this.isRaccoonFlying = true;
+          }
+        }
         this.onGround = false;
         this.coyoteTimer = 0;
         this.jumpBufferTimer = 0;
         this.isJumping = true;
         this.jumpHoldTimer = MAX_JUMP_HOLD_TIME;
-        if (this.powerState === 'RACCOON' && isSprintTakeoff) {
-          this.isRaccoonFlying = true;
-        }
         soundManager.playJump(this.powerState !== 'SMALL');
       }
 
@@ -810,11 +998,30 @@ export class PlatformerEngine {
           this.pvy = 42;
         }
       }
+      // Sub-Zero Freezing Water Chill & Escape Jump Mechanics (World 4 Frostfall Kingdom)
+      if (this.isPlayerInFreezingWater()) {
+        this.pvx *= 0.68;
+        this.coyoteTimer = COYOTE_TIME_WINDOW;
+        if (!this.isInvincibleStar) {
+          this.damagePlayer();
+        }
+        if (this.jumpJustPressed) {
+          this.pvy = JUMP_INITIAL_VEL * 0.88;
+          this.jumpJustPressed = false;
+          this.jumpBufferTimer = 0;
+          this.isJumping = true;
+          this.jumpHoldTimer = MAX_JUMP_HOLD_TIME * 0.75;
+          soundManager.playJump(this.powerState !== 'SMALL');
+          this.spawnBurstParticles(this.px + this.pWidth * 0.5, this.py + this.pHeight, '#7dd3fc', 6);
+        } else if (this.pvy > -80) {
+          this.pvy = 52;
+        }
+      }
     }
 
-    // Desert Wind / Sandstorm Horizontal Gusts
+    // Desert Sandstorm or Mountain Blizzard Horizontal Wind Gusts
     let windDeltaX = 0;
-    if (this.level.windForce || this.level.hasSandstorm) {
+    if (this.level.windForce || this.level.hasSandstorm || this.level.hasBlizzard) {
       const baseWind = this.level.windForce ?? -55;
       const gustWave = Math.sin(this.elapsedTime * 1.1);
       const gustMult = gustWave > -0.25 ? 1.0 : 0.35;
@@ -911,6 +1118,7 @@ export class PlatformerEngine {
     return (
       t === TileType.GROUND_TOP ||
       t === TileType.GROUND_DEEP ||
+      t === TileType.ICE_GROUND ||
       t === TileType.BRICK ||
       t === TileType.QUESTION_COIN ||
       t === TileType.QUESTION_MUSHROOM ||
@@ -925,13 +1133,44 @@ export class PlatformerEngine {
       t === TileType.PIPE_BODY_R ||
       t === TileType.BRIDGE ||
       t === TileType.CRUMBLE_BLOCK ||
+      t === TileType.FRAGILE_ICE ||
+      t === TileType.MAGMA_CRUMBLE ||
       t === TileType.SPIKE ||
-      t === TileType.CACTUS
+      t === TileType.CACTUS ||
+      t === TileType.ICICLE ||
+      t === TileType.BURNING_ROCK
+    );
+  }
+
+  private isOneWayPlatformTile(t: TileType): boolean {
+    return (
+      t === TileType.BRIDGE ||
+      t === TileType.CRUMBLE_BLOCK ||
+      t === TileType.FRAGILE_ICE ||
+      t === TileType.MAGMA_CRUMBLE
     );
   }
 
   private isHazardContactTile(t: TileType): boolean {
-    return t === TileType.SPIKE || t === TileType.CACTUS;
+    return (
+      t === TileType.SPIKE ||
+      t === TileType.CACTUS ||
+      t === TileType.ICICLE ||
+      t === TileType.BURNING_ROCK
+    );
+  }
+
+  private isPlayerOnIce(): boolean {
+    const startCol = Math.floor((this.px + 3) / TILE_SIZE);
+    const endCol = Math.floor((this.px + this.pWidth - 3) / TILE_SIZE);
+    const belowRow = Math.floor((this.py + this.pHeight + 2) / TILE_SIZE);
+    for (let c = startCol; c <= endCol; c++) {
+      const t = this.getTileAt(c, belowRow);
+      if (t === TileType.ICE_GROUND || t === TileType.FRAGILE_ICE) {
+        return true;
+      }
+    }
+    return false;
   }
 
   private isPlayerInQuicksand(): boolean {
@@ -950,10 +1189,32 @@ export class PlatformerEngine {
     return false;
   }
 
-  private triggerCrumbleBlock(col: number, row: number) {
+  private isPlayerInFreezingWater(): boolean {
+    const startCol = Math.floor((this.px + 4) / TILE_SIZE);
+    const endCol = Math.floor((this.px + this.pWidth - 4) / TILE_SIZE);
+    const startRow = Math.floor((this.py + 8) / TILE_SIZE);
+    const endRow = Math.floor((this.py + this.pHeight) / TILE_SIZE);
+    for (let r = startRow; r <= endRow; r++) {
+      for (let c = startCol; c <= endCol; c++) {
+        const t = this.getTileAt(c, r);
+        if (t === TileType.FREEZING_WATER_TOP || t === TileType.FREEZING_WATER_DEEP) {
+          return true;
+        }
+      }
+    }
+    return false;
+  }
+
+  private triggerCrumbleBlock(col: number, row: number, originalTile: TileType) {
     const existing = this.crumblingBlocks.find((cb) => cb.col === col && cb.row === row);
     if (!existing) {
-      this.crumblingBlocks.push({ col, row, state: 'SHAKING', timer: 0.42 });
+      const delay =
+        originalTile === TileType.FRAGILE_ICE
+          ? 0.36
+          : originalTile === TileType.MAGMA_CRUMBLE
+          ? 0.38
+          : 0.42;
+      this.crumblingBlocks.push({ col, row, state: 'SHAKING', timer: delay, originalTile });
     }
   }
 
@@ -966,11 +1227,17 @@ export class PlatformerEngine {
           cb.timer = 3.0;
           this.tiles[cb.row][cb.col] = TileType.EMPTY;
           soundManager.playBreakBlock();
-          this.spawnBurstParticles(cb.col * TILE_SIZE + 16, cb.row * TILE_SIZE + 10, '#d97706', 8);
+          const particleColor =
+            cb.originalTile === TileType.FRAGILE_ICE
+              ? '#7dd3fc'
+              : cb.originalTile === TileType.MAGMA_CRUMBLE
+              ? '#f97316'
+              : '#d97706';
+          this.spawnBurstParticles(cb.col * TILE_SIZE + 16, cb.row * TILE_SIZE + 10, particleColor, 8);
         }
       } else if (cb.state === 'BROKEN') {
         if (cb.timer <= 0) {
-          this.tiles[cb.row][cb.col] = TileType.CRUMBLE_BLOCK;
+          this.tiles[cb.row][cb.col] = cb.originalTile;
         }
       }
     }
@@ -1042,7 +1309,7 @@ export class PlatformerEngine {
       }
       for (let r = startRow; r <= endRow; r++) {
         const tile = this.getTileAt(rightCol, r);
-        if (this.isSolidTile(tile) && tile !== TileType.BRIDGE && tile !== TileType.CRUMBLE_BLOCK) {
+        if (this.isSolidTile(tile) && !this.isOneWayPlatformTile(tile)) {
           this.px = rightCol * TILE_SIZE - this.pWidth - 0.01;
           this.pvx = 0;
           break;
@@ -1057,7 +1324,7 @@ export class PlatformerEngine {
       }
       for (let r = startRow; r <= endRow; r++) {
         const tile = this.getTileAt(leftCol, r);
-        if (this.isSolidTile(tile) && tile !== TileType.BRIDGE && tile !== TileType.CRUMBLE_BLOCK) {
+        if (this.isSolidTile(tile) && !this.isOneWayPlatformTile(tile)) {
           this.px = (leftCol + 1) * TILE_SIZE + 0.01;
           this.pvx = 0;
           break;
@@ -1086,9 +1353,9 @@ export class PlatformerEngine {
       for (let c = startCol; c <= endCol; c++) {
         const tile = this.getTileAt(c, bottomRow);
         if (this.isSolidTile(tile)) {
-          // Bridge and Crumble Block are one-way from above
+          // Bridge, Crumble Block, and Fragile Ice are one-way from above
           if (
-            (tile === TileType.BRIDGE || tile === TileType.CRUMBLE_BLOCK) &&
+            this.isOneWayPlatformTile(tile) &&
             this.py + this.pHeight - this.pvy * 0.02 > bottomRow * TILE_SIZE + 8
           ) {
             continue;
@@ -1098,8 +1365,13 @@ export class PlatformerEngine {
           this.onGround = true;
           this.isJumping = false;
           for (let cc = startCol; cc <= endCol; cc++) {
-            if (this.getTileAt(cc, bottomRow) === TileType.CRUMBLE_BLOCK) {
-              this.triggerCrumbleBlock(cc, bottomRow);
+            const standTile = this.getTileAt(cc, bottomRow);
+            if (
+              standTile === TileType.CRUMBLE_BLOCK ||
+              standTile === TileType.FRAGILE_ICE ||
+              standTile === TileType.MAGMA_CRUMBLE
+            ) {
+              this.triggerCrumbleBlock(cc, bottomRow, standTile);
             }
           }
           break;
@@ -1115,7 +1387,7 @@ export class PlatformerEngine {
       }
       for (let c = startCol; c <= endCol; c++) {
         const tile = this.getTileAt(c, topRow);
-        if (this.isSolidTile(tile) && tile !== TileType.BRIDGE && tile !== TileType.CRUMBLE_BLOCK) {
+        if (this.isSolidTile(tile) && !this.isOneWayPlatformTile(tile)) {
           this.py = (topRow + 1) * TILE_SIZE + 0.01;
           this.pvy = 40;
           this.isJumping = false;
@@ -1294,7 +1566,10 @@ export class PlatformerEngine {
           this.killPlayer();
           return;
         }
-        if (tile === TileType.QUICKSAND_DEEP && this.py + this.pHeight > r * TILE_SIZE + 22) {
+        if (
+          (tile === TileType.QUICKSAND_DEEP || tile === TileType.FREEZING_WATER_DEEP) &&
+          this.py + this.pHeight > r * TILE_SIZE + 22
+        ) {
           this.killPlayer();
           return;
         }
@@ -1475,6 +1750,7 @@ export class PlatformerEngine {
           this.updatePlayerDimensions();
         } else if (item.type === 'FEATHER') {
           this.powerState = 'RACCOON';
+          this.cancelSuperJumpCharge();
           this.updatePlayerDimensions();
         } else if (item.type === 'STAR') {
           this.isInvincibleStar = true;
@@ -1564,7 +1840,13 @@ export class PlatformerEngine {
           }
         }
       } else {
-        // Boss projectile hitting player
+        // Falling volcanic rock / meteor shattering on solid floor
+        if (fb.vy > 140 && this.isSolidTile(this.getTileAt(col, row))) {
+          fb.active = false;
+          this.spawnBurstParticles(fb.x, fb.y, '#f97316', 8);
+          continue;
+        }
+        // Boss projectile or falling volcanic rock hitting player
         if (
           this.rectsOverlap(
             fb.x - fb.radius,
@@ -1584,11 +1866,102 @@ export class PlatformerEngine {
         }
       }
 
-      if (fb.bounces > 4 || Math.abs(fb.x - this.px) > CANVAS_WIDTH) {
+      if (fb.bounces > 4 || Math.abs(fb.x - this.px) > CANVAS_WIDTH || fb.y > CANVAS_HEIGHT + 32) {
         fb.active = false;
       }
     }
     this.fireballs = this.fireballs.filter((f) => f.active);
+  }
+
+  private getLavaGeyserState(
+    geyser: { col: number; baseRow: number; peakRow: number; cycleSeconds?: number; phaseOffset?: number }
+  ): { currentTopY: number; isWarning: boolean } {
+    const cycle = geyser.cycleSeconds || 4.0;
+    const t = ((this.elapsedTime + (geyser.phaseOffset || 0)) % cycle + cycle) % cycle;
+    const baseY = geyser.baseRow * TILE_SIZE;
+    const peakY = geyser.peakRow * TILE_SIZE;
+
+    const warnStart = cycle * 0.35;
+    const eruptStart = cycle * 0.55;
+    const holdEnd = cycle * 0.82;
+
+    if (t < warnStart) {
+      return { currentTopY: baseY, isWarning: false };
+    } else if (t < eruptStart) {
+      return { currentTopY: baseY, isWarning: true };
+    } else if (t < eruptStart + 0.35) {
+      const progress = Math.min(1, (t - eruptStart) / 0.35);
+      return { currentTopY: baseY - (baseY - peakY) * progress, isWarning: false };
+    } else if (t < holdEnd) {
+      return { currentTopY: peakY, isWarning: false };
+    } else {
+      const progress = Math.min(1, (t - holdEnd) / (cycle - holdEnd));
+      return { currentTopY: peakY + (baseY - peakY) * progress, isWarning: false };
+    }
+  }
+
+  private updateVolcanicHazards(dt: number) {
+    // 1. Erupting Lava Geysers
+    if (this.level.lavaGeysers && this.level.lavaGeysers.length > 0) {
+      for (const g of this.level.lavaGeysers) {
+        const { currentTopY } = this.getLavaGeyserState(g);
+        const baseY = g.baseRow * TILE_SIZE;
+        if (currentTopY < baseY - 8 && !this.isInvincibleStar) {
+          const gx = g.col * TILE_SIZE + 4;
+          const gw = 24;
+          const gh = baseY - currentTopY;
+          if (this.rectsOverlap(this.px, this.py, this.pWidth, this.pHeight, gx, currentTopY, gw, gh)) {
+            this.damagePlayer();
+          }
+        }
+      }
+    }
+
+    // 2. Falling Volcanic Rocks / Meteors
+    if (this.level.hasFallingRocks && !this.boss.active) {
+      this.fallingRockTimer -= dt;
+      if (this.fallingRockTimer <= 0) {
+        this.fallingRockTimer = 2.1 + Math.random() * 1.1;
+        const spawnX = Math.min(
+          (this.level.widthInTiles - 6) * TILE_SIZE,
+          Math.max(this.cameraX + 120, this.px + 60 + Math.random() * 260)
+        );
+        this.fireballs.push({
+          id: `volcanic_rock_${Date.now()}_${Math.random()}`,
+          x: spawnX,
+          y: 28,
+          vx: -35,
+          vy: 235,
+          radius: 9,
+          bounces: 0,
+          isEnemyProjectile: true,
+          active: true,
+        });
+        this.spawnBurstParticles(spawnX, 32, '#f97316', 5);
+      }
+    }
+
+    // 3. Rising / Surging Lava Tide
+    if (this.level.hasRisingLava) {
+      // Surges smoothly between row 16.2 (518px) and row 14.35 (459px)
+      const wave = (Math.sin(this.elapsedTime * 1.15) + 1) * 0.5; // 0..1
+      this.risingLavaY = 16.2 * TILE_SIZE - wave * 58;
+      // Check if player drops into surging lava tide over a lava pit
+      const playerCenterCol = Math.floor((this.px + this.pWidth * 0.5) / TILE_SIZE);
+      const bottomGroundTile = this.getTileAt(playerCenterCol, 16);
+      const isOverLavaChannel =
+        bottomGroundTile === TileType.LAVA_TOP ||
+        bottomGroundTile === TileType.LAVA_DEEP ||
+        bottomGroundTile === TileType.EMPTY;
+      if (isOverLavaChannel && this.py + this.pHeight >= this.risingLavaY + 6) {
+        if (!this.isInvincibleStar) {
+          this.damagePlayer();
+        }
+        this.pvy = -380;
+      }
+    } else {
+      this.risingLavaY = CANVAS_HEIGHT;
+    }
   }
 
   private updateEnemies(dt: number) {
@@ -1648,10 +2021,7 @@ export class PlatformerEngine {
 
         const sideTile = this.getTileAt(sideCol, midRow);
         const belowTile = this.getTileAt(sideCol, belowRow);
-        const hitWall =
-          this.isSolidTile(sideTile) &&
-          sideTile !== TileType.BRIDGE &&
-          sideTile !== TileType.CRUMBLE_BLOCK;
+        const hitWall = this.isSolidTile(sideTile) && !this.isOneWayPlatformTile(sideTile);
         const atLedge =
           enemy.state === 'PATROL' &&
           (!this.isSolidTile(belowTile) || this.isHazardContactTile(belowTile));
@@ -1785,7 +2155,11 @@ export class PlatformerEngine {
     this.boss.phaseTimer -= dt;
     this.boss.facing = this.px < this.boss.x ? -1 : 1;
 
-    // Boss State Machine with 4 Clear Patterns + Vulnerable Window
+    const isIgnarok = this.boss.name.includes('Ignarok');
+    const ignarokEnraged = isIgnarok && this.boss.hp <= 5;
+    const ignarokOverdrive = isIgnarok && this.boss.hp <= 2;
+
+    // Boss State Machine with Multi-Phase Escalation + Fair Vulnerable Window
     if (this.boss.phase === 'IDLE') {
       this.boss.vx = 0;
       if (this.boss.phaseTimer <= 0) {
@@ -1793,17 +2167,18 @@ export class PlatformerEngine {
         this.boss.attackCounter++;
         if (nextPattern === 0) {
           this.boss.phase = 'FIRE_BREATH';
-          this.boss.phaseTimer = 1.4;
+          this.boss.phaseTimer = ignarokOverdrive ? 1.15 : 1.4;
           this.spawnBossFireVolley();
         } else if (nextPattern === 1) {
           this.boss.phase = 'CHARGE';
-          this.boss.phaseTimer = 1.6;
-          this.boss.vx = this.boss.facing * 240;
+          this.boss.phaseTimer = ignarokOverdrive ? 1.35 : 1.6;
+          const chargeSpeed = ignarokOverdrive ? 310 : ignarokEnraged ? 275 : 240;
+          this.boss.vx = this.boss.facing * chargeSpeed;
         } else {
           this.boss.phase = 'JUMP_SLAM';
           this.boss.phaseTimer = 1.4;
-          this.boss.vy = -560;
-          this.boss.vx = this.boss.facing * 170;
+          this.boss.vy = isIgnarok ? -590 : -560;
+          this.boss.vx = this.boss.facing * (ignarokEnraged ? 200 : 170);
           soundManager.playJump(true);
         }
         this.emitHud();
@@ -1812,28 +2187,28 @@ export class PlatformerEngine {
       this.boss.vx = 0;
       if (this.boss.phaseTimer <= 0) {
         this.boss.phase = 'VULNERABLE';
-        this.boss.phaseTimer = 2.8;
+        this.boss.phaseTimer = isIgnarok ? 2.6 : 2.8;
         this.emitHud();
       }
     } else if (this.boss.phase === 'CHARGE') {
       if (this.boss.phaseTimer <= 0) {
         this.boss.vx = 0;
         this.boss.phase = 'VULNERABLE';
-        this.boss.phaseTimer = 2.8;
+        this.boss.phaseTimer = isIgnarok ? 2.6 : 2.8;
         this.emitHud();
       }
     } else if (this.boss.phase === 'JUMP_SLAM') {
-      if (this.boss.onGroundCheck && this.boss.phaseTimer < 0.9) {
+      if ((this.boss as BossState & { onGroundCheck?: boolean }).onGroundCheck && this.boss.phaseTimer < 0.9) {
         this.boss.vx = 0;
         this.boss.phase = 'VULNERABLE';
-        this.boss.phaseTimer = 3.0;
+        this.boss.phaseTimer = isIgnarok ? 2.7 : 3.0;
         this.emitHud();
       }
     } else if (this.boss.phase === 'VULNERABLE') {
       this.boss.vx = 0;
       if (this.boss.phaseTimer <= 0) {
         this.boss.phase = 'IDLE';
-        this.boss.phaseTimer = 1.0;
+        this.boss.phaseTimer = ignarokOverdrive ? 0.65 : ignarokEnraged ? 0.8 : 1.0;
         this.emitHud();
       }
     }
@@ -1857,7 +2232,47 @@ export class PlatformerEngine {
     if (this.boss.y >= groundY) {
       if (this.boss.vy > 200) {
         soundManager.playBump();
-        this.spawnBurstParticles(this.boss.x + 32, groundY + 60, '#fb923c', 12);
+        const isGlacior = this.boss.name.includes('Glacior');
+        this.spawnBurstParticles(
+          this.boss.x + 32,
+          groundY + 60,
+          isGlacior ? '#7dd3fc' : isIgnarok ? '#ef4444' : '#fb923c',
+          16
+        );
+        if ((isGlacior || isIgnarok) && this.boss.phase === 'JUMP_SLAM') {
+          // Ground Slam unleashes shockwaves left and right!
+          for (const dir of [-1, 1] as const) {
+            this.fireballs.push({
+              id: `slam_wave_${Date.now()}_${dir}_${Math.random()}`,
+              x: this.boss.x + (dir === -1 ? -4 : this.boss.width + 4),
+              y: groundY + this.boss.height - 12,
+              vx: dir * (isIgnarok ? 255 : 235),
+              vy: 0,
+              radius: 8,
+              bounces: 0,
+              isEnemyProjectile: true,
+              active: true,
+            });
+          }
+          // Ignarok Phase 2/3 Ground Slam also triggers falling volcanic meteors from the ceiling!
+          if (ignarokEnraged) {
+            const meteorCount = ignarokOverdrive ? 3 : 2;
+            for (let m = 0; m < meteorCount; m++) {
+              const mx = arenaStart + 96 + ((m * 180 + Math.floor(this.elapsedTime * 90)) % 680);
+              this.fireballs.push({
+                id: `ignarok_meteor_${Date.now()}_${m}_${Math.random()}`,
+                x: mx,
+                y: 44,
+                vx: 0,
+                vy: 230,
+                radius: 9,
+                bounces: 0,
+                isEnemyProjectile: true,
+                active: true,
+              });
+            }
+          }
+        }
       }
       this.boss.y = groundY;
       this.boss.vy = 0;
@@ -1898,13 +2313,21 @@ export class PlatformerEngine {
     const startX = dir === -1 ? this.boss.x - 8 : this.boss.x + this.boss.width + 8;
     const startY = this.boss.y + 22;
 
-    const speedsY = [-60, 20, 95];
+    const isIgnarok = this.boss.name.includes('Ignarok');
+    const isGlacior = this.boss.name.includes('Glacior');
+    const speedsY = isIgnarok
+      ? this.boss.hp <= 5
+        ? [-110, -55, 0, 55, 110]
+        : [-90, -30, 30, 90]
+      : isGlacior
+      ? [-85, -25, 35, 95]
+      : [-60, 20, 95];
     for (const vy of speedsY) {
       this.fireballs.push({
         id: `boss_fb_${Date.now()}_${Math.random()}`,
         x: startX,
         y: startY,
-        vx: dir * 270,
+        vx: dir * (isIgnarok ? 295 : isGlacior ? 285 : 270),
         vy,
         radius: 8,
         bounces: 0,
@@ -1979,6 +2402,7 @@ export class PlatformerEngine {
     if (this.powerState === 'FIRE' || this.powerState === 'RACCOON') {
       this.powerState = 'BIG';
       this.isRaccoonFlying = false;
+      this.cancelSuperJumpCharge();
       this.invulnTimer = 1.8;
       soundManager.playDamage();
       this.spawnBurstParticles(this.px + 12, this.py + 20, '#f97316', 12);
@@ -1987,6 +2411,7 @@ export class PlatformerEngine {
       this.powerState = 'SMALL';
       this.isCrouching = false;
       this.isRaccoonFlying = false;
+      this.cancelSuperJumpCharge();
       this.updatePlayerDimensions();
       this.invulnTimer = 1.8;
       soundManager.playDamage();
@@ -2003,6 +2428,7 @@ export class PlatformerEngine {
     this.deathTimer = 1.6;
     this.lives = Math.max(0, this.lives - 1);
     this.powerState = 'SMALL';
+    this.cancelSuperJumpCharge();
     this.pvx = 0;
     this.pvy = -440;
     soundManager.stopMusic();
@@ -2138,7 +2564,23 @@ export class PlatformerEngine {
       }
     }
 
-    // 3. Moving Platforms
+    // 3. Moving Platforms & Erupting Lava Geysers + Rising Lava Tide
+    if (this.level.hasRisingLava) {
+      drawRisingLavaTide(
+        ctx,
+        this.cameraX,
+        CANVAS_WIDTH,
+        this.risingLavaY,
+        16 * TILE_SIZE + 8,
+        this.elapsedTime
+      );
+    }
+    if (this.level.lavaGeysers) {
+      for (const g of this.level.lavaGeysers) {
+        const { currentTopY, isWarning } = this.getLavaGeyserState(g);
+        drawLavaGeyser(ctx, g.col, g.baseRow, currentTopY, isWarning, this.elapsedTime);
+      }
+    }
     for (const mp of this.movingPlatforms) {
       drawMovingPlatform(ctx, mp.x, mp.y, mp.width);
     }
@@ -2196,7 +2638,8 @@ export class PlatformerEngine {
       this.onGround,
       this.elapsedTime,
       this.tailSpinTimer,
-      this.isCrouching
+      this.isCrouching,
+      this.isSuperJumpCharging
     );
 
     // 9. Particles & Floating Score Popups
@@ -2204,10 +2647,27 @@ export class PlatformerEngine {
 
     ctx.restore();
 
-    // 10. Atmospheric Sandstorm Overlay (Screen-Space)
+    // 10. Atmospheric Sandstorm, Blizzard, or Volcanic Ash Overlay (Screen-Space)
     if (this.level.hasSandstorm) {
       const windActive = Math.sin(this.elapsedTime * 1.1) > -0.25;
       drawSandstormOverlay(ctx, CANVAS_WIDTH, CANVAS_HEIGHT, this.elapsedTime, windActive);
+    } else if (this.level.hasBlizzard || this.level.theme === 'SNOW') {
+      const windActive = Math.sin(this.elapsedTime * 1.1) > -0.25;
+      drawBlizzardOverlay(
+        ctx,
+        CANVAS_WIDTH,
+        CANVAS_HEIGHT,
+        this.elapsedTime,
+        Boolean(this.level.hasBlizzard),
+        windActive
+      );
+    } else if (
+      this.level.hasAshfall ||
+      this.level.theme === 'VOLCANO' ||
+      this.level.theme === 'MOLTEN_CAVERN' ||
+      this.level.theme === 'INFERNO_CASTLE'
+    ) {
+      drawVolcanicAshOverlay(ctx, CANVAS_WIDTH, CANVAS_HEIGHT, this.elapsedTime);
     }
   }
 }

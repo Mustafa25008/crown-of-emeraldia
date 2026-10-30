@@ -21,7 +21,13 @@ export type LevelTheme =
   | 'CASTLE'
   | 'UNDERWATER'
   | 'DESERT'
-  | 'PYRAMID';
+  | 'PYRAMID'
+  | 'SNOW'
+  | 'ICE_CAVERN'
+  | 'FROST_CASTLE'
+  | 'VOLCANO'
+  | 'MOLTEN_CAVERN'
+  | 'INFERNO_CASTLE';
 
 export enum TileType {
   EMPTY = 0,
@@ -48,6 +54,21 @@ export enum TileType {
   QUICKSAND_DEEP = 21,
   CRUMBLE_BLOCK = 22,
   CACTUS = 23,
+  ICE_GROUND = 24,
+  FRAGILE_ICE = 25,
+  ICICLE = 26,
+  FREEZING_WATER_TOP = 27,
+  FREEZING_WATER_DEEP = 28,
+  BURNING_ROCK = 29,
+  MAGMA_CRUMBLE = 30,
+}
+
+export interface LavaGeyserDef {
+  col: number;
+  baseRow: number;
+  peakRow: number;
+  cycleSeconds?: number;
+  phaseOffset?: number;
 }
 
 export interface MovingPlatformDef {
@@ -88,6 +109,11 @@ export interface LevelDefinition {
   theme: LevelTheme;
   isUnderwater?: boolean;
   hasSandstorm?: boolean;
+  hasBlizzard?: boolean;
+  hasAshfall?: boolean;
+  hasFallingRocks?: boolean;
+  hasRisingLava?: boolean;
+  lavaGeysers?: LavaGeyserDef[];
   windForce?: number;
   musicTrack:
     | 'OVERWORLD'
@@ -96,7 +122,9 @@ export interface LevelDefinition {
     | 'FORTRESS'
     | 'CASTLE_BOSS'
     | 'UNDERWATER'
-    | 'DESERT';
+    | 'DESERT'
+    | 'SNOW'
+    | 'VOLCANO';
   widthInTiles: number;
   heightInTiles: number;
   tiles: number[][];
