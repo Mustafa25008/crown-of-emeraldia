@@ -29,6 +29,7 @@ import {
   ArrowUp,
   Smartphone,
   Maximize2,
+  KeyRound,
 } from 'lucide-react';
 import { GameState, HudSnapshot, PowerState, SaveProgress } from './game/types';
 import { LEVELS, WORLDS, getLevelById, getWorldById } from './game/levels';
@@ -126,7 +127,19 @@ export default function App() {
       setCurrentLevelId(levelId);
       setSelectedWorldId(
         level.worldId ||
-          (levelId > 20 ? 5 : levelId > 15 ? 4 : levelId > 10 ? 3 : levelId > 5 ? 2 : 1)
+          (levelId > 30
+            ? 7
+            : levelId > 25
+            ? 6
+            : levelId > 20
+            ? 5
+            : levelId > 15
+            ? 4
+            : levelId > 10
+            ? 3
+            : levelId > 5
+            ? 2
+            : 1)
       );
 
       if (resetRunStats) {
@@ -179,7 +192,9 @@ export default function App() {
               level.id === 10 ||
               level.id === 15 ||
               level.id === 20 ||
-              level.id === 25
+              level.id === 25 ||
+              level.id === 30 ||
+              level.id === 35
               ? 'WORLD_VICTORY'
               : 'LEVEL_COMPLETE';
           });
@@ -301,7 +316,16 @@ export default function App() {
   const currentLevelDef = getLevelById(currentLevelId);
 
   const isStageUnlocked = (lvlId: number): boolean => {
-    if (lvlId === 1 || lvlId === 6 || lvlId === 11 || lvlId === 16 || lvlId === 21) return true;
+    if (
+      lvlId === 1 ||
+      lvlId === 6 ||
+      lvlId === 11 ||
+      lvlId === 16 ||
+      lvlId === 21 ||
+      lvlId === 26 ||
+      lvlId === 31
+    )
+      return true;
     const prevHigh = saveData.highScores[lvlId - 1] || 0;
     const prevCoins = saveData.bestCoins[lvlId - 1] || 0;
     if (prevHigh > 0 || prevCoins > 0) return true;
@@ -473,7 +497,7 @@ export default function App() {
               <div className="w-16 hidden sm:block" />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-4">
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {WORLDS.map((world) => {
                 const worldCompletedCount = world.levels.filter(
                   (l) => (saveData.highScores[l.id] || 0) > 0 || (saveData.bestCoins[l.id] || 0) > 0
@@ -486,6 +510,8 @@ export default function App() {
                 const isDesertWorld = world.id === 3;
                 const isFrostWorld = world.id === 4;
                 const isInfernoWorld = world.id === 5;
+                const isCelestiaWorld = world.id === 6;
+                const isChronosWorld = world.id === 7;
 
                 return (
                   <button
@@ -495,7 +521,11 @@ export default function App() {
                       navigateToMenu('LEVEL_SELECT');
                     }}
                     className={`w-full bg-slate-950 border-2 ${
-                      isInfernoWorld
+                      isChronosWorld
+                        ? 'border-yellow-500/75 hover:border-yellow-400'
+                        : isCelestiaWorld
+                        ? 'border-indigo-400/75 hover:border-indigo-300'
+                        : isInfernoWorld
                         ? 'border-orange-500/75 hover:border-orange-400'
                         : isFrostWorld
                         ? 'border-sky-400/70 hover:border-sky-300'
@@ -511,7 +541,11 @@ export default function App() {
                     <div className="text-[11px] text-slate-400">{world.subtitle}</div>
                     <div
                       className={`text-xs font-mono-num font-semibold ${
-                        isInfernoWorld
+                        isChronosWorld
+                          ? 'text-yellow-300'
+                          : isCelestiaWorld
+                          ? 'text-indigo-300'
+                          : isInfernoWorld
                           ? 'text-orange-400'
                           : isFrostWorld
                           ? 'text-sky-300'
@@ -929,6 +963,19 @@ export default function App() {
                   <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
                   <span className="font-bold text-white text-xs sm:text-sm">×{hud.lives}</span>
                 </div>
+
+                {hud.requiresKey && (
+                  <div
+                    className={`flex items-center gap-1 px-2 py-0.5 rounded border text-[11px] font-bold ${
+                      hud.hasKey
+                        ? 'bg-amber-400/20 border-amber-400 text-amber-300'
+                        : 'bg-slate-800/90 border-slate-700 text-slate-400'
+                    }`}
+                  >
+                    <KeyRound className={`w-3.5 h-3.5 ${hud.hasKey ? 'text-amber-300' : 'text-slate-500'}`} />
+                    <span>{hud.hasKey ? 'KEY READY' : 'KEY LOCKED'}</span>
+                  </div>
+                )}
               </div>
 
               <div className="flex items-center gap-2 sm:gap-4">
@@ -1188,7 +1235,11 @@ export default function App() {
                         <div className="text-xs sm:text-sm font-bold text-emerald-400 mt-0.5 truncate">
                           Stage{' '}
                           {currentLevelDef.worldId ||
-                            (currentLevelId > 20
+                            (currentLevelId > 30
+                              ? 7
+                              : currentLevelId > 25
+                              ? 6
+                              : currentLevelId > 20
                               ? 5
                               : currentLevelId > 15
                               ? 4
@@ -1204,7 +1255,7 @@ export default function App() {
 
                     <div className="flex flex-col gap-2">
                       <button
-                        onClick={() => startLevel(Math.min(25, currentLevelId + 1), false)}
+                        onClick={() => startLevel(Math.min(35, currentLevelId + 1), false)}
                         className="w-full min-h-[38px] flex items-center justify-center gap-2 py-2 px-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
                       >
                         <span>Next Level</span>
@@ -1273,7 +1324,11 @@ export default function App() {
 
                     <div>
                       <div className="text-[10px] sm:text-xs font-bold text-amber-400">
-                        {currentLevelId >= 21
+                        {currentLevelId >= 31
+                          ? 'CHRONOS, THE TIMEKEEPER DEFEATED!'
+                          : currentLevelId >= 26
+                          ? 'AETHERION, THE STORM SOVEREIGN DEFEATED!'
+                          : currentLevelId >= 21
                           ? 'IGNAROK, THE INFERNO KING DEFEATED!'
                           : currentLevelId >= 16
                           ? 'GLACIOR, THE FROST DRAGON DEFEATED!'
@@ -1284,7 +1339,11 @@ export default function App() {
                           : 'IRONCLAD KING DREDGE DEFEATED!'}
                       </div>
                       <h3 className="font-pixel text-xs sm:text-base text-white mt-0.5">
-                        {currentLevelId >= 21
+                        {currentLevelId >= 31
+                          ? 'WORLD 7: CHRONOS REALM CONQUERED!'
+                          : currentLevelId >= 26
+                          ? 'WORLD 6: CELESTIA KINGDOM CONQUERED!'
+                          : currentLevelId >= 21
                           ? 'WORLD 5: INFERNO KINGDOM CONQUERED!'
                           : currentLevelId >= 16
                           ? 'WORLD 4: FROSTFALL KINGDOM CONQUERED!'
@@ -1341,11 +1400,29 @@ export default function App() {
                         >
                           Enter World 5
                         </button>
+                      ) : currentLevelId === 25 ? (
+                        <button
+                          onClick={() => startLevel(26, false)}
+                          className="min-h-[38px] py-2 px-3 bg-indigo-400 hover:bg-indigo-300 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
+                        >
+                          Enter World 6
+                        </button>
+                      ) : currentLevelId === 30 ? (
+                        <button
+                          onClick={() => startLevel(31, false)}
+                          className="min-h-[38px] py-2 px-3 bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
+                        >
+                          Enter World 7
+                        </button>
                       ) : (
                         <button
                           onClick={() =>
                             startLevel(
-                              currentLevelId >= 21
+                              currentLevelId >= 31
+                                ? 31
+                                : currentLevelId >= 26
+                                ? 26
+                                : currentLevelId >= 21
                                 ? 21
                                 : currentLevelId >= 16
                                 ? 16
@@ -1360,7 +1437,11 @@ export default function App() {
                           className="min-h-[38px] py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
                         >
                           Replay World{' '}
-                          {currentLevelId >= 21
+                          {currentLevelId >= 31
+                            ? 7
+                            : currentLevelId >= 26
+                            ? 6
+                            : currentLevelId >= 21
                             ? 5
                             : currentLevelId >= 16
                             ? 4

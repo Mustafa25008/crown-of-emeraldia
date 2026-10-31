@@ -10,7 +10,9 @@ type TrackName =
   | 'UNDERWATER'
   | 'DESERT'
   | 'SNOW'
-  | 'VOLCANO';
+  | 'VOLCANO'
+  | 'CELESTIA'
+  | 'CHRONOS';
 
 class SoundManager {
   private ctx: AudioContext | null = null;
@@ -187,6 +189,35 @@ class SoundManager {
     this.playLevelClear();
   }
 
+  public playPipeWarp() {
+    const notes = [440, 349.23, 261.63];
+    notes.forEach((n, idx) => {
+      this.playTone(n, 0.08, 'square', 0.16, n * 0.72, idx * 95);
+    });
+  }
+
+  public playKeyCollect() {
+    const notes = [523.25, 659.25, 783.99, 1046.5, 1318.51, 1567.98];
+    notes.forEach((n, idx) => {
+      this.playTone(n, 0.09, 'triangle', 0.18, undefined, idx * 60);
+    });
+  }
+
+  public playDoorUnlock() {
+    // Mechanical gear clicks followed by triumphant unlock chord
+    this.playTone(180, 0.08, 'sawtooth', 0.18, 120, 0);
+    this.playTone(220, 0.08, 'sawtooth', 0.18, 150, 90);
+    this.playTone(280, 0.08, 'sawtooth', 0.18, 190, 180);
+    this.playTone(523.25, 0.14, 'square', 0.16, undefined, 280);
+    this.playTone(659.25, 0.14, 'square', 0.16, undefined, 380);
+    this.playTone(783.99, 0.28, 'square', 0.18, undefined, 480);
+  }
+
+  public playTeleport() {
+    this.playTone(320, 0.14, 'sine', 0.16, 960, 0);
+    this.playTone(480, 0.12, 'triangle', 0.14, 1280, 65);
+  }
+
   public playMusic(track: TrackName) {
     this.currentTrack = track;
     if (!this.musicEnabled) return;
@@ -288,6 +319,38 @@ class SoundManager {
         ],
         tempoMs: 150,
         wave: 'sawtooth',
+      },
+      CELESTIA: {
+        notes: [
+          523, 659, 784, 1047, 988, 784, 659, 784,
+          880, 784, 659, 587, 659, 523, 587, 0,
+          523, 659, 784, 1047, 1175, 1047, 988, 784,
+          880, 988, 1047, 784, 1047, 0, 0, 0,
+        ],
+        bass: [
+          262, 330, 392, 330, 247, 330, 392, 330,
+          220, 262, 330, 262, 196, 247, 294, 196,
+          262, 330, 392, 330, 294, 349, 392, 294,
+          220, 247, 262, 196, 262, 330, 262, 0,
+        ],
+        tempoMs: 155,
+        wave: 'triangle',
+      },
+      CHRONOS: {
+        notes: [
+          330, 0, 494, 440, 392, 0, 370, 330,
+          294, 330, 370, 440, 392, 0, 247, 0,
+          330, 0, 494, 523, 587, 494, 440, 392,
+          370, 392, 440, 494, 330, 0, 330, 0,
+        ],
+        bass: [
+          165, 247, 165, 247, 147, 220, 147, 220,
+          131, 196, 131, 196, 123, 185, 123, 185,
+          165, 247, 165, 247, 196, 294, 196, 294,
+          147, 220, 123, 185, 165, 247, 165, 0,
+        ],
+        tempoMs: 148,
+        wave: 'square',
       },
     };
 

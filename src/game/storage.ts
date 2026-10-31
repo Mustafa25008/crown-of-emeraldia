@@ -10,6 +10,8 @@ const DEFAULT_SAVE: SaveProgress = {
     11: 0, 12: 0, 13: 0, 14: 0, 15: 0,
     16: 0, 17: 0, 18: 0, 19: 0, 20: 0,
     21: 0, 22: 0, 23: 0, 24: 0, 25: 0,
+    26: 0, 27: 0, 28: 0, 29: 0, 30: 0,
+    31: 0, 32: 0, 33: 0, 34: 0, 35: 0,
   },
   bestCoins: {
     1: 0, 2: 0, 3: 0, 4: 0, 5: 0,
@@ -17,6 +19,8 @@ const DEFAULT_SAVE: SaveProgress = {
     11: 0, 12: 0, 13: 0, 14: 0, 15: 0,
     16: 0, 17: 0, 18: 0, 19: 0, 20: 0,
     21: 0, 22: 0, 23: 0, 24: 0, 25: 0,
+    26: 0, 27: 0, 28: 0, 29: 0, 30: 0,
+    31: 0, 32: 0, 33: 0, 34: 0, 35: 0,
   },
   totalCoinsCollected: 0,
   soundEnabled: true,
@@ -30,7 +34,7 @@ export function loadProgress(): SaveProgress {
     if (!raw) return { ...DEFAULT_SAVE };
     const parsed = JSON.parse(raw);
     return {
-      unlockedLevel: Math.max(1, Math.min(25, Number(parsed.unlockedLevel) || 1)),
+      unlockedLevel: Math.max(1, Math.min(35, Number(parsed.unlockedLevel) || 1)),
       highScores: { ...DEFAULT_SAVE.highScores, ...(parsed.highScores || {}) },
       bestCoins: { ...DEFAULT_SAVE.bestCoins, ...(parsed.bestCoins || {}) },
       totalCoinsCollected: Number(parsed.totalCoinsCollected) || 0,
@@ -57,7 +61,7 @@ export function recordLevelCompletion(
   score: number,
   coins: number
 ): SaveProgress {
-  const nextUnlocked = Math.min(25, Math.max(current.unlockedLevel, levelId + 1));
+  const nextUnlocked = Math.min(35, Math.max(current.unlockedLevel, levelId + 1));
   const prevBestScore = current.highScores[levelId] || 0;
   const prevBestCoins = current.bestCoins[levelId] || 0;
 

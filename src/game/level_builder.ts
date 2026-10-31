@@ -110,3 +110,49 @@ export function addMagmaCrumbleBridge(grid: number[][], startCol: number, endCol
     grid[row][c] = TileType.MAGMA_CRUMBLE;
   }
 }
+
+export function addCloudPlatform(grid: number[][], startCol: number, endCol: number, row: number) {
+  for (let c = startCol; c <= endCol; c++) {
+    if (c < 0 || c >= grid[0].length) continue;
+    grid[row][c] = TileType.CLOUD_PLATFORM;
+  }
+}
+
+export function addTempCloudBridge(grid: number[][], startCol: number, endCol: number, row: number) {
+  for (let c = startCol; c <= endCol; c++) {
+    if (c < 0 || c >= grid[0].length) continue;
+    grid[row][c] = TileType.TEMP_CLOUD;
+  }
+}
+
+export function addConveyorBelt(
+  grid: number[][],
+  startCol: number,
+  endCol: number,
+  row: number,
+  direction: 'LEFT' | 'RIGHT'
+) {
+  const tile = direction === 'LEFT' ? TileType.CONVEYOR_LEFT : TileType.CONVEYOR_RIGHT;
+  for (let c = startCol; c <= endCol; c++) {
+    if (c < 0 || c >= grid[0].length) continue;
+    grid[row][c] = tile;
+  }
+}
+
+export function addTempCogBridge(grid: number[][], startCol: number, endCol: number, row: number) {
+  for (let c = startCol; c <= endCol; c++) {
+    if (c < 0 || c >= grid[0].length) continue;
+    grid[row][c] = TileType.TEMP_COG_PLATFORM;
+  }
+}
+
+export function addWarpPipe(grid: number[][], col: number, groundRow: number, height: number) {
+  const topRow = groundRow - height;
+  grid[topRow][col] = TileType.WARP_PIPE_TOP_L;
+  grid[topRow][col + 1] = TileType.WARP_PIPE_TOP_R;
+  for (let r = topRow + 1; r < groundRow; r++) {
+    grid[r][col] = TileType.WARP_PIPE_BODY_L;
+    grid[r][col + 1] = TileType.WARP_PIPE_BODY_R;
+  }
+}
+

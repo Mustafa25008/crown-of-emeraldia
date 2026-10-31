@@ -29,6 +29,17 @@ import {
   drawLavaGeyser,
   drawRisingLavaTide,
   drawVolcanicAshOverlay,
+  drawWindUpdraft,
+  drawLightningStrike,
+  drawStormSkiesOverlay,
+  drawSteamVent,
+  drawCrusherPiston,
+  drawSwingingPendulum,
+  drawTeleporterPad,
+  drawWarpPipePrompt,
+  drawGoldenKey,
+  drawLockedMechanicalDoor,
+  drawChronosHudKeyBadge,
   drawParticlesAndFloatingText,
 } from './renderer';
 
@@ -148,6 +159,33 @@ export class PlatformerEngine {
   private fallingRockTimer: number = 1.8;
   private risingLavaY: number = 608;
 
+  // World 7: Chronos Realm Secret Hidden Room, Golden Key & Locked Door State
+  private inHiddenRoom: boolean = false;
+  private hasLevelKey: boolean = false;
+  private doorUnlockState: 'LOCKED' | 'UNLOCKING' | 'UNLOCKED' = 'LOCKED';
+  private doorUnlockProgress: number = 0;
+  private doorWarningCooldown: number = 0;
+  private pipeStandTimer: number = 0;
+  private pipeWarpCooldown: number = 0;
+  private teleportCooldown: number = 0;
+  private parentLevelSnapshot: {
+    tiles: number[][];
+    activeCoins: Map<string, { x: number; y: number; collected: boolean }>;
+    enemies: ActiveEnemy[];
+    powerUps: ActivePowerUpItem[];
+    movingPlatforms: RuntimeMovingPlatform[];
+    crumblingBlocks: Array<{
+      col: number;
+      row: number;
+      state: 'SHAKING' | 'BROKEN';
+      timer: number;
+      originalTile: TileType;
+    }>;
+    checkpointReached: boolean;
+    respawnPoint: { x: number; y: number };
+    minCameraX: number;
+  } | null = null;
+
   // Input state
   private keys: Record<string, boolean> = {};
   private jumpJustPressed: boolean = false;
@@ -189,17 +227,42 @@ export class PlatformerEngine {
   }
 
   private createInitialBossState(): BossState {
-    const isWorld5Boss = this.level.worldId === 5 || this.level.id >= 21;
-    const isWorld4Boss = !isWorld5Boss && (this.level.worldId === 4 || this.level.id >= 16);
+    const isWorld7Boss = this.level.worldId === 7 || this.level.id >= 31;
+    const isWorld6Boss = !isWorld7Boss && (this.level.worldId === 6 || this.level.id >= 26);
+    const isWorld5Boss =
+      !isWorld7Boss && !isWorld6Boss && (this.level.worldId === 5 || this.level.id >= 21);
+    const isWorld4Boss =
+      !isWorld7Boss &&
+      !isWorld6Boss &&
+      !isWorld5Boss &&
+      (this.level.worldId === 4 || this.level.id >= 16);
     const isWorld3Boss =
-      !isWorld5Boss && !isWorld4Boss && (this.level.worldId === 3 || this.level.id >= 11);
+      !isWorld7Boss &&
+      !isWorld6Boss &&
+      !isWorld5Boss &&
+      !isWorld4Boss &&
+      (this.level.worldId === 3 || this.level.id >= 11);
     const isWorld2Boss =
+      !isWorld7Boss &&
+      !isWorld6Boss &&
       !isWorld5Boss &&
       !isWorld4Boss &&
       !isWorld3Boss &&
       (this.level.worldId === 2 || this.level.id >= 6);
-    const bossHp = isWorld5Boss ? 8 : isWorld4Boss || isWorld3Boss || isWorld2Boss ? 6 : 5;
-    const bossName = isWorld5Boss
+    const bossHp = isWorld7Boss
+      ? 10
+      : isWorld6Boss
+      ? 9
+      : isWorld5Boss
+      ? 8
+      : isWorld4Boss || isWorld3Boss || isWorld2Boss
+      ? 6
+      : 5;
+    const bossName = isWorld7Boss
+      ? 'Chronos, the Timekeeper'
+      : isWorld6Boss
+      ? 'Aetherion, the Storm Sovereign'
+      : isWorld5Boss
       ? 'Ignarok, the Inferno King'
       : isWorld4Boss
       ? 'Glacior, the Frost Dragon'
@@ -217,8 +280,8 @@ export class PlatformerEngine {
       y: 13 * TILE_SIZE,
       vx: 0,
       vy: 0,
-      width: isWorld5Boss ? 68 : 64,
-      height: isWorld5Boss ? 68 : 64,
+      width: isWorld7Boss || isWorld6Boss || isWorld5Boss ? 68 : 64,
+      height: isWorld7Boss || isWorld6Boss || isWorld5Boss ? 68 : 64,
       facing: -1,
       phase: 'IDLE',
       phaseTimer: 1.5,
@@ -228,14 +291,78 @@ export class PlatformerEngine {
     };
   }
 
+  private get activeTheme() {
+    return this.inHiddenRoom && this.level.hiddenRoom
+      ? this.level.hiddenRoom.theme
+      : this.level.theme;
+  }
+
+  private get activeWidthInTiles(): number {
+    return this.inHiddenRoom && this.level.hiddenRoom
+      ? this.level.hiddenRoom.widthInTiles
+      : this.level.widthInTiles;
+  }
+
+  private get activeHeightInTiles(): number {
+    return this.inHiddenRoom && this.level.hiddenRoom
+      ? this.level.hiddenRoom.heightInTiles
+      : this.level.heightInTiles;
+  }
+
+  private get activeSteamVents() {
+    return this.inHiddenRoom && this.level.hiddenRoom
+      ? this.level.hiddenRoom.steamVents
+      : this.level.steamVents;
+  }
+
+  private get activeCrusherPistons() {
+    return this.inHiddenRoom && this.level.hiddenRoom
+      ? this.level.hiddenRoom.crusherPistons
+      : this.level.crusherPistons;
+  }
+
+  private get activeSwingingPendulums() {
+    return this.inHiddenRoom && this.level.hiddenRoom
+      ? this.level.hiddenRoom.swingingPendulums
+      : this.level.swingingPendulums;
+  }
+
+  private get activeTeleporters() {
+    return this.inHiddenRoom ? undefined : this.level.teleporters;
+  }
+
   private initEntitiesFromLevel(resetCoinsAndBlocks: boolean) {
+    // Dying or restarting resets the hidden room & collected key so the player must re-acquire the key!
+    const wasInHiddenRoom = this.inHiddenRoom;
+    this.inHiddenRoom = false;
+    this.hasLevelKey = false;
+    this.doorUnlockState = 'LOCKED';
+    this.doorUnlockProgress = 0;
+    this.doorWarningCooldown = 0;
+    this.pipeStandTimer = 0;
+    this.pipeWarpCooldown = 0;
+    this.teleportCooldown = 0;
+
     if (resetCoinsAndBlocks) {
+      this.parentLevelSnapshot = null;
       this.tiles = this.level.tiles.map((row) => [...row]);
       this.randomizeLevelPowerUpAndStarBlocks();
       this.activeCoins.clear();
       for (const c of this.level.coins) {
         this.activeCoins.set(c.id, { x: c.x, y: c.y, collected: false });
       }
+    } else if (wasInHiddenRoom && this.parentLevelSnapshot) {
+      // Restore parent level tiles & coins after dying inside the hidden room
+      this.tiles = this.parentLevelSnapshot.tiles.map((row) => [...row]);
+      this.activeCoins = new Map();
+      for (const [k, v] of this.parentLevelSnapshot.activeCoins.entries()) {
+        this.activeCoins.set(k, { ...v });
+      }
+      this.checkpointReached = this.parentLevelSnapshot.checkpointReached;
+      this.respawnPoint = { ...this.parentLevelSnapshot.respawnPoint };
+      this.parentLevelSnapshot = null;
+    } else {
+      this.parentLevelSnapshot = null;
     }
 
     this.updatePlayerDimensions();
@@ -656,17 +783,20 @@ export class PlatformerEngine {
     this.updateFireballs(dt);
     this.updateEnemies(dt);
     this.updateVolcanicHazards(dt);
-    if (this.level.hasBoss) {
+    this.updateChronosMechanicsAndHiddenRoom(dt);
+    if (this.level.hasBoss && !this.inHiddenRoom) {
       this.updateBoss(dt);
     }
     this.updateParticles(dt);
 
-    // 4. Check Checkpoint & Level Goal Flagpole
-    this.checkCheckpointAndGoal();
+    // 4. Check Checkpoint & Level Goal Flagpole / Locked Mechanical Door
+    if (!this.inHiddenRoom) {
+      this.checkCheckpointAndGoal(dt);
+    }
 
     // 5. Update Smooth Scrolling Camera
     const targetCamX = this.px - CANVAS_WIDTH * 0.36;
-    const maxCamX = this.level.widthInTiles * TILE_SIZE - CANVAS_WIDTH;
+    const maxCamX = Math.max(0, this.activeWidthInTiles * TILE_SIZE - CANVAS_WIDTH);
     this.cameraX += (targetCamX - this.cameraX) * Math.min(1, dt * 10);
     this.cameraX = Math.max(this.minCameraX, Math.min(maxCamX, this.cameraX));
 
@@ -984,24 +1114,56 @@ export class PlatformerEngine {
           this.pvy = 52;
         }
       }
+      // Vertical Wind Updraft Currents (World 6 Celestia Kingdom)
+      if (this.level.windUpdrafts && this.level.windUpdrafts.length > 0 && !this.onGround) {
+        const playerCenterX = this.px + this.pWidth * 0.5;
+        const playerCenterY = this.py + this.pHeight * 0.5;
+        for (const u of this.level.windUpdrafts) {
+          const ux1 = u.startCol * TILE_SIZE;
+          const ux2 = (u.endCol + 1) * TILE_SIZE;
+          const uy1 = u.minRow * TILE_SIZE;
+          const uy2 = u.maxRow * TILE_SIZE;
+          if (playerCenterX >= ux1 && playerCenterX <= ux2 && playerCenterY >= uy1 && playerCenterY <= uy2) {
+            const lift = u.liftForce ?? 520;
+            const boostMult = jumpHeld ? 1.25 : 0.72;
+            this.pvy = Math.max(-560, this.pvy - lift * boostMult * dt);
+            break;
+          }
+        }
+      }
     }
 
-    // Desert Sandstorm or Mountain Blizzard Horizontal Wind Gusts
+    // Desert Sandstorm, Mountain Blizzard, or Sky Tempest Horizontal Wind Gusts
     let windDeltaX = 0;
-    if (this.level.windForce || this.level.hasSandstorm || this.level.hasBlizzard) {
+    if (
+      !this.inHiddenRoom &&
+      (this.level.windForce ||
+        this.level.hasSandstorm ||
+        this.level.hasBlizzard ||
+        this.level.hasStormClouds)
+    ) {
       const baseWind = this.level.windForce ?? -55;
       const gustWave = Math.sin(this.elapsedTime * 1.1);
       const gustMult = gustWave > -0.25 ? 1.0 : 0.35;
       windDeltaX = baseWind * gustMult * dt;
     }
 
+    // World 7 Industrial Conveyor Belt Horizontal Push
+    let conveyorDeltaX = 0;
+    if (this.onGround) {
+      const conveyorDir = this.getPlayerConveyorDirection();
+      if (conveyorDir !== 0) {
+        conveyorDeltaX = conveyorDir * 105 * dt;
+      }
+    }
+
     // Horizontal Movement & Collision
-    this.px += this.pvx * dt + windDeltaX;
+    this.px += this.pvx * dt + windDeltaX + conveyorDeltaX;
     if (this.px < this.minCameraX) {
       this.px = this.minCameraX;
       this.pvx = 0;
     }
-    const maxLevelX = this.level.widthInTiles * TILE_SIZE - this.pWidth;
+    const maxLevelX = this.activeWidthInTiles * TILE_SIZE - this.pWidth;
     if (this.px > maxLevelX) {
       this.px = maxLevelX;
       this.pvx = 0;
@@ -1098,14 +1260,25 @@ export class PlatformerEngine {
       t === TileType.PIPE_TOP_R ||
       t === TileType.PIPE_BODY_L ||
       t === TileType.PIPE_BODY_R ||
+      t === TileType.WARP_PIPE_TOP_L ||
+      t === TileType.WARP_PIPE_TOP_R ||
+      t === TileType.WARP_PIPE_BODY_L ||
+      t === TileType.WARP_PIPE_BODY_R ||
+      t === TileType.CONVEYOR_LEFT ||
+      t === TileType.CONVEYOR_RIGHT ||
       t === TileType.BRIDGE ||
       t === TileType.CRUMBLE_BLOCK ||
       t === TileType.FRAGILE_ICE ||
       t === TileType.MAGMA_CRUMBLE ||
+      t === TileType.CLOUD_PLATFORM ||
+      t === TileType.TEMP_CLOUD ||
+      t === TileType.TEMP_COG_PLATFORM ||
       t === TileType.SPIKE ||
       t === TileType.CACTUS ||
       t === TileType.ICICLE ||
-      t === TileType.BURNING_ROCK
+      t === TileType.BURNING_ROCK ||
+      t === TileType.STORM_SPIKE ||
+      t === TileType.GEAR_HAZARD
     );
   }
 
@@ -1114,7 +1287,10 @@ export class PlatformerEngine {
       t === TileType.BRIDGE ||
       t === TileType.CRUMBLE_BLOCK ||
       t === TileType.FRAGILE_ICE ||
-      t === TileType.MAGMA_CRUMBLE
+      t === TileType.MAGMA_CRUMBLE ||
+      t === TileType.CLOUD_PLATFORM ||
+      t === TileType.TEMP_CLOUD ||
+      t === TileType.TEMP_COG_PLATFORM
     );
   }
 
@@ -1123,8 +1299,22 @@ export class PlatformerEngine {
       t === TileType.SPIKE ||
       t === TileType.CACTUS ||
       t === TileType.ICICLE ||
-      t === TileType.BURNING_ROCK
+      t === TileType.BURNING_ROCK ||
+      t === TileType.STORM_SPIKE ||
+      t === TileType.GEAR_HAZARD
     );
+  }
+
+  private getPlayerConveyorDirection(): -1 | 0 | 1 {
+    const startCol = Math.floor((this.px + 3) / TILE_SIZE);
+    const endCol = Math.floor((this.px + this.pWidth - 3) / TILE_SIZE);
+    const belowRow = Math.floor((this.py + this.pHeight + 2) / TILE_SIZE);
+    for (let c = startCol; c <= endCol; c++) {
+      const t = this.getTileAt(c, belowRow);
+      if (t === TileType.CONVEYOR_LEFT) return -1;
+      if (t === TileType.CONVEYOR_RIGHT) return 1;
+    }
+    return 0;
   }
 
   private isPlayerOnIce(): boolean {
@@ -1180,6 +1370,8 @@ export class PlatformerEngine {
           ? 0.36
           : originalTile === TileType.MAGMA_CRUMBLE
           ? 0.38
+          : originalTile === TileType.TEMP_COG_PLATFORM
+          ? 0.4
           : 0.42;
       this.crumblingBlocks.push({ col, row, state: 'SHAKING', timer: delay, originalTile });
     }
@@ -1199,6 +1391,10 @@ export class PlatformerEngine {
               ? '#7dd3fc'
               : cb.originalTile === TileType.MAGMA_CRUMBLE
               ? '#f97316'
+              : cb.originalTile === TileType.TEMP_CLOUD
+              ? '#bae6fd'
+              : cb.originalTile === TileType.TEMP_COG_PLATFORM
+              ? '#fbbf24'
               : '#d97706';
           this.spawnBurstParticles(cb.col * TILE_SIZE + 16, cb.row * TILE_SIZE + 10, particleColor, 8);
         }
@@ -1214,7 +1410,12 @@ export class PlatformerEngine {
   }
 
   private getTileAt(col: number, row: number): TileType {
-    if (row < 0 || row >= this.level.heightInTiles || col < 0 || col >= this.level.widthInTiles) {
+    if (
+      row < 0 ||
+      row >= this.activeHeightInTiles ||
+      col < 0 ||
+      col >= this.activeWidthInTiles
+    ) {
       return TileType.EMPTY;
     }
     return this.tiles[row][col];
@@ -1336,7 +1537,9 @@ export class PlatformerEngine {
             if (
               standTile === TileType.CRUMBLE_BLOCK ||
               standTile === TileType.FRAGILE_ICE ||
-              standTile === TileType.MAGMA_CRUMBLE
+              standTile === TileType.MAGMA_CRUMBLE ||
+              standTile === TileType.TEMP_CLOUD ||
+              standTile === TileType.TEMP_COG_PLATFORM
             ) {
               this.triggerCrumbleBlock(cc, bottomRow, standTile);
             }
@@ -1929,6 +2132,394 @@ export class PlatformerEngine {
     } else {
       this.risingLavaY = CANVAS_HEIGHT;
     }
+
+    // 4. Periodic Sky Lightning Strikes (World 6 Stormbound Skies & Celestial Palace)
+    if (this.level.lightningStrikes && this.level.lightningStrikes.length > 0) {
+      for (const ls of this.level.lightningStrikes) {
+        const state = this.getLightningStrikeState(ls);
+        if (state === 'STRIKE' && !this.isInvincibleStar) {
+          const lx = ls.col * TILE_SIZE + 6;
+          const lw = 20;
+          const ly = ls.topRow * TILE_SIZE;
+          const lh = Math.max(32, (ls.bottomRow - ls.topRow) * TILE_SIZE);
+          if (this.rectsOverlap(this.px, this.py, this.pWidth, this.pHeight, lx, ly, lw, lh)) {
+            this.damagePlayer();
+          }
+        }
+      }
+    }
+  }
+
+  private getLightningStrikeState(ls: {
+    col: number;
+    topRow: number;
+    bottomRow: number;
+    cycleSeconds?: number;
+    phaseOffset?: number;
+  }): 'IDLE' | 'WARNING' | 'STRIKE' {
+    const cycle = ls.cycleSeconds || 4.0;
+    const t = ((this.elapsedTime + (ls.phaseOffset || 0)) % cycle + cycle) % cycle;
+    const warnStart = cycle * 0.48;
+    const strikeStart = cycle * 0.72;
+    const strikeEnd = cycle * 0.9;
+    if (t < warnStart || t >= strikeEnd) return 'IDLE';
+    if (t < strikeStart) return 'WARNING';
+    return 'STRIKE';
+  }
+
+  private getSteamVentState(sv: {
+    col: number;
+    baseRow: number;
+    peakRow: number;
+    cycleSeconds?: number;
+    phaseOffset?: number;
+  }): { currentTopY: number; isWarning: boolean; isActive: boolean } {
+    const cycle = sv.cycleSeconds || 3.4;
+    const t = ((this.elapsedTime + (sv.phaseOffset || 0)) % cycle + cycle) % cycle;
+    const baseY = sv.baseRow * TILE_SIZE;
+    const peakY = sv.peakRow * TILE_SIZE;
+    const warnStart = cycle * 0.38;
+    const activeStart = cycle * 0.56;
+    const activeEnd = cycle * 0.88;
+    if (t < warnStart || t >= activeEnd) {
+      return { currentTopY: baseY, isWarning: false, isActive: false };
+    }
+    if (t < activeStart) {
+      return { currentTopY: baseY, isWarning: true, isActive: false };
+    }
+    return { currentTopY: peakY, isWarning: false, isActive: true };
+  }
+
+  private getCrusherPistonState(cp: {
+    col: number;
+    topRow: number;
+    crushRow: number;
+    cycleSeconds?: number;
+    phaseOffset?: number;
+  }): { currentBottomY: number; isWarning: boolean } {
+    const cycle = cp.cycleSeconds || 2.8;
+    const t = ((this.elapsedTime + (cp.phaseOffset || 0)) % cycle + cycle) % cycle;
+    const minBottomY = (cp.topRow + 1.1) * TILE_SIZE;
+    const maxBottomY = cp.crushRow * TILE_SIZE;
+
+    const warnStart = cycle * 0.25;
+    const warnEnd = cycle * 0.42;
+    const slamEnd = cycle * 0.52;
+    const holdEnd = cycle * 0.72;
+
+    if (t < warnEnd) {
+      return { currentBottomY: minBottomY, isWarning: t >= warnStart };
+    } else if (t < slamEnd) {
+      const p = Math.min(1, (t - warnEnd) / (slamEnd - warnEnd));
+      return {
+        currentBottomY: minBottomY + (maxBottomY - minBottomY) * p,
+        isWarning: false,
+      };
+    } else if (t < holdEnd) {
+      return { currentBottomY: maxBottomY, isWarning: false };
+    } else {
+      const p = Math.min(1, (t - holdEnd) / (cycle - holdEnd));
+      return {
+        currentBottomY: maxBottomY - (maxBottomY - minBottomY) * p,
+        isWarning: false,
+      };
+    }
+  }
+
+  private getPendulumBobPosition(sp: {
+    pivotCol: number;
+    pivotRow: number;
+    lengthPx: number;
+    maxAngleRad?: number;
+    speed?: number;
+    phaseOffset?: number;
+  }): { pivotX: number; pivotY: number; bobX: number; bobY: number; angle: number } {
+    const pivotX = sp.pivotCol * TILE_SIZE + 16;
+    const pivotY = sp.pivotRow * TILE_SIZE + 16;
+    const maxAngle = sp.maxAngleRad || 0.72;
+    const speed = sp.speed || 2.1;
+    const angle = Math.sin(this.elapsedTime * speed + (sp.phaseOffset || 0)) * maxAngle;
+    const bobX = pivotX + Math.sin(angle) * sp.lengthPx;
+    const bobY = pivotY + Math.cos(angle) * sp.lengthPx;
+    return { pivotX, pivotY, bobX, bobY, angle };
+  }
+
+  private enterHiddenRoom() {
+    const hr = this.level.hiddenRoom;
+    if (!hr || this.inHiddenRoom) return;
+
+    soundManager.playPipeWarp();
+    this.pipeWarpCooldown = 0.85;
+    this.pipeStandTimer = 0;
+    this.cancelSuperJumpCharge();
+
+    // Save parent level state so returning via the exit pipe restores the parent stage seamlessly
+    this.parentLevelSnapshot = {
+      tiles: this.tiles.map((row) => [...row]),
+      activeCoins: new Map(
+        Array.from(this.activeCoins.entries()).map(([k, v]) => [k, { ...v }])
+      ),
+      enemies: this.enemies.map((e) => ({ ...e })),
+      powerUps: this.powerUps.map((p) => ({ ...p })),
+      movingPlatforms: this.movingPlatforms.map((mp) => ({ ...mp })),
+      crumblingBlocks: this.crumblingBlocks.map((cb) => ({ ...cb })),
+      checkpointReached: this.checkpointReached,
+      respawnPoint: { ...this.respawnPoint },
+      minCameraX: this.minCameraX,
+    };
+
+    this.inHiddenRoom = true;
+    this.tiles = hr.tiles.map((row) => [...row]);
+    this.activeCoins.clear();
+    for (const c of hr.coins) {
+      this.activeCoins.set(c.id, { x: c.x, y: c.y, collected: false });
+    }
+    this.enemies = hr.enemies.map((e) => ({
+      id: e.id,
+      type: e.type,
+      x: e.x,
+      y: e.y + 4,
+      startX: e.x,
+      startY: e.y + 4,
+      vx: e.type === 'KNIGHT' ? -80 : -65,
+      vy: 0,
+      width: 28,
+      height: 28,
+      state: 'PATROL',
+      facing: -1,
+      animTimer: 0,
+      squishTimer: 0,
+      patrolRange: e.patrolRange || 120,
+      angle: 0,
+    }));
+    this.movingPlatforms = hr.movingPlatforms.map((mp) => ({
+      id: mp.id,
+      x: mp.x,
+      y: mp.y,
+      prevX: mp.x,
+      prevY: mp.y,
+      startX: mp.x,
+      startY: mp.y,
+      endX: mp.endX,
+      endY: mp.endY,
+      width: mp.width,
+      height: 16,
+      speed: mp.speed,
+      progress: 0,
+      dir: 1,
+    }));
+    this.powerUps = [];
+    this.fireballs = [];
+    this.bumpedTiles = [];
+    this.crumblingBlocks = [];
+
+    this.px = hr.playerStart.x;
+    this.py = hr.playerStart.y - (this.pHeight - 28);
+    this.pvx = 0;
+    this.pvy = 0;
+    this.minCameraX = 0;
+    this.cameraX = 0;
+    this.spawnBurstParticles(this.px + 12, this.py + 16, '#38bdf8', 18);
+    this.floatingTexts.push({
+      x: this.px - 10,
+      y: this.py - 18,
+      text: 'SECRET ROOM!',
+      color: '#38bdf8',
+      life: 1.3,
+    });
+    this.emitHud();
+  }
+
+  private exitHiddenRoom() {
+    const hr = this.level.hiddenRoom;
+    if (!hr || !this.inHiddenRoom || !this.parentLevelSnapshot) return;
+
+    soundManager.playPipeWarp();
+    this.pipeWarpCooldown = 0.85;
+    this.pipeStandTimer = 0;
+    this.cancelSuperJumpCharge();
+
+    const snap = this.parentLevelSnapshot;
+    this.inHiddenRoom = false;
+    this.tiles = snap.tiles.map((row) => [...row]);
+    this.activeCoins = snap.activeCoins;
+    this.enemies = snap.enemies;
+    this.powerUps = snap.powerUps;
+    this.movingPlatforms = snap.movingPlatforms;
+    this.crumblingBlocks = snap.crumblingBlocks;
+    this.checkpointReached = snap.checkpointReached;
+    this.respawnPoint = snap.respawnPoint;
+    this.minCameraX = snap.minCameraX;
+    this.parentLevelSnapshot = null;
+
+    this.fireballs = [];
+    this.bumpedTiles = [];
+
+    this.px = hr.returnPosition.x;
+    this.py = hr.returnPosition.y - (this.pHeight - 28);
+    this.pvx = 0;
+    this.pvy = -180;
+    this.cameraX = Math.max(
+      this.minCameraX,
+      Math.min(this.level.widthInTiles * TILE_SIZE - CANVAS_WIDTH, this.px - CANVAS_WIDTH * 0.36)
+    );
+    this.spawnBurstParticles(this.px + 12, this.py + 16, '#fde047', 18);
+    this.emitHud();
+  }
+
+  private updateChronosMechanicsAndHiddenRoom(dt: number) {
+    if (this.pipeWarpCooldown > 0) {
+      this.pipeWarpCooldown = Math.max(0, this.pipeWarpCooldown - dt);
+    }
+    if (this.teleportCooldown > 0) {
+      this.teleportCooldown = Math.max(0, this.teleportCooldown - dt);
+    }
+    if (this.doorWarningCooldown > 0) {
+      this.doorWarningCooldown = Math.max(0, this.doorWarningCooldown - dt);
+    }
+
+    // 1. Steam Vents (7-2 & Hidden Rooms)
+    const steamVents = this.activeSteamVents;
+    if (steamVents && steamVents.length > 0) {
+      for (const sv of steamVents) {
+        const { isActive } = this.getSteamVentState(sv);
+        if (isActive && !this.isInvincibleStar) {
+          const sx = sv.col * TILE_SIZE + 5;
+          const sw = 22;
+          const sy = sv.peakRow * TILE_SIZE;
+          const sh = Math.max(24, (sv.baseRow - sv.peakRow) * TILE_SIZE);
+          if (this.rectsOverlap(this.px, this.py, this.pWidth, this.pHeight, sx, sy, sw, sh)) {
+            this.pvy = -340;
+            this.damagePlayer();
+          }
+        }
+      }
+    }
+
+    // 2. Hydraulic Crusher Pistons (7-2 & Hidden Rooms)
+    const crushers = this.activeCrusherPistons;
+    if (crushers && crushers.length > 0) {
+      for (const cp of crushers) {
+        const { currentBottomY } = this.getCrusherPistonState(cp);
+        const cx = cp.col * TILE_SIZE + 2;
+        const cw = 28;
+        const cy = cp.topRow * TILE_SIZE;
+        const ch = Math.max(24, currentBottomY - cy);
+        if (this.rectsOverlap(this.px, this.py, this.pWidth, this.pHeight, cx, cy, cw, ch)) {
+          if (!this.isInvincibleStar) {
+            this.damagePlayer();
+          }
+        }
+      }
+    }
+
+    // 3. Swinging Clockwork Pendulums (7-3, 7-5 & Hidden Rooms)
+    const pendulums = this.activeSwingingPendulums;
+    if (pendulums && pendulums.length > 0) {
+      for (const sp of pendulums) {
+        const { bobX, bobY } = this.getPendulumBobPosition(sp);
+        if (
+          !this.isInvincibleStar &&
+          this.rectsOverlap(this.px, this.py, this.pWidth, this.pHeight, bobX - 16, bobY - 16, 32, 32)
+        ) {
+          this.damagePlayer();
+        }
+      }
+    }
+
+    // 4. Temporal Teleporter Pads (7-4)
+    const teleporters = this.activeTeleporters;
+    if (teleporters && teleporters.length > 0 && this.teleportCooldown <= 0) {
+      const pCenterX = this.px + this.pWidth * 0.5;
+      const pBottomY = this.py + this.pHeight;
+      for (const tp of teleporters) {
+        const ax = tp.fromCol * TILE_SIZE + 16;
+        const ay = tp.fromRow * TILE_SIZE;
+        if (Math.abs(pCenterX - ax) <= 18 && Math.abs(pBottomY - ay) <= 18) {
+          this.teleportCooldown = 1.1;
+          soundManager.playTeleport();
+          this.spawnBurstParticles(this.px + 12, this.py + 16, '#38bdf8', 16);
+          this.px = tp.toCol * TILE_SIZE + 4;
+          this.py = tp.toRow * TILE_SIZE - this.pHeight;
+          this.pvx = 0;
+          this.pvy = -120;
+          this.spawnBurstParticles(this.px + 12, this.py + 16, '#a855f7', 16);
+          this.floatingTexts.push({
+            x: this.px - 8,
+            y: this.py - 16,
+            text: 'WARP!',
+            color: '#38bdf8',
+            life: 0.9,
+          });
+          break;
+        }
+      }
+    }
+
+    // 5. Secret Hidden Room Warp Pipe Entry / Exit & Mandatory Golden Key Collection
+    const hr = this.level.hiddenRoom;
+    if (hr) {
+      const downHeld = Boolean(this.keys['ArrowDown'] || this.keys['KeyS']);
+      const pCenterX = this.px + this.pWidth * 0.5;
+      const pBottomY = this.py + this.pHeight;
+
+      if (!this.inHiddenRoom) {
+        const pipeCenterX = (hr.entrancePipeCol + 1) * TILE_SIZE;
+        const pipeTopY = hr.entrancePipeTopRow * TILE_SIZE;
+        const onEntrancePipe =
+          this.onGround &&
+          Math.abs(pCenterX - pipeCenterX) <= 24 &&
+          Math.abs(pBottomY - pipeTopY) <= 8;
+
+        if (onEntrancePipe && this.pipeWarpCooldown <= 0) {
+          this.pipeStandTimer += dt;
+          if (downHeld || this.pipeStandTimer >= 0.35) {
+            this.enterHiddenRoom();
+            return;
+          }
+        } else {
+          this.pipeStandTimer = 0;
+        }
+      } else {
+        // Inside Hidden Room: Check Golden Key collection
+        if (!this.hasLevelKey) {
+          const kx = hr.keyPosition.x;
+          const ky = hr.keyPosition.y;
+          if (this.rectsOverlap(this.px, this.py, this.pWidth, this.pHeight, kx - 4, ky - 4, 32, 32)) {
+            this.hasLevelKey = true;
+            soundManager.playKeyCollect();
+            this.addScore(1500, kx, ky - 10);
+            this.spawnBurstParticles(kx + 12, ky + 12, '#fde047', 24);
+            this.floatingTexts.push({
+              x: kx - 24,
+              y: ky - 20,
+              text: 'CHRONOS KEY ACQUIRED!',
+              color: '#fde047',
+              life: 1.5,
+            });
+            this.emitHud();
+          }
+        }
+
+        // Check Hidden Room Exit Pipe
+        const exitPipeCenterX = (hr.exitPipeCol + 1) * TILE_SIZE;
+        const exitPipeTopY = hr.exitPipeTopRow * TILE_SIZE;
+        const onExitPipe =
+          this.onGround &&
+          Math.abs(pCenterX - exitPipeCenterX) <= 24 &&
+          Math.abs(pBottomY - exitPipeTopY) <= 8;
+
+        if (onExitPipe && this.pipeWarpCooldown <= 0) {
+          this.pipeStandTimer += dt;
+          if (downHeld || this.pipeStandTimer >= 0.35) {
+            this.exitHiddenRoom();
+            return;
+          }
+        } else {
+          this.pipeStandTimer = 0;
+        }
+      }
+    }
   }
 
   private updateEnemies(dt: number) {
@@ -2122,9 +2713,17 @@ export class PlatformerEngine {
     this.boss.phaseTimer -= dt;
     this.boss.facing = this.px < this.boss.x ? -1 : 1;
 
+    const isChronos = this.boss.name.includes('Chronos');
+    const isAetherion = this.boss.name.includes('Aetherion');
     const isIgnarok = this.boss.name.includes('Ignarok');
-    const ignarokEnraged = isIgnarok && this.boss.hp <= 5;
-    const ignarokOverdrive = isIgnarok && this.boss.hp <= 2;
+    const bossEnraged =
+      (isChronos && this.boss.hp <= 7) ||
+      (isAetherion && this.boss.hp <= 6) ||
+      (isIgnarok && this.boss.hp <= 5);
+    const bossOverdrive =
+      (isChronos && this.boss.hp <= 3) ||
+      (isAetherion && this.boss.hp <= 3) ||
+      (isIgnarok && this.boss.hp <= 2);
 
     // Boss State Machine with Multi-Phase Escalation + Fair Vulnerable Window
     if (this.boss.phase === 'IDLE') {
@@ -2134,18 +2733,18 @@ export class PlatformerEngine {
         this.boss.attackCounter++;
         if (nextPattern === 0) {
           this.boss.phase = 'FIRE_BREATH';
-          this.boss.phaseTimer = ignarokOverdrive ? 1.15 : 1.4;
+          this.boss.phaseTimer = bossOverdrive ? 1.15 : 1.4;
           this.spawnBossFireVolley();
         } else if (nextPattern === 1) {
           this.boss.phase = 'CHARGE';
-          this.boss.phaseTimer = ignarokOverdrive ? 1.35 : 1.6;
-          const chargeSpeed = ignarokOverdrive ? 310 : ignarokEnraged ? 275 : 240;
+          this.boss.phaseTimer = bossOverdrive ? 1.35 : 1.6;
+          const chargeSpeed = bossOverdrive ? 320 : bossEnraged ? 285 : 240;
           this.boss.vx = this.boss.facing * chargeSpeed;
         } else {
           this.boss.phase = 'JUMP_SLAM';
           this.boss.phaseTimer = 1.4;
-          this.boss.vy = isIgnarok ? -590 : -560;
-          this.boss.vx = this.boss.facing * (ignarokEnraged ? 200 : 170);
+          this.boss.vy = isChronos ? -620 : isAetherion ? -610 : isIgnarok ? -590 : -560;
+          this.boss.vx = this.boss.facing * (bossEnraged ? 210 : 170);
           soundManager.playJump(true);
         }
         this.emitHud();
@@ -2154,28 +2753,28 @@ export class PlatformerEngine {
       this.boss.vx = 0;
       if (this.boss.phaseTimer <= 0) {
         this.boss.phase = 'VULNERABLE';
-        this.boss.phaseTimer = isIgnarok ? 2.6 : 2.8;
+        this.boss.phaseTimer = isChronos || isAetherion || isIgnarok ? 2.6 : 2.8;
         this.emitHud();
       }
     } else if (this.boss.phase === 'CHARGE') {
       if (this.boss.phaseTimer <= 0) {
         this.boss.vx = 0;
         this.boss.phase = 'VULNERABLE';
-        this.boss.phaseTimer = isIgnarok ? 2.6 : 2.8;
+        this.boss.phaseTimer = isChronos || isAetherion || isIgnarok ? 2.6 : 2.8;
         this.emitHud();
       }
     } else if (this.boss.phase === 'JUMP_SLAM') {
       if ((this.boss as BossState & { onGroundCheck?: boolean }).onGroundCheck && this.boss.phaseTimer < 0.9) {
         this.boss.vx = 0;
         this.boss.phase = 'VULNERABLE';
-        this.boss.phaseTimer = isIgnarok ? 2.7 : 3.0;
+        this.boss.phaseTimer = isChronos || isAetherion || isIgnarok ? 2.7 : 3.0;
         this.emitHud();
       }
     } else if (this.boss.phase === 'VULNERABLE') {
       this.boss.vx = 0;
       if (this.boss.phaseTimer <= 0) {
         this.boss.phase = 'IDLE';
-        this.boss.phaseTimer = ignarokOverdrive ? 0.65 : ignarokEnraged ? 0.8 : 1.0;
+        this.boss.phaseTimer = bossOverdrive ? 0.65 : bossEnraged ? 0.8 : 1.0;
         this.emitHud();
       }
     }
@@ -2203,17 +2802,25 @@ export class PlatformerEngine {
         this.spawnBurstParticles(
           this.boss.x + 32,
           groundY + 60,
-          isGlacior ? '#7dd3fc' : isIgnarok ? '#ef4444' : '#fb923c',
+          isChronos
+            ? '#38bdf8'
+            : isAetherion
+            ? '#38bdf8'
+            : isGlacior
+            ? '#7dd3fc'
+            : isIgnarok
+            ? '#ef4444'
+            : '#fb923c',
           16
         );
-        if ((isGlacior || isIgnarok) && this.boss.phase === 'JUMP_SLAM') {
-          // Ground Slam unleashes shockwaves left and right!
+        if ((isGlacior || isIgnarok || isAetherion || isChronos) && this.boss.phase === 'JUMP_SLAM') {
+          // Ground Slam / Aerial Dive unleashes shockwaves left and right!
           for (const dir of [-1, 1] as const) {
             this.fireballs.push({
               id: `slam_wave_${Date.now()}_${dir}_${Math.random()}`,
               x: this.boss.x + (dir === -1 ? -4 : this.boss.width + 4),
               y: groundY + this.boss.height - 12,
-              vx: dir * (isIgnarok ? 255 : 235),
+              vx: dir * (isChronos ? 275 : isAetherion ? 265 : isIgnarok ? 255 : 235),
               vy: 0,
               radius: 8,
               bounces: 0,
@@ -2221,17 +2828,17 @@ export class PlatformerEngine {
               active: true,
             });
           }
-          // Ignarok Phase 2/3 Ground Slam also triggers falling volcanic meteors from the ceiling!
-          if (ignarokEnraged) {
-            const meteorCount = ignarokOverdrive ? 3 : 2;
-            for (let m = 0; m < meteorCount; m++) {
+          // Ignarok / Aetherion / Chronos Phase 2/3 Ground Slam also triggers falling meteors, sky bolts, or time-rifts!
+          if (bossEnraged) {
+            const boltCount = bossOverdrive ? 3 : 2;
+            for (let m = 0; m < boltCount; m++) {
               const mx = arenaStart + 96 + ((m * 180 + Math.floor(this.elapsedTime * 90)) % 680);
               this.fireballs.push({
-                id: `ignarok_meteor_${Date.now()}_${m}_${Math.random()}`,
+                id: `boss_sky_strike_${Date.now()}_${m}_${Math.random()}`,
                 x: mx,
                 y: 44,
                 vx: 0,
-                vy: 230,
+                vy: isChronos ? 265 : isAetherion ? 255 : 230,
                 radius: 9,
                 bounces: 0,
                 isEnemyProjectile: true,
@@ -2280,9 +2887,19 @@ export class PlatformerEngine {
     const startX = dir === -1 ? this.boss.x - 8 : this.boss.x + this.boss.width + 8;
     const startY = this.boss.y + 22;
 
+    const isChronos = this.boss.name.includes('Chronos');
+    const isAetherion = this.boss.name.includes('Aetherion');
     const isIgnarok = this.boss.name.includes('Ignarok');
     const isGlacior = this.boss.name.includes('Glacior');
-    const speedsY = isIgnarok
+    const speedsY = isChronos
+      ? this.boss.hp <= 7
+        ? [-120, -60, 0, 60, 120]
+        : [-95, -32, 32, 95]
+      : isAetherion
+      ? this.boss.hp <= 6
+        ? [-115, -55, 0, 55, 115]
+        : [-95, -30, 30, 95]
+      : isIgnarok
       ? this.boss.hp <= 5
         ? [-110, -55, 0, 55, 110]
         : [-90, -30, 30, 90]
@@ -2294,7 +2911,7 @@ export class PlatformerEngine {
         id: `boss_fb_${Date.now()}_${Math.random()}`,
         x: startX,
         y: startY,
-        vx: dir * (isIgnarok ? 295 : isGlacior ? 285 : 270),
+        vx: dir * (isChronos ? 315 : isAetherion ? 305 : isIgnarok ? 295 : isGlacior ? 285 : 270),
         vy,
         radius: 8,
         bounces: 0,
@@ -2326,7 +2943,7 @@ export class PlatformerEngine {
     this.emitHud();
   }
 
-  private checkCheckpointAndGoal() {
+  private checkCheckpointAndGoal(dt: number) {
     // Checkpoint Flag
     if (this.level.checkpoint && !this.checkpointReached) {
       const cp = this.level.checkpoint;
@@ -2346,7 +2963,76 @@ export class PlatformerEngine {
       }
     }
 
-    // Level Goal Flagpole (If level has a boss, boss must be defeated first!)
+    // Locked Mechanical Exit Door (Stages 7-2 and 7-4 where requiresKey is true)
+    if (this.level.requiresKey) {
+      const doorX = this.level.goalX;
+      const doorTopY = 16 * TILE_SIZE - 86;
+
+      if (this.doorUnlockState === 'UNLOCKING') {
+        this.doorUnlockProgress = Math.min(1, this.doorUnlockProgress + dt * 1.6);
+        if (this.doorUnlockProgress >= 1) {
+          this.doorUnlockState = 'UNLOCKED';
+        }
+      }
+
+      // Approaching the door with the key triggers the unlock animation & sound effect
+      if (
+        this.hasLevelKey &&
+        this.doorUnlockState === 'LOCKED' &&
+        Math.abs(this.px + this.pWidth * 0.5 - (doorX + 16)) < 84
+      ) {
+        this.doorUnlockState = 'UNLOCKING';
+        this.doorUnlockProgress = 0;
+        soundManager.playDoorUnlock();
+        this.spawnBurstParticles(doorX + 16, doorTopY + 42, '#fde047', 22);
+        this.floatingTexts.push({
+          x: doorX - 24,
+          y: doorTopY - 16,
+          text: 'CHRONOS DOOR UNLOCKED!',
+          color: '#fde047',
+          life: 1.4,
+        });
+      }
+
+      // Player touches the mechanical door hitbox
+      if (this.rectsOverlap(this.px, this.py, this.pWidth, this.pHeight, doorX - 10, doorTopY, 52, 86)) {
+        if (!this.hasLevelKey) {
+          // Solidly block the player from passing or completing the level without the key
+          if (this.px < doorX + 16) {
+            this.px = doorX - 10 - this.pWidth;
+            if (this.pvx > 0) this.pvx = 0;
+          }
+          if (this.doorWarningCooldown <= 0) {
+            this.doorWarningCooldown = 1.4;
+            soundManager.playBump();
+            this.floatingTexts.push({
+              x: doorX - 44,
+              y: doorTopY - 14,
+              text: 'LOCKED! FIND SECRET PIPE KEY!',
+              color: '#f87171',
+              life: 1.3,
+            });
+          }
+        } else if (
+          this.doorUnlockState === 'UNLOCKED' ||
+          (this.doorUnlockState === 'UNLOCKING' && this.doorUnlockProgress >= 0.45)
+        ) {
+          this.doorUnlockState = 'UNLOCKED';
+          this.doorUnlockProgress = 1;
+          this.isLevelFinishing = true;
+          this.finishTimer = 1.8;
+          this.pvx = 0;
+          this.pvy = 0;
+          soundManager.stopMusic();
+          soundManager.playLevelClear();
+          this.addScore(2500, doorX, this.py);
+          this.spawnBurstParticles(doorX + 16, this.py, '#fde047', 28);
+        }
+      }
+      return;
+    }
+
+    // Standard Level Goal Flagpole (If level has a boss, boss must be defeated first!)
     if (!this.level.hasBoss || this.boss.phase === 'DEFEATED') {
       const gx = this.level.goalX;
       const gy = this.level.goalY;
@@ -2395,6 +3081,10 @@ export class PlatformerEngine {
     this.deathTimer = 1.6;
     this.lives = Math.max(0, this.lives - 1);
     this.powerState = 'SMALL';
+    // Dying before completing the parent level loses any collected key!
+    this.hasLevelKey = false;
+    this.doorUnlockState = 'LOCKED';
+    this.doorUnlockProgress = 0;
     this.cancelSuperJumpCharge();
     this.pvx = 0;
     this.pvy = -440;
@@ -2469,11 +3159,16 @@ export class PlatformerEngine {
       coins: this.coins,
       lives: this.lives,
       levelId: this.level.id,
-      levelName: this.level.name,
+      levelName: this.inHiddenRoom && this.level.hiddenRoom
+        ? `${this.level.name} (Secret Room)`
+        : this.level.name,
       powerState: this.powerState,
       isInvincibleStar: this.isInvincibleStar,
       starTimeRemaining: Math.ceil(this.starTimer),
       checkpointReached: this.checkpointReached,
+      requiresKey: Boolean(this.level.requiresKey),
+      hasKey: this.hasLevelKey,
+      inHiddenRoom: this.inHiddenRoom,
       boss: this.boss.active
         ? {
             active: this.boss.active,
@@ -2488,12 +3183,13 @@ export class PlatformerEngine {
 
   private render() {
     const ctx = this.ctx;
+    const theme = this.activeTheme;
     ctx.save();
 
     // 1. Parallax Scenery Background
     drawParallaxBackground(
       ctx,
-      this.level.theme,
+      theme,
       this.cameraX,
       CANVAS_WIDTH,
       CANVAS_HEIGHT,
@@ -2506,11 +3202,11 @@ export class PlatformerEngine {
     // 2. Visible Tilemap Range
     const startCol = Math.max(0, Math.floor(this.cameraX / TILE_SIZE) - 1);
     const endCol = Math.min(
-      this.level.widthInTiles - 1,
+      this.activeWidthInTiles - 1,
       Math.ceil((this.cameraX + CANVAS_WIDTH) / TILE_SIZE) + 1
     );
 
-    for (let r = 0; r < this.level.heightInTiles; r++) {
+    for (let r = 0; r < this.activeHeightInTiles; r++) {
       for (let c = startCol; c <= endCol; c++) {
         const tile = this.tiles[r][c];
         if (tile === TileType.EMPTY) continue;
@@ -2525,14 +3221,19 @@ export class PlatformerEngine {
           tile,
           c * TILE_SIZE + offsetX,
           r * TILE_SIZE + offsetY,
-          this.level.theme,
+          theme,
           this.elapsedTime
         );
       }
     }
 
-    // 3. Moving Platforms & Erupting Lava Geysers + Rising Lava Tide
-    if (this.level.hasRisingLava) {
+    // 3. Moving Platforms, Wind Updrafts, Lightning Strikes, Lava Geysers & World 7 Chronos Mechanics
+    if (!this.inHiddenRoom && this.level.windUpdrafts) {
+      for (const u of this.level.windUpdrafts) {
+        drawWindUpdraft(ctx, u.startCol, u.endCol, u.minRow, u.maxRow, this.elapsedTime);
+      }
+    }
+    if (!this.inHiddenRoom && this.level.hasRisingLava) {
       drawRisingLavaTide(
         ctx,
         this.cameraX,
@@ -2542,28 +3243,104 @@ export class PlatformerEngine {
         this.elapsedTime
       );
     }
-    if (this.level.lavaGeysers) {
+    if (!this.inHiddenRoom && this.level.lavaGeysers) {
       for (const g of this.level.lavaGeysers) {
         const { currentTopY, isWarning } = this.getLavaGeyserState(g);
         drawLavaGeyser(ctx, g.col, g.baseRow, currentTopY, isWarning, this.elapsedTime);
+      }
+    }
+    if (!this.inHiddenRoom && this.level.lightningStrikes) {
+      for (const ls of this.level.lightningStrikes) {
+        const state = this.getLightningStrikeState(ls);
+        drawLightningStrike(ctx, ls.col, ls.topRow, ls.bottomRow, state, this.elapsedTime);
+      }
+    }
+    // World 7: Steam Vents, Crusher Pistons, Swinging Pendulums, Teleporters & Warp Pipe Prompts
+    const steamVents = this.activeSteamVents;
+    if (steamVents) {
+      for (const sv of steamVents) {
+        const { currentTopY, isWarning } = this.getSteamVentState(sv);
+        drawSteamVent(ctx, sv.col, sv.baseRow, currentTopY, isWarning, this.elapsedTime);
+      }
+    }
+    const crushers = this.activeCrusherPistons;
+    if (crushers) {
+      for (const cp of crushers) {
+        const { currentBottomY, isWarning } = this.getCrusherPistonState(cp);
+        drawCrusherPiston(ctx, cp.col, cp.topRow, currentBottomY, isWarning, this.elapsedTime);
+      }
+    }
+    const pendulums = this.activeSwingingPendulums;
+    if (pendulums) {
+      for (const sp of pendulums) {
+        const { angle } = this.getPendulumBobPosition(sp);
+        drawSwingingPendulum(
+          ctx,
+          sp.pivotCol,
+          sp.pivotRow,
+          sp.lengthPx,
+          angle,
+          this.elapsedTime
+        );
+      }
+    }
+    const teleporters = this.activeTeleporters;
+    if (teleporters) {
+      for (const tp of teleporters) {
+        drawTeleporterPad(ctx, tp.fromCol, tp.fromRow, false, this.elapsedTime);
+        drawTeleporterPad(ctx, tp.toCol, tp.toRow, true, this.elapsedTime);
+      }
+    }
+    if (this.level.hiddenRoom) {
+      const hr = this.level.hiddenRoom;
+      if (!this.inHiddenRoom) {
+        drawWarpPipePrompt(
+          ctx,
+          hr.entrancePipeCol,
+          hr.entrancePipeTopRow,
+          this.hasLevelKey ? 'SECRET CLEAR' : 'DOWN: SECRET',
+          this.elapsedTime
+        );
+      } else {
+        drawWarpPipePrompt(
+          ctx,
+          hr.exitPipeCol,
+          hr.exitPipeTopRow,
+          'DOWN: EXIT',
+          this.elapsedTime
+        );
+        if (!this.hasLevelKey) {
+          drawGoldenKey(ctx, hr.keyPosition.x, hr.keyPosition.y, this.elapsedTime);
+        }
       }
     }
     for (const mp of this.movingPlatforms) {
       drawMovingPlatform(ctx, mp.x, mp.y, mp.width);
     }
 
-    // 4. Checkpoint & Goal Flagpole
-    if (this.level.checkpoint) {
-      drawCheckpointFlag(
-        ctx,
-        this.level.checkpoint.x,
-        this.level.checkpoint.y,
-        this.checkpointReached,
-        this.elapsedTime
-      );
-    }
-    if (!this.level.hasBoss || this.boss.phase === 'DEFEATED') {
-      drawGoalFlagpole(ctx, this.level.goalX, this.level.goalY, this.elapsedTime);
+    // 4. Checkpoint & Goal Flagpole / Locked Mechanical Door
+    if (!this.inHiddenRoom) {
+      if (this.level.checkpoint) {
+        drawCheckpointFlag(
+          ctx,
+          this.level.checkpoint.x,
+          this.level.checkpoint.y,
+          this.checkpointReached,
+          this.elapsedTime
+        );
+      }
+      if (this.level.requiresKey) {
+        drawLockedMechanicalDoor(
+          ctx,
+          this.level.goalX,
+          13 * TILE_SIZE,
+          this.doorUnlockState,
+          this.doorUnlockProgress,
+          this.elapsedTime
+        );
+      } else if (!this.level.hasBoss || this.boss.phase === 'DEFEATED') {
+        drawGoalFlagpole(ctx, this.level.goalX, this.level.goalY, this.elapsedTime);
+      }
     }
 
     // 5. Coins & Power-Ups
@@ -2578,9 +3355,9 @@ export class PlatformerEngine {
 
     // 6. Enemies & Boss
     for (const enemy of this.enemies) {
-      drawEnemy(ctx, enemy, this.elapsedTime, this.level.theme);
+      drawEnemy(ctx, enemy, this.elapsedTime, theme);
     }
-    if (this.level.hasBoss) {
+    if (this.level.hasBoss && !this.inHiddenRoom) {
       drawBoss(ctx, this.boss, this.elapsedTime);
     }
 
@@ -2614,11 +3391,11 @@ export class PlatformerEngine {
 
     ctx.restore();
 
-    // 10. Atmospheric Sandstorm, Blizzard, or Volcanic Ash Overlay (Screen-Space)
-    if (this.level.hasSandstorm) {
+    // 10. Atmospheric Overlays & World 7 Key Status Indicator (Screen-Space)
+    if (!this.inHiddenRoom && this.level.hasSandstorm) {
       const windActive = Math.sin(this.elapsedTime * 1.1) > -0.25;
       drawSandstormOverlay(ctx, CANVAS_WIDTH, CANVAS_HEIGHT, this.elapsedTime, windActive);
-    } else if (this.level.hasBlizzard || this.level.theme === 'SNOW') {
+    } else if (!this.inHiddenRoom && (this.level.hasBlizzard || this.level.theme === 'SNOW')) {
       const windActive = Math.sin(this.elapsedTime * 1.1) > -0.25;
       drawBlizzardOverlay(
         ctx,
@@ -2629,12 +3406,23 @@ export class PlatformerEngine {
         windActive
       );
     } else if (
-      this.level.hasAshfall ||
-      this.level.theme === 'VOLCANO' ||
-      this.level.theme === 'MOLTEN_CAVERN' ||
-      this.level.theme === 'INFERNO_CASTLE'
+      !this.inHiddenRoom &&
+      (this.level.hasStormClouds || this.level.theme === 'STORM_SKIES')
+    ) {
+      const windActive = Math.sin(this.elapsedTime * 1.1) > -0.25;
+      drawStormSkiesOverlay(ctx, CANVAS_WIDTH, CANVAS_HEIGHT, this.elapsedTime, windActive);
+    } else if (
+      !this.inHiddenRoom &&
+      (this.level.hasAshfall ||
+        this.level.theme === 'VOLCANO' ||
+        this.level.theme === 'MOLTEN_CAVERN' ||
+        this.level.theme === 'INFERNO_CASTLE')
     ) {
       drawVolcanicAshOverlay(ctx, CANVAS_WIDTH, CANVAS_HEIGHT, this.elapsedTime);
+    }
+
+    if (this.level.requiresKey) {
+      drawChronosHudKeyBadge(ctx, this.hasLevelKey, this.inHiddenRoom, this.elapsedTime);
     }
   }
 }

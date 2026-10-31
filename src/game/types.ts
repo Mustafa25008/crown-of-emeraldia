@@ -27,7 +27,15 @@ export type LevelTheme =
   | 'FROST_CASTLE'
   | 'VOLCANO'
   | 'MOLTEN_CAVERN'
-  | 'INFERNO_CASTLE';
+  | 'INFERNO_CASTLE'
+  | 'CELESTIA'
+  | 'SKY_TEMPLE'
+  | 'STORM_SKIES'
+  | 'CELESTIAL_PALACE'
+  | 'CHRONOS_VALLEY'
+  | 'FORGOTTEN_FACTORY'
+  | 'CLOCKWORK_TOWER'
+  | 'LOST_DIMENSION';
 
 export enum TileType {
   EMPTY = 0,
@@ -61,6 +69,17 @@ export enum TileType {
   FREEZING_WATER_DEEP = 28,
   BURNING_ROCK = 29,
   MAGMA_CRUMBLE = 30,
+  CLOUD_PLATFORM = 31,
+  TEMP_CLOUD = 32,
+  STORM_SPIKE = 33,
+  CONVEYOR_LEFT = 34,
+  CONVEYOR_RIGHT = 35,
+  TEMP_COG_PLATFORM = 36,
+  GEAR_HAZARD = 37,
+  WARP_PIPE_TOP_L = 38,
+  WARP_PIPE_TOP_R = 39,
+  WARP_PIPE_BODY_L = 40,
+  WARP_PIPE_BODY_R = 41,
 }
 
 export interface LavaGeyserDef {
@@ -69,6 +88,76 @@ export interface LavaGeyserDef {
   peakRow: number;
   cycleSeconds?: number;
   phaseOffset?: number;
+}
+
+export interface WindUpdraftDef {
+  startCol: number;
+  endCol: number;
+  minRow: number;
+  maxRow: number;
+  liftForce?: number;
+}
+
+export interface LightningStrikeDef {
+  col: number;
+  topRow: number;
+  bottomRow: number;
+  cycleSeconds?: number;
+  phaseOffset?: number;
+}
+
+export interface SteamVentDef {
+  col: number;
+  baseRow: number;
+  peakRow: number;
+  cycleSeconds?: number;
+  phaseOffset?: number;
+}
+
+export interface CrusherPistonDef {
+  col: number;
+  topRow: number;
+  crushRow: number;
+  cycleSeconds?: number;
+  phaseOffset?: number;
+}
+
+export interface SwingingPendulumDef {
+  pivotCol: number;
+  pivotRow: number;
+  lengthPx: number;
+  maxAngleRad?: number;
+  speed?: number;
+  phaseOffset?: number;
+}
+
+export interface TeleporterPairDef {
+  id: string;
+  fromCol: number;
+  fromRow: number;
+  toCol: number;
+  toRow: number;
+}
+
+export interface HiddenRoomDefinition {
+  name: string;
+  theme: LevelTheme;
+  widthInTiles: number;
+  heightInTiles: number;
+  tiles: number[][];
+  coins: CoinDef[];
+  enemies: EnemySpawnDef[];
+  movingPlatforms: MovingPlatformDef[];
+  steamVents?: SteamVentDef[];
+  crusherPistons?: CrusherPistonDef[];
+  swingingPendulums?: SwingingPendulumDef[];
+  playerStart: { x: number; y: number };
+  keyPosition: { x: number; y: number };
+  exitPipeCol: number;
+  exitPipeTopRow: number;
+  entrancePipeCol: number;
+  entrancePipeTopRow: number;
+  returnPosition: { x: number; y: number };
 }
 
 export interface MovingPlatformDef {
@@ -111,9 +200,18 @@ export interface LevelDefinition {
   hasSandstorm?: boolean;
   hasBlizzard?: boolean;
   hasAshfall?: boolean;
+  hasStormClouds?: boolean;
   hasFallingRocks?: boolean;
   hasRisingLava?: boolean;
   lavaGeysers?: LavaGeyserDef[];
+  windUpdrafts?: WindUpdraftDef[];
+  lightningStrikes?: LightningStrikeDef[];
+  steamVents?: SteamVentDef[];
+  crusherPistons?: CrusherPistonDef[];
+  swingingPendulums?: SwingingPendulumDef[];
+  teleporters?: TeleporterPairDef[];
+  requiresKey?: boolean;
+  hiddenRoom?: HiddenRoomDefinition;
   windForce?: number;
   musicTrack:
     | 'OVERWORLD'
@@ -124,7 +222,9 @@ export interface LevelDefinition {
     | 'UNDERWATER'
     | 'DESERT'
     | 'SNOW'
-    | 'VOLCANO';
+    | 'VOLCANO'
+    | 'CELESTIA'
+    | 'CHRONOS';
   widthInTiles: number;
   heightInTiles: number;
   tiles: number[][];
@@ -249,6 +349,9 @@ export interface HudSnapshot {
   isInvincibleStar: boolean;
   starTimeRemaining: number;
   checkpointReached: boolean;
+  requiresKey?: boolean;
+  hasKey?: boolean;
+  inHiddenRoom?: boolean;
   boss: {
     active: boolean;
     name: string;
