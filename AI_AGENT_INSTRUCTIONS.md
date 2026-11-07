@@ -210,11 +210,11 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
    - **Left Side**: Icon-only directional buttons (`ChevronLeft` mapped to `ArrowLeft`, `ChevronRight` mapped to `ArrowRight`, `ChevronDown` mapped to `ArrowDown` for sitting/crouching and charging Super Jump when grown, and mobile-only `ChevronUp` mapped to `ArrowUp` which performs the exact same jump/fly/slow-fall work as `JUMP`).
    - **Right Side**: Icon-only circular action buttons (`Flame` mapped to `KeyX` for sprinting, shooting fireballs, and Raccoon tail spin attack; `ArrowUp` mapped to `Space` for jumping, Raccoon flight, and slow falling).
    - Both desktop keyboard listeners and on-screen touch/pointer buttons feed into the same engine input state simultaneously.
-3. **Mobile Landscape Requirement**:
-   - The game is strictly designed for **landscape orientation** on mobile devices.
-   - When opened in portrait on a mobile touch device, an orientation guard overlay prompts the user to rotate their device (`"PLEASE ROTATE YOUR DEVICE"` with animated phone rotation and fullscreen landscape option).
-   - In landscape mode on mobile devices, the canvas container dynamically constrains height (`maxHeight: calc(100dvh - 52px)`) and width so that the entire retro viewport and overlaid touch buttons fit seamlessly without vertical page scrolling.
-   - The web app manifest (`/public/manifest.json`) enforces `"orientation": "landscape"` and `"display": "standalone"`.
+3. **Mobile Dynamic Auto-Orientation (Portrait Menus / Landscape Gameplay — No Rotation Modal)**:
+   - **Never** render a forced `"Landscape Orientation Required / Please Rotate Your Device"` warning modal or overlay.
+   - **Portrait Navigation & Menus**: Keep all navigation, the Title Menu, Settings, Level Select, and the **Select World** screen strictly in **Portrait mode** on mobile devices (`unlockMobileToPortrait()` in `src/App.tsx`, and `"orientation": "portrait"` in `/public/manifest.json`).
+   - **Automatic Landscape on Level Start**: Whenever a mobile user starts or enters any active gameplay level (`startLevel` / `gameState === 'PLAYING'`), programmatically request a landscape orientation lock (`lockMobileLandscape()` using `screen.orientation.lock('landscape')` and fullscreen landscape handling) so the device automatically flips to landscape when playing.
+   - **Automatic Portrait on Level Exit**: When the user exits gameplay (clicks `"Level Select"`, `"Home"`, or returns from a level via `navigateToMenu`), automatically release the landscape lock (`screen.orientation.lock('portrait')` / `screen.orientation.unlock()` and `document.exitFullscreen()`) to return the app seamlessly to **Portrait mode**.
 
 ---
 
@@ -291,4 +291,5 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
      - Ground alignment (`goalY: 6 * 32` for standard/boss flagpoles on row `16` ground; `goalY: 13 * 32` for locked doors with `requiresKey: true`).
      - Minimum 3–4 tiles vertical clearance under/above Question Blocks and power-up randomization rules.
      - Progressive Boss Health Scaling Formula (`getBossMaxHpForWorld(worldNumber)`).
+     - Mobile Dynamic Auto-Orientation (`lockMobileLandscape()` when entering any level, `unlockMobileToPortrait()` when exiting to menus/World Select, with zero forced rotation warning modals).
      - Exact Top Header Bar layout, Level Countdown Timer rules, Pause State Manager, Standardized 3-Line World Select Card Layout, and Unified `StageOutcomeModal` (`SCORE` and `COINS` only, with `<Loader2 />` + `"Loading..."` when `"▶ Watch Ad & Revive"` is clicked).

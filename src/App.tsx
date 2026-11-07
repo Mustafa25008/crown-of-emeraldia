@@ -25,8 +25,6 @@ import {
   ChevronUp,
   ChevronDown,
   ArrowUp,
-  Smartphone,
-  Maximize2,
   Loader2,
 } from 'lucide-react';
 import { GameState, HudSnapshot, PowerState, SaveProgress } from './game/types';
@@ -253,8 +251,6 @@ export default function App() {
   const [carriedPower, setCarriedPower] = useState<PowerState>('SMALL');
   const [runRestartCounter, setRunRestartCounter] = useState<number>(0);
   const [activeVirtualKeys, setActiveVirtualKeys] = useState<Record<string, boolean>>({});
-  const [isPortraitMobile, setIsPortraitMobile] = useState<boolean>(false);
-  const [dismissPortraitWarning, setDismissPortraitWarning] = useState<boolean>(false);
   const [isWatchingAd, setIsWatchingAd] = useState<boolean>(false);
 
   const [hud, setHud] = useState<HudSnapshot>({
@@ -279,50 +275,91 @@ export default function App() {
     soundManager.updateSettings(saveData.soundEnabled, saveData.musicEnabled, saveData.volume);
   }, [saveData.soundEnabled, saveData.musicEnabled, saveData.volume]);
 
-  // Detect mobile portrait orientation and guide user to landscape mode
-  useEffect(() => {
-    const checkOrientation = () => {
-      const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
-      const isPortrait = window.innerHeight > window.innerWidth;
-      const isSmallScreen = window.innerWidth <= 860 || window.innerHeight <= 860;
-      setIsPortraitMobile(hasTouch && isPortrait && isSmallScreen);
-    };
-
-    checkOrientation();
-    window.addEventListener('resize', checkOrientation);
-    window.addEventListener('orientationchange', checkOrientation);
-
-    return () => {
-      window.removeEventListener('resize', checkOrientation);
-      window.removeEventListener('orientationchange', checkOrientation);
-    };
+  const isMobileTouchDevice = useCallback((): boolean => {
+    if (typeof window === 'undefined') return false;
+    const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
+    const isMobileViewport = window.innerWidth <= 1024 || window.innerHeight <= 1024;
+    return hasTouch && isMobileViewport;
   }, []);
 
-  const requestLandscapeFullscreen = useCallback(() => {
+  const lockMobileLandscape = useCallback(() => {
+    if (!isMobileTouchDevice()) return;
     try {
-      if (document.documentElement.requestFullscreen) {
-        document.documentElement.requestFullscreen().catch(() => {});
-      }
-      if (
-        'screen' in window &&
-        'orientation' in window.screen &&
-        'lock' in (window.screen.orientation as any)
-      ) {
-        (window.screen.orientation as any).lock('landscape').catch(() => {});
+      const anyWin = window as unknown as {
+        AndroidBridge?: { setOrientation?: (mode: string) => void };
+        webkit?: { messageHandlers?: { orientation?: { postMessage?: (mode: string) => void } } };
+      };
+      anyWin.AndroidBridge?.setOrientation?.('landscape');
+      anyWin.webkit?.messageHandlers?.orientation?.postMessage?.('landscape');
+
+      const docEl = document.documentElement;
+      const lockOrientation = () => {
+        const screenOrientation = (window.screen as unknown as {
+          orientation?: { lock?: (o: string) => Promise<void> };
+        })?.orientation;
+        if (screenOrientation?.lock) {
+          screenOrientation.lock('landscape').catch(() => {});
+        }
+      };
+
+      if (!document.fullscreenElement && docEl.requestFullscreen) {
+        docEl
+          .requestFullscreen()
+          .then(() => lockOrientation())
+          .catch(() => lockOrientation());
+      } else {
+        lockOrientation();
       }
     } catch {
       // Graceful fallback for browsers without orientation lock support
     }
-  }, []);
+  }, [isMobileTouchDevice]);
 
-  const navigateToMenu = useCallback((targetState: GameState) => {
-    soundManager.stopMusic();
-    if (engineRef.current) {
-      engineRef.current.destroy();
-      engineRef.current = null;
+  const unlockMobileToPortrait = useCallback(() => {
+    if (!isMobileTouchDevice()) return;
+    try {
+      const anyWin = window as unknown as {
+        AndroidBridge?: { setOrientation?: (mode: string) => void };
+        webkit?: { messageHandlers?: { orientation?: { postMessage?: (mode: string) => void } } };
+      };
+      anyWin.AndroidBridge?.setOrientation?.('portrait');
+      anyWin.webkit?.messageHandlers?.orientation?.postMessage?.('portrait');
+
+      const screenOrientation = (window.screen as unknown as {
+        orientation?: {
+          lock?: (o: string) => Promise<void>;
+          unlock?: () => void;
+        };
+      })?.orientation;
+
+      if (screenOrientation?.lock) {
+        screenOrientation.lock('portrait').catch(() => {
+          screenOrientation.unlock?.();
+        });
+      } else {
+        screenOrientation?.unlock?.();
+      }
+
+      if (document.fullscreenElement && document.exitFullscreen) {
+        document.exitFullscreen().catch(() => {});
+      }
+    } catch {
+      // Graceful fallback for browsers without orientation lock support
     }
-    setGameState(targetState);
-  }, []);
+  }, [isMobileTouchDevice]);
+
+  const navigateToMenu = useCallback(
+    (targetState: GameState) => {
+      soundManager.stopMusic();
+      if (engineRef.current) {
+        engineRef.current.destroy();
+        engineRef.current = null;
+      }
+      unlockMobileToPortrait();
+      setGameState(targetState);
+    },
+    [unlockMobileToPortrait]
+  );
 
   const startLevel = useCallback(
     (levelId: number, resetRunStats: boolean = false) => {
@@ -362,11 +399,12 @@ export default function App() {
         setCarriedPower('SMALL');
       }
 
+      lockMobileLandscape();
       setGameState('PLAYING');
       setRunRestartCounter((c) => c + 1);
       soundManager.playMusic(level.musicTrack);
     },
-    []
+    [lockMobileLandscape]
   );
 
   // Mount PlatformerEngine when starting or restarting a level
@@ -473,11 +511,16 @@ export default function App() {
       gameState === 'CONTROLS' ||
       gameState === 'SETTINGS';
 
-    if (isMenuScreen && engineRef.current) {
-      engineRef.current.destroy();
-      engineRef.current = null;
+    if (isMenuScreen) {
+      unlockMobileToPortrait();
+      if (engineRef.current) {
+        engineRef.current.destroy();
+        engineRef.current = null;
+      }
       return;
     }
+
+    lockMobileLandscape();
 
     if (engineRef.current) {
       const shouldPause = gameState !== 'PLAYING';
@@ -488,7 +531,7 @@ export default function App() {
         soundManager.resumeAudio();
       }
     }
-  }, [gameState]);
+  }, [gameState, lockMobileLandscape, unlockMobileToPortrait]);
 
   const handleWatchAdAndRevive = useCallback(() => {
     if (isWatchingAd) return;
@@ -627,53 +670,6 @@ export default function App() {
 
   return (
     <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 select-none">
-      {/* MOBILE PORTRAIT ROTATE PROMPT (Ensures mobile gameplay is in landscape) */}
-      {isPortraitMobile && !dismissPortraitWarning && (
-        <div className="fixed inset-0 z-50 bg-slate-950/95 backdrop-blur-md flex flex-col items-center justify-center p-6 text-center select-none">
-          <div className="w-full max-w-sm bg-slate-900 border-2 border-amber-400/70 rounded-3xl p-6 sm:p-8 shadow-2xl flex flex-col items-center space-y-5">
-            {/* Animated Rotating Phone Graphic */}
-            <div className="relative w-24 h-24 flex items-center justify-center">
-              <div className="absolute inset-0 rounded-full bg-amber-400/10 animate-ping opacity-35" />
-              <div className="w-20 h-20 rounded-2xl bg-slate-950 border border-amber-400/40 flex items-center justify-center shadow-inner">
-                <Smartphone className="w-10 h-10 text-amber-400 transition-transform duration-700 animate-pulse -rotate-90" />
-              </div>
-            </div>
-
-            <div className="space-y-2">
-              <div className="flex items-center justify-center gap-2 text-xs font-bold text-amber-400 tracking-wider">
-                <Crown className="w-4 h-4" />
-                <span>LANDSCAPE ORIENTATION REQUIRED</span>
-              </div>
-              <h2 className="font-pixel text-sm sm:text-base text-white leading-relaxed">
-                PLEASE ROTATE YOUR DEVICE
-              </h2>
-              <p className="text-xs text-slate-300 leading-relaxed max-w-xs">
-                Crown of Emeraldia is designed for widescreen landscape play. Turn your phone horizontally for the full 16-bit retro arcade experience!
-              </p>
-            </div>
-
-            <div className="w-full space-y-2.5 pt-2">
-              <button
-                type="button"
-                onClick={requestLandscapeFullscreen}
-                className="w-full min-h-[46px] py-2.5 px-4 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-slate-950 font-bold text-xs rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all cursor-pointer whitespace-nowrap shrink-0"
-              >
-                <Maximize2 className="w-4 h-4" />
-                <span>Enter Fullscreen Landscape</span>
-              </button>
-
-              <button
-                type="button"
-                onClick={() => setDismissPortraitWarning(true)}
-                className="w-full min-h-[38px] py-1.5 px-3 text-slate-400 hover:text-slate-200 text-xs font-medium transition-colors cursor-pointer"
-              >
-                Continue in Portrait Anyway
-              </button>
-            </div>
-          </div>
-        </div>
-      )}
-
       <main className="flex-1 flex flex-col items-center justify-center p-2 sm:px-4 sm:py-6 landscape:p-1 max-w-full overflow-x-hidden">
         {/* 1. CLASSIC GAME HOME SCREEN (Mobile App & Retro Title Screen Feel) */}
         {gameState === 'TITLE_MENU' && (
