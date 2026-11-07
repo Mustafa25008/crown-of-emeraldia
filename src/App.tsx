@@ -2,12 +2,10 @@ import React, { useEffect, useRef, useState, useCallback } from 'react';
 import {
   Play,
   Pause,
-  RotateCcw,
   Volume2,
   VolumeX,
   Trophy,
   Heart,
-  Coins,
   Shield,
   Flame,
   Sparkles,
@@ -29,13 +27,28 @@ import {
   ArrowUp,
   Smartphone,
   Maximize2,
-  KeyRound,
 } from 'lucide-react';
 import { GameState, HudSnapshot, PowerState, SaveProgress } from './game/types';
 import { LEVELS, WORLDS, getLevelById, getWorldById } from './game/levels';
 import { loadProgress, saveProgress, recordLevelCompletion, resetAllProgress } from './game/storage';
 import { soundManager } from './game/audio';
 import { PlatformerEngine, CANVAS_WIDTH, CANVAS_HEIGHT } from './game/engine';
+
+function GoldCoinIcon({ className = 'w-4 h-4' }: { className?: string }) {
+  return (
+    <svg
+      viewBox="0 0 16 16"
+      fill="none"
+      xmlns="http://www.w3.org/2000/svg"
+      className={className}
+      aria-hidden="true"
+    >
+      <circle cx="8" cy="8" r="7" fill="#FACC15" stroke="#CA8A04" strokeWidth="1.5" />
+      <circle cx="8" cy="8" r="5" stroke="#FEF08A" strokeWidth="1" strokeOpacity="0.85" />
+      <rect x="7" y="4.5" width="2" height="7" rx="1" fill="#FEF08A" />
+    </svg>
+  );
+}
 
 export default function App() {
   const [gameState, setGameState] = useState<GameState>('TITLE_MENU');
@@ -323,6 +336,10 @@ export default function App() {
   const completedStagesCount = Object.values(saveData.highScores).filter((score) => score > 0).length;
   const activeWorld = getWorldById(selectedWorldId);
   const currentLevelDef = getLevelById(currentLevelId);
+  const activeWorldNum =
+    currentLevelDef.worldId || Math.floor((currentLevelId - 1) / 5) + 1;
+  const activeStageNum =
+    currentLevelDef.stageNumber || ((currentLevelId - 1) % 5) + 1;
 
   const isStageUnlocked = (lvlId: number): boolean => {
     if (
@@ -445,7 +462,7 @@ export default function App() {
                 <span>TOP SCORE: {totalBestScore.toLocaleString()}</span>
               </div>
               <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-slate-900/15">
-                <Coins className="w-4 h-4 text-amber-500" />
+                <GoldCoinIcon className="w-4 h-4 shrink-0" />
                 <span>COINS: {saveData.totalCoinsCollected}</span>
               </div>
             </div>
@@ -972,54 +989,50 @@ export default function App() {
             <div className="w-full bg-slate-900 border border-slate-800 rounded-t-xl px-3 py-1.5 sm:px-4 sm:py-2 flex items-center justify-between gap-2 sm:gap-4 text-xs shrink-0">
               <div className="flex items-center gap-3 sm:gap-5 font-mono-num">
                 <div className="flex items-center gap-1.5">
-                  <Trophy className="w-4 h-4 text-amber-400" />
-                  <span className="text-slate-400 hidden xs:inline">SCORE</span>
+                  <Trophy className="w-4 h-4 text-amber-400 shrink-0" />
                   <span className="font-bold text-white text-xs sm:text-sm">
                     {hud.score.toString().padStart(6, '0')}
                   </span>
                 </div>
 
                 <div className="flex items-center gap-1.5">
-                  <Coins className="w-4 h-4 text-yellow-400" />
+                  <GoldCoinIcon className="w-4 h-4 shrink-0" />
                   <span className="font-bold text-yellow-300 text-xs sm:text-sm">
                     ×{hud.coins.toString().padStart(2, '0')}
                   </span>
                 </div>
 
-                <div className="flex items-center gap-1.5">
-                  <Heart className="w-4 h-4 text-rose-500 fill-rose-500" />
-                  <span className="font-bold text-white text-xs sm:text-sm">×{hud.lives}</span>
+                <div className="flex items-center gap-1" aria-label={`Health: ${hud.lives}`}>
+                  {Array.from({ length: Math.max(3, Math.min(5, hud.lives)) }).map((_, idx) => {
+                    const isFilled = idx < hud.lives;
+                    return (
+                      <Heart
+                        key={idx}
+                        className={`w-4 h-4 shrink-0 ${
+                          isFilled
+                            ? 'text-rose-500 fill-rose-500'
+                            : 'text-slate-600 fill-slate-800'
+                        }`}
+                      />
+                    );
+                  })}
+                  {hud.lives > 5 && (
+                    <span className="font-bold text-white text-xs sm:text-sm ml-0.5">
+                      ×{hud.lives}
+                    </span>
+                  )}
                 </div>
-
-                {hud.requiresKey && (
-                  <div
-                    className={`flex items-center gap-1 px-2 py-0.5 rounded border text-[11px] font-bold ${
-                      hud.hasKey
-                        ? 'bg-amber-400/20 border-amber-400 text-amber-300'
-                        : 'bg-slate-800/90 border-slate-700 text-slate-400'
-                    }`}
-                  >
-                    <KeyRound className={`w-3.5 h-3.5 ${hud.hasKey ? 'text-amber-300' : 'text-slate-500'}`} />
-                    <span>{hud.hasKey ? 'KEY READY' : 'KEY LOCKED'}</span>
-                  </div>
-                )}
               </div>
 
               <div className="flex items-center gap-2 sm:gap-4">
-                <div className="text-slate-300 font-medium hidden md:block">
-                  <span>{hud.levelName}</span>
-                  <span className="mx-2 text-slate-600">·</span>
-                  <span className="font-mono-num text-emerald-400">
-                    {hud.isInvincibleStar
-                      ? `STAR (${hud.starTimeRemaining}s)`
-                      : `POWER: ${hud.powerState}`}
-                  </span>
+                <div className="text-slate-200 font-bold font-mono-num text-xs sm:text-sm whitespace-nowrap">
+                  World {activeWorldNum}-{activeStageNum}
                 </div>
 
                 <div className="flex items-center gap-1.5">
                   <button
                     onClick={toggleMusic}
-                    title="Toggle Music"
+                    title="Toggle Sound"
                     className="p-1.5 sm:p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors cursor-pointer"
                   >
                     {saveData.musicEnabled ? (
@@ -1027,13 +1040,6 @@ export default function App() {
                     ) : (
                       <VolumeX className="w-4 h-4 text-slate-400" />
                     )}
-                  </button>
-                  <button
-                    onClick={() => startLevel(currentLevelId, false)}
-                    title="Restart Stage"
-                    className="p-1.5 sm:p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors cursor-pointer"
-                  >
-                    <RotateCcw className="w-4 h-4" />
                   </button>
                   <button
                     onClick={() =>
