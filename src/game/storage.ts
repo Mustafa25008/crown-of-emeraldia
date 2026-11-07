@@ -4,61 +4,96 @@ const STORAGE_KEY = 'crown_of_emeraldia_save_v1';
 
 const DEFAULT_SAVE: SaveProgress = {
   unlockedLevel: 1,
-  highScores: {
-    1: 0, 2: 0, 3: 0, 4: 0, 5: 0,
-    6: 0, 7: 0, 8: 0, 9: 0, 10: 0,
-    11: 0, 12: 0, 13: 0, 14: 0, 15: 0,
-    16: 0, 17: 0, 18: 0, 19: 0, 20: 0,
-    21: 0, 22: 0, 23: 0, 24: 0, 25: 0,
-    26: 0, 27: 0, 28: 0, 29: 0, 30: 0,
-    31: 0, 32: 0, 33: 0, 34: 0, 35: 0,
-    36: 0, 37: 0, 38: 0, 39: 0, 40: 0,
-    41: 0, 42: 0, 43: 0, 44: 0, 45: 0,
-    46: 0, 47: 0, 48: 0, 49: 0, 50: 0,
-  },
-  bestCoins: {
-    1: 0, 2: 0, 3: 0, 4: 0, 5: 0,
-    6: 0, 7: 0, 8: 0, 9: 0, 10: 0,
-    11: 0, 12: 0, 13: 0, 14: 0, 15: 0,
-    16: 0, 17: 0, 18: 0, 19: 0, 20: 0,
-    21: 0, 22: 0, 23: 0, 24: 0, 25: 0,
-    26: 0, 27: 0, 28: 0, 29: 0, 30: 0,
-    31: 0, 32: 0, 33: 0, 34: 0, 35: 0,
-    36: 0, 37: 0, 38: 0, 39: 0, 40: 0,
-    41: 0, 42: 0, 43: 0, 44: 0, 45: 0,
-    46: 0, 47: 0, 48: 0, 49: 0, 50: 0,
-  },
+  highScores: {},
+  bestCoins: {},
   totalCoinsCollected: 0,
   soundEnabled: true,
   musicEnabled: true,
   volume: 0.7,
 };
 
+let lastSavedJson = '';
+let debounceTimer: number | null = null;
+
+function sanitizeNumericMap(rawMap: unknown): Record<number, number> {
+  const clean: Record<number, number> = {};
+  if (!rawMap || typeof rawMap !== 'object') return clean;
+  for (const [k, v] of Object.entries(rawMap as Record<string, unknown>)) {
+    const id = Number(k);
+    const num = Number(v);
+    if (Number.isInteger(id) && id >= 1 && num > 0) {
+      clean[id] = Math.floor(num);
+    }
+  }
+  return clean;
+}
+
+function serializeCompact(progress: SaveProgress): string {
+  return JSON.stringify({
+    unlockedLevel: progress.unlockedLevel,
+    highScores: sanitizeNumericMap(progress.highScores),
+    bestCoins: sanitizeNumericMap(progress.bestCoins),
+    totalCoinsCollected: progress.totalCoinsCollected,
+    soundEnabled: progress.soundEnabled,
+    musicEnabled: progress.musicEnabled,
+    volume: Number(progress.volume.toFixed(2)),
+  });
+}
+
 export function loadProgress(): SaveProgress {
   try {
     const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) return { ...DEFAULT_SAVE };
+    if (!raw) {
+      return {
+        ...DEFAULT_SAVE,
+        highScores: {},
+        bestCoins: {},
+      };
+    }
     const parsed = JSON.parse(raw);
-    return {
+    const loaded: SaveProgress = {
       unlockedLevel: Math.max(1, Math.min(50, Number(parsed.unlockedLevel) || 1)),
-      highScores: { ...DEFAULT_SAVE.highScores, ...(parsed.highScores || {}) },
-      bestCoins: { ...DEFAULT_SAVE.bestCoins, ...(parsed.bestCoins || {}) },
-      totalCoinsCollected: Number(parsed.totalCoinsCollected) || 0,
+      highScores: sanitizeNumericMap(parsed.highScores),
+      bestCoins: sanitizeNumericMap(parsed.bestCoins),
+      totalCoinsCollected: Math.max(0, Math.floor(Number(parsed.totalCoinsCollected) || 0)),
       soundEnabled: typeof parsed.soundEnabled === 'boolean' ? parsed.soundEnabled : true,
       musicEnabled: typeof parsed.musicEnabled === 'boolean' ? parsed.musicEnabled : true,
       volume: typeof parsed.volume === 'number' ? Math.max(0, Math.min(1, parsed.volume)) : 0.7,
     };
+    lastSavedJson = serializeCompact(loaded);
+    return loaded;
   } catch {
-    return { ...DEFAULT_SAVE };
+    return {
+      ...DEFAULT_SAVE,
+      highScores: {},
+      bestCoins: {},
+    };
   }
 }
 
 export function saveProgress(progress: SaveProgress): void {
+  if (debounceTimer !== null) {
+    window.clearTimeout(debounceTimer);
+    debounceTimer = null;
+  }
   try {
-    localStorage.setItem(STORAGE_KEY, JSON.stringify(progress));
+    const serialized = serializeCompact(progress);
+    if (serialized === lastSavedJson) return;
+    localStorage.setItem(STORAGE_KEY, serialized);
+    lastSavedJson = serialized;
   } catch {
     // Ignore storage quota errors
   }
+}
+
+export function saveProgressDebounced(progress: SaveProgress, delayMs: number = 150): void {
+  if (debounceTimer !== null) {
+    window.clearTimeout(debounceTimer);
+  }
+  debounceTimer = window.setTimeout(() => {
+    debounceTimer = null;
+    saveProgress(progress);
+  }, delayMs);
 }
 
 export function recordLevelCompletion(
@@ -70,18 +105,20 @@ export function recordLevelCompletion(
   const nextUnlocked = Math.min(50, Math.max(current.unlockedLevel, levelId + 1));
   const prevBestScore = current.highScores[levelId] || 0;
   const prevBestCoins = current.bestCoins[levelId] || 0;
+  const bestScore = Math.max(prevBestScore, score);
+  const bestCoinCount = Math.max(prevBestCoins, coins);
+
+  const nextHighScores = { ...current.highScores };
+  if (bestScore > 0) nextHighScores[levelId] = bestScore;
+
+  const nextBestCoins = { ...current.bestCoins };
+  if (bestCoinCount > 0) nextBestCoins[levelId] = bestCoinCount;
 
   const updated: SaveProgress = {
     ...current,
     unlockedLevel: nextUnlocked,
-    highScores: {
-      ...current.highScores,
-      [levelId]: Math.max(prevBestScore, score),
-    },
-    bestCoins: {
-      ...current.bestCoins,
-      [levelId]: Math.max(prevBestCoins, coins),
-    },
+    highScores: nextHighScores,
+    bestCoins: nextBestCoins,
     totalCoinsCollected: current.totalCoinsCollected + coins,
   };
 
@@ -90,7 +127,11 @@ export function recordLevelCompletion(
 }
 
 export function resetAllProgress(): SaveProgress {
-  const fresh = { ...DEFAULT_SAVE };
+  const fresh: SaveProgress = {
+    ...DEFAULT_SAVE,
+    highScores: {},
+    bestCoins: {},
+  };
   saveProgress(fresh);
   return fresh;
 }

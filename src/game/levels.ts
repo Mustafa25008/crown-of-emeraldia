@@ -45,14 +45,15 @@ export const LEVELS: LevelDefinition[] = [
   ...WORLD_10_LEVELS,
 ];
 
+const WORLD_MAP = new Map<number, WorldRegistryEntry>(WORLDS.map((w) => [w.id, w]));
+const LEVEL_MAP = new Map<number, LevelDefinition>(LEVELS.map((l) => [l.id, l]));
+
 export function getWorldById(worldId: number): WorldRegistryEntry {
-  const found = WORLDS.find((w) => w.id === worldId);
-  return found || WORLDS[0];
+  return WORLD_MAP.get(worldId) || WORLDS[0];
 }
 
 export function getLevelById(id: number): LevelDefinition {
-  const found = LEVELS.find((l) => l.id === id);
-  return found || LEVELS[0];
+  return LEVEL_MAP.get(id) || LEVELS[0];
 }
 
 export * from './world_1';

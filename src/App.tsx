@@ -1,4 +1,4 @@
-import React, { useEffect, useRef, useState, useCallback } from 'react';
+import React, { useEffect, useRef, useState, useCallback, useMemo } from 'react';
 import {
   Play,
   Pause,
@@ -19,7 +19,6 @@ import {
   Crown,
   Settings,
   HelpCircle,
-  Map,
   ChevronRight,
   Feather,
   ChevronLeft,
@@ -32,7 +31,13 @@ import {
 } from 'lucide-react';
 import { GameState, HudSnapshot, PowerState, SaveProgress } from './game/types';
 import { LEVELS, WORLDS, getLevelById, getWorldById } from './game/levels';
-import { loadProgress, saveProgress, recordLevelCompletion, resetAllProgress } from './game/storage';
+import {
+  loadProgress,
+  saveProgress,
+  saveProgressDebounced,
+  recordLevelCompletion,
+  resetAllProgress,
+} from './game/storage';
 import { soundManager } from './game/audio';
 import { PlatformerEngine, CANVAS_WIDTH, CANVAS_HEIGHT } from './game/engine';
 
@@ -370,7 +375,7 @@ export default function App() {
 
     const canvas = canvasRef.current;
     if (!canvas) return;
-    const ctx = canvas.getContext('2d');
+    const ctx = canvas.getContext('2d', { alpha: false }) || canvas.getContext('2d');
     if (!ctx) return;
     ctx.imageSmoothingEnabled = false;
 
@@ -541,7 +546,7 @@ export default function App() {
   const handleVolumeChange = (val: number) => {
     setSaveData((prev) => {
       const updated = { ...prev, volume: val };
-      saveProgress(updated);
+      saveProgressDebounced(updated);
       return updated;
     });
   };
@@ -578,8 +583,18 @@ export default function App() {
     },
   });
 
-  const totalBestScore = Object.values(saveData.highScores).reduce((a, b) => a + b, 0);
-  const completedStagesCount = Object.values(saveData.highScores).filter((score) => score > 0).length;
+  const { totalBestScore, completedStagesCount } = useMemo(() => {
+    let sum = 0;
+    let count = 0;
+    for (const score of Object.values(saveData.highScores)) {
+      if (score > 0) {
+        sum += score;
+        count++;
+      }
+    }
+    return { totalBestScore: sum, completedStagesCount: count };
+  }, [saveData.highScores]);
+
   const activeWorld = getWorldById(selectedWorldId);
   const currentLevelDef = getLevelById(currentLevelId);
   const activeWorldNum =
@@ -791,6 +806,48 @@ export default function App() {
                 const isCrystalWorld = world.id === 9;
                 const isRuinsWorld = world.id === 10;
 
+                const themeBorderClass = isRuinsWorld
+                  ? 'border-lime-500/75 hover:border-lime-400'
+                  : isCrystalWorld
+                  ? 'border-fuchsia-400/75 hover:border-fuchsia-300'
+                  : isShadowveilWorld
+                  ? 'border-purple-500/75 hover:border-purple-400'
+                  : isChronosWorld
+                  ? 'border-yellow-500/75 hover:border-yellow-400'
+                  : isCelestiaWorld
+                  ? 'border-indigo-400/75 hover:border-indigo-300'
+                  : isInfernoWorld
+                  ? 'border-orange-500/75 hover:border-orange-400'
+                  : isFrostWorld
+                  ? 'border-sky-400/70 hover:border-sky-300'
+                  : isDesertWorld
+                  ? 'border-amber-500/70 hover:border-amber-400'
+                  : isOceanWorld
+                  ? 'border-cyan-500/70 hover:border-cyan-400'
+                  : 'border-emerald-500/70 hover:border-emerald-400';
+
+                const themeColorClass = isRuinsWorld
+                  ? 'text-lime-300'
+                  : isCrystalWorld
+                  ? 'text-fuchsia-300'
+                  : isShadowveilWorld
+                  ? 'text-purple-300'
+                  : isChronosWorld
+                  ? 'text-yellow-300'
+                  : isCelestiaWorld
+                  ? 'text-indigo-300'
+                  : isInfernoWorld
+                  ? 'text-orange-400'
+                  : isFrostWorld
+                  ? 'text-sky-300'
+                  : isDesertWorld
+                  ? 'text-amber-400'
+                  : isOceanWorld
+                  ? 'text-cyan-400'
+                  : 'text-emerald-400';
+
+                const cleanWorldName = world.name.replace(/^World\s+\d+\s*:\s*/i, '').trim();
+
                 return (
                   <button
                     key={world.id}
@@ -798,58 +855,26 @@ export default function App() {
                       setSelectedWorldId(world.id);
                       navigateToMenu('LEVEL_SELECT');
                     }}
-                    className={`w-full bg-slate-950 border-2 ${
-                      isRuinsWorld
-                        ? 'border-lime-500/75 hover:border-lime-400'
-                        : isCrystalWorld
-                        ? 'border-fuchsia-400/75 hover:border-fuchsia-300'
-                        : isShadowveilWorld
-                        ? 'border-purple-500/75 hover:border-purple-400'
-                        : isChronosWorld
-                        ? 'border-yellow-500/75 hover:border-yellow-400'
-                        : isCelestiaWorld
-                        ? 'border-indigo-400/75 hover:border-indigo-300'
-                        : isInfernoWorld
-                        ? 'border-orange-500/75 hover:border-orange-400'
-                        : isFrostWorld
-                        ? 'border-sky-400/70 hover:border-sky-300'
-                        : isDesertWorld
-                        ? 'border-amber-500/70 hover:border-amber-400'
-                        : isOceanWorld
-                        ? 'border-cyan-500/70 hover:border-cyan-400'
-                        : 'border-emerald-500/70 hover:border-emerald-400'
-                    } active:scale-[0.98] rounded-xl p-5 text-center space-y-2.5 transition-all cursor-pointer shadow-lg`}
+                    className={`w-full bg-slate-950 border-2 ${themeBorderClass} active:scale-[0.98] rounded-xl p-5 text-center space-y-2.5 transition-all cursor-pointer shadow-lg`}
                   >
-                    <div className="font-pixel text-base text-white">WORLD {world.id}</div>
-                    <div className="text-xs font-semibold text-slate-300">{world.name}</div>
-                    <div className="text-[11px] text-slate-400">{world.subtitle}</div>
-                    <div
-                      className={`text-xs font-mono-num font-semibold ${
-                        isRuinsWorld
-                          ? 'text-lime-300'
-                          : isCrystalWorld
-                          ? 'text-fuchsia-300'
-                          : isShadowveilWorld
-                          ? 'text-purple-300'
-                          : isChronosWorld
-                          ? 'text-yellow-300'
-                          : isCelestiaWorld
-                          ? 'text-indigo-300'
-                          : isInfernoWorld
-                          ? 'text-orange-400'
-                          : isFrostWorld
-                          ? 'text-sky-300'
-                          : isDesertWorld
-                          ? 'text-amber-400'
-                          : isOceanWorld
-                          ? 'text-cyan-400'
-                          : 'text-emerald-400'
-                      }`}
-                    >
-                      {worldCompletedCount}/{world.levels.length} STAGES
+                    {/* Line 1: WORLD X (Matching world theme color) */}
+                    <div className={`font-pixel text-base ${themeColorClass}`}>
+                      WORLD {world.id}
                     </div>
-                    <div className="pt-2 border-t border-slate-800/80 text-xs font-mono-num text-slate-300">
-                      World Score: {worldScore.toLocaleString()}
+
+                    {/* Line 2: [Kingdom / Region Name] */}
+                    <div className="text-sm font-semibold text-white">
+                      {cleanWorldName}
+                    </div>
+
+                    {/* Line 3: X/5 STAGES & World Score */}
+                    <div className="pt-2.5 border-t border-slate-800/80 flex items-center justify-between gap-2 text-xs font-mono-num">
+                      <span className={`font-semibold ${themeColorClass}`}>
+                        {worldCompletedCount}/{world.levels.length} STAGES
+                      </span>
+                      <span className="text-slate-300">
+                        World Score: {worldScore.toLocaleString()}
+                      </span>
                     </div>
                   </button>
                 );
@@ -858,7 +883,7 @@ export default function App() {
           </div>
         )}
 
-        {/* 3. LEVEL SELECTION SCREEN (Appears after selecting World 1 or World 2) */}
+        {/* 3. LEVEL SELECTION SCREEN */}
         {gameState === 'LEVEL_SELECT' && (
           <div className="w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8 space-y-6 shadow-2xl">
             <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
@@ -871,7 +896,7 @@ export default function App() {
                   <span>Worlds</span>
                 </button>
                 <h2 className="font-pixel text-base md:text-xl text-white">
-                  WORLD {activeWorld.id}: {activeWorld.name.toUpperCase()}
+                  WORLD {activeWorld.id}: {activeWorld.name.replace(/^World\s+\d+\s*:\s*/i, '').toUpperCase()}
                 </h2>
               </div>
               <button
@@ -1337,7 +1362,12 @@ export default function App() {
                   <div className="w-24 sm:w-40 h-2.5 sm:h-3 bg-slate-950 rounded overflow-hidden border border-red-700">
                     <div
                       className="h-full bg-gradient-to-r from-red-500 to-amber-400 transition-all duration-200"
-                      style={{ width: `${(hud.boss.hp / hud.boss.maxHp) * 100}%` }}
+                      style={{
+                        width: `${Math.max(
+                          0,
+                          Math.min(100, (hud.boss.hp / Math.max(1, hud.boss.maxHp)) * 100)
+                        )}%`,
+                      }}
                     />
                   </div>
                   <span className="font-mono-num text-[11px] sm:text-xs font-bold text-white">

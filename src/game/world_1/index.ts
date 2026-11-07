@@ -22,8 +22,8 @@ export const WORLD_1_LEVELS: LevelDefinition[] = [
 
 export const WORLD_1: WorldDefinition = {
   id: 1,
-  name: 'WORLD 1',
-  subtitle: 'Emeraldia Kingdom',
+  name: 'Emeraldia Kingdom',
+  subtitle: 'Lush Hills, Emerald Woods & Royal Castle',
   levels: WORLD_1_LEVELS,
 };
 

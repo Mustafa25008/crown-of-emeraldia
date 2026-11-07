@@ -16,8 +16,8 @@ export const WORLD_2_LEVELS: LevelDefinition[] = [
 
 export const WORLD_2: WorldDefinition = {
   id: 2,
-  name: 'WORLD 2',
-  subtitle: 'Sapphire Ocean',
+  name: 'Sapphire Ocean',
+  subtitle: 'Coral Reefs, Sunken Ruins & Abyssal Fortress',
   levels: WORLD_2_LEVELS,
 };
 

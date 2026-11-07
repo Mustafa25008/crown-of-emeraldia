@@ -13,6 +13,31 @@ import {
 // Crisp 16-bit Pixel Art Renderer
 // Draws every tile, parallax background layer, animated hero, enemy, power-up, and boss using integer pixel coordinates
 
+const skyGradientCache = new WeakMap<CanvasRenderingContext2D, Map<string, CanvasGradient>>();
+
+function getCachedSkyGradient(
+  ctx: CanvasRenderingContext2D,
+  theme: LevelTheme,
+  height: number,
+  stops: ReadonlyArray<readonly [number, string]>
+): CanvasGradient {
+  let ctxMap = skyGradientCache.get(ctx);
+  if (!ctxMap) {
+    ctxMap = new Map<string, CanvasGradient>();
+    skyGradientCache.set(ctx, ctxMap);
+  }
+  const key = `${theme}_${height}`;
+  let grad = ctxMap.get(key);
+  if (!grad) {
+    grad = ctx.createLinearGradient(0, 0, 0, height);
+    for (let i = 0; i < stops.length; i++) {
+      grad.addColorStop(stops[i][0], stops[i][1]);
+    }
+    ctxMap.set(key, grad);
+  }
+  return grad;
+}
+
 export function drawParallaxBackground(
   ctx: CanvasRenderingContext2D,
   theme: LevelTheme,
@@ -21,41 +46,41 @@ export function drawParallaxBackground(
   height: number,
   time: number
 ) {
-  // Base sky / cavern backdrop
+  // Base sky / cavern backdrop (cached CanvasGradient per theme)
   if (theme === 'HILLS') {
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, '#38bdf8');
-    grad.addColorStop(0.7, '#7dd3fc');
-    grad.addColorStop(1, '#bae6fd');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(ctx, theme, height, [
+      [0, '#38bdf8'],
+      [0.7, '#7dd3fc'],
+      [1, '#bae6fd'],
+    ]);
     ctx.fillRect(0, 0, width, height);
   } else if (theme === 'FOREST') {
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, '#065f46');
-    grad.addColorStop(0.6, '#047857');
-    grad.addColorStop(1, '#10b981');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(ctx, theme, height, [
+      [0, '#065f46'],
+      [0.6, '#047857'],
+      [1, '#10b981'],
+    ]);
     ctx.fillRect(0, 0, width, height);
   } else if (theme === 'CAVERN') {
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, '#0f172a');
-    grad.addColorStop(0.6, '#1e1b4b');
-    grad.addColorStop(1, '#312e81');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(ctx, theme, height, [
+      [0, '#0f172a'],
+      [0.6, '#1e1b4b'],
+      [1, '#312e81'],
+    ]);
     ctx.fillRect(0, 0, width, height);
   } else if (theme === 'FORTRESS') {
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, '#451a03');
-    grad.addColorStop(0.6, '#7c2d12');
-    grad.addColorStop(1, '#ea580c');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(ctx, theme, height, [
+      [0, '#451a03'],
+      [0.6, '#7c2d12'],
+      [1, '#ea580c'],
+    ]);
     ctx.fillRect(0, 0, width, height);
   } else if (theme === 'UNDERWATER') {
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, '#0284c7');
-    grad.addColorStop(0.55, '#0369a1');
-    grad.addColorStop(1, '#0c4a6e');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(ctx, theme, height, [
+      [0, '#0284c7'],
+      [0.55, '#0369a1'],
+      [1, '#0c4a6e'],
+    ]);
     ctx.fillRect(0, 0, width, height);
 
     // Shimmering water surface waves at top of screen
@@ -68,12 +93,12 @@ export function drawParallaxBackground(
       ctx.fillRect(wx + 8, 6, 12, 3);
     }
   } else if (theme === 'DESERT') {
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, '#d97706');
-    grad.addColorStop(0.45, '#f59e0b');
-    grad.addColorStop(0.8, '#fbbf24');
-    grad.addColorStop(1, '#fde68a');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(ctx, theme, height, [
+      [0, '#d97706'],
+      [0.45, '#f59e0b'],
+      [0.8, '#fbbf24'],
+      [1, '#fde68a'],
+    ]);
     ctx.fillRect(0, 0, width, height);
 
     // Blazing Desert Sun in upper sky
@@ -84,19 +109,19 @@ export function drawParallaxBackground(
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(width - 132, 38, 36, 36);
   } else if (theme === 'PYRAMID') {
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, '#291507');
-    grad.addColorStop(0.55, '#451a03');
-    grad.addColorStop(1, '#78350f');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(ctx, theme, height, [
+      [0, '#291507'],
+      [0.55, '#451a03'],
+      [1, '#78350f'],
+    ]);
     ctx.fillRect(0, 0, width, height);
   } else if (theme === 'SNOW') {
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, '#0284c7');
-    grad.addColorStop(0.45, '#38bdf8');
-    grad.addColorStop(0.8, '#bae6fd');
-    grad.addColorStop(1, '#f0f9ff');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(ctx, theme, height, [
+      [0, '#0284c7'],
+      [0.45, '#38bdf8'],
+      [0.8, '#bae6fd'],
+      [1, '#f0f9ff'],
+    ]);
     ctx.fillRect(0, 0, width, height);
 
     // Pale Winter Sun & Aurora Shimmer in upper sky
@@ -105,26 +130,26 @@ export function drawParallaxBackground(
     ctx.fillStyle = '#f0f9ff';
     ctx.fillRect(width - 136, 32, 44, 44);
   } else if (theme === 'ICE_CAVERN') {
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, '#082f49');
-    grad.addColorStop(0.55, '#0c4a6e');
-    grad.addColorStop(1, '#0369a1');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(ctx, theme, height, [
+      [0, '#082f49'],
+      [0.55, '#0c4a6e'],
+      [1, '#0369a1'],
+    ]);
     ctx.fillRect(0, 0, width, height);
   } else if (theme === 'FROST_CASTLE') {
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, '#090d16');
-    grad.addColorStop(0.55, '#0f172a');
-    grad.addColorStop(1, '#1e3a8a');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(ctx, theme, height, [
+      [0, '#090d16'],
+      [0.55, '#0f172a'],
+      [1, '#1e3a8a'],
+    ]);
     ctx.fillRect(0, 0, width, height);
   } else if (theme === 'VOLCANO') {
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, '#1c1917');
-    grad.addColorStop(0.45, '#450a0a');
-    grad.addColorStop(0.8, '#991b1b');
-    grad.addColorStop(1, '#ea580c');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(ctx, theme, height, [
+      [0, '#1c1917'],
+      [0.45, '#450a0a'],
+      [0.8, '#991b1b'],
+      [1, '#ea580c'],
+    ]);
     ctx.fillRect(0, 0, width, height);
 
     // Blood-red volcanic glow in upper sky
@@ -135,26 +160,26 @@ export function drawParallaxBackground(
     ctx.fillStyle = '#fde047';
     ctx.fillRect(width - 134, 40, 32, 32);
   } else if (theme === 'MOLTEN_CAVERN') {
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, '#140707');
-    grad.addColorStop(0.55, '#450a0a');
-    grad.addColorStop(1, '#9a3412');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(ctx, theme, height, [
+      [0, '#140707'],
+      [0.55, '#450a0a'],
+      [1, '#9a3412'],
+    ]);
     ctx.fillRect(0, 0, width, height);
   } else if (theme === 'INFERNO_CASTLE') {
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, '#0c0a09');
-    grad.addColorStop(0.55, '#290909');
-    grad.addColorStop(1, '#7f1d1d');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(ctx, theme, height, [
+      [0, '#0c0a09'],
+      [0.55, '#290909'],
+      [1, '#7f1d1d'],
+    ]);
     ctx.fillRect(0, 0, width, height);
   } else if (theme === 'CELESTIA' || theme === 'SKY_TEMPLE') {
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, '#0284c7');
-    grad.addColorStop(0.45, '#38bdf8');
-    grad.addColorStop(0.8, '#bae6fd');
-    grad.addColorStop(1, '#fef3c7');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(ctx, theme, height, [
+      [0, '#0284c7'],
+      [0.45, '#38bdf8'],
+      [0.8, '#bae6fd'],
+      [1, '#fef3c7'],
+    ]);
     ctx.fillRect(0, 0, width, height);
 
     // Radiant Celestial Sun with Golden Halo
@@ -165,12 +190,12 @@ export function drawParallaxBackground(
     ctx.fillStyle = '#ffffff';
     ctx.fillRect(width - 136, 38, 36, 36);
   } else if (theme === 'STORM_SKIES') {
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, '#0f172a');
-    grad.addColorStop(0.5, '#1e1b4b');
-    grad.addColorStop(0.82, '#312e81');
-    grad.addColorStop(1, '#475569');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(ctx, theme, height, [
+      [0, '#0f172a'],
+      [0.5, '#1e1b4b'],
+      [0.82, '#312e81'],
+      [1, '#475569'],
+    ]);
     ctx.fillRect(0, 0, width, height);
 
     // Occasional distant sheet-lightning flash in upper storm clouds
@@ -179,20 +204,20 @@ export function drawParallaxBackground(
       ctx.fillRect(0, 0, width, height);
     }
   } else if (theme === 'CELESTIAL_PALACE') {
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, '#0c1938');
-    grad.addColorStop(0.5, '#1e3a8a');
-    grad.addColorStop(0.85, '#0284c7');
-    grad.addColorStop(1, '#fde68a');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(ctx, theme, height, [
+      [0, '#0c1938'],
+      [0.5, '#1e3a8a'],
+      [0.85, '#0284c7'],
+      [1, '#fde68a'],
+    ]);
     ctx.fillRect(0, 0, width, height);
   } else if (theme === 'CHRONOS_VALLEY') {
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, '#090d16');
-    grad.addColorStop(0.45, '#1e293b');
-    grad.addColorStop(0.8, '#451a03');
-    grad.addColorStop(1, '#92400e');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(ctx, theme, height, [
+      [0, '#090d16'],
+      [0.45, '#1e293b'],
+      [0.8, '#451a03'],
+      [1, '#92400e'],
+    ]);
     ctx.fillRect(0, 0, width, height);
 
     // Radiant Temporal Astral Dial in upper sky
@@ -203,27 +228,27 @@ export function drawParallaxBackground(
     ctx.fillStyle = '#38bdf8';
     ctx.fillRect(width - 136, 38, 36, 36);
   } else if (theme === 'FORGOTTEN_FACTORY') {
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, '#090d16');
-    grad.addColorStop(0.55, '#1c1917');
-    grad.addColorStop(1, '#451a03');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(ctx, theme, height, [
+      [0, '#090d16'],
+      [0.55, '#1c1917'],
+      [1, '#451a03'],
+    ]);
     ctx.fillRect(0, 0, width, height);
   } else if (theme === 'CLOCKWORK_TOWER') {
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, '#090d16');
-    grad.addColorStop(0.5, '#172554');
-    grad.addColorStop(0.85, '#451a03');
-    grad.addColorStop(1, '#78350f');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(ctx, theme, height, [
+      [0, '#090d16'],
+      [0.5, '#172554'],
+      [0.85, '#451a03'],
+      [1, '#78350f'],
+    ]);
     ctx.fillRect(0, 0, width, height);
   } else if (theme === 'LOST_DIMENSION') {
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, '#020617');
-    grad.addColorStop(0.45, '#0f172a');
-    grad.addColorStop(0.8, '#0c4a6e');
-    grad.addColorStop(1, '#0284c7');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(ctx, theme, height, [
+      [0, '#020617'],
+      [0.45, '#0f172a'],
+      [0.8, '#0c4a6e'],
+      [1, '#0284c7'],
+    ]);
     ctx.fillRect(0, 0, width, height);
   } else if (
     theme === 'HAUNTED_WOODS' ||
@@ -232,12 +257,12 @@ export function drawParallaxBackground(
     theme === 'SHADOW_CASTLE'
   ) {
     // World 8: Shadowveil Kingdom — Dark Fantasy Twilight & Cursed Full Moon
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, '#090514');
-    grad.addColorStop(0.45, '#1e1035');
-    grad.addColorStop(0.82, '#3b0764');
-    grad.addColorStop(1, '#4c1d95');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(ctx, theme, height, [
+      [0, '#090514'],
+      [0.45, '#1e1035'],
+      [0.82, '#3b0764'],
+      [1, '#4c1d95'],
+    ]);
     ctx.fillRect(0, 0, width, height);
 
     // Eerie Cursed Full Moon in upper sky
@@ -254,12 +279,12 @@ export function drawParallaxBackground(
     theme === 'CRYSTAL_CORE'
   ) {
     // World 9: Crystal Caverns — Bioluminescent Crystal Fantasy
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, '#061326');
-    grad.addColorStop(0.5, theme === 'CRYSTAL_CORE' ? '#311042' : '#0f2942');
-    grad.addColorStop(0.85, theme === 'LUMINOUS_LAKE' ? '#0891b2' : '#4338ca');
-    grad.addColorStop(1, '#22d3ee');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(ctx, theme, height, [
+      [0, '#061326'],
+      [0.5, theme === 'CRYSTAL_CORE' ? '#311042' : '#0f2942'],
+      [0.85, theme === 'LUMINOUS_LAKE' ? '#0891b2' : '#4338ca'],
+      [1, '#22d3ee'],
+    ]);
     ctx.fillRect(0, 0, width, height);
   } else if (
     theme === 'FORGOTTEN_JUNGLE' ||
@@ -268,26 +293,31 @@ export function drawParallaxBackground(
     theme === 'ETERNAL_TEMPLE'
   ) {
     // World 10: Ancient Ruins — Lost Civilization Jungle & Sacred Ziggurats
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    if (theme === 'FORGOTTEN_JUNGLE' || theme === 'SUNKEN_RUINS') {
-      grad.addColorStop(0, '#052e16');
-      grad.addColorStop(0.5, '#14532d');
-      grad.addColorStop(0.85, '#15803d');
-      grad.addColorStop(1, '#ca8a04');
-    } else {
-      grad.addColorStop(0, '#1c1917');
-      grad.addColorStop(0.55, '#44403c');
-      grad.addColorStop(1, '#a16207');
-    }
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(
+      ctx,
+      theme,
+      height,
+      theme === 'FORGOTTEN_JUNGLE' || theme === 'SUNKEN_RUINS'
+        ? [
+            [0, '#052e16'],
+            [0.5, '#14532d'],
+            [0.85, '#15803d'],
+            [1, '#ca8a04'],
+          ]
+        : [
+            [0, '#1c1917'],
+            [0.55, '#44403c'],
+            [1, '#a16207'],
+          ]
+    );
     ctx.fillRect(0, 0, width, height);
   } else {
     // CASTLE
-    const grad = ctx.createLinearGradient(0, 0, 0, height);
-    grad.addColorStop(0, '#18181b');
-    grad.addColorStop(0.7, '#27272a');
-    grad.addColorStop(1, '#450a0a');
-    ctx.fillStyle = grad;
+    ctx.fillStyle = getCachedSkyGradient(ctx, theme, height, [
+      [0, '#18181b'],
+      [0.7, '#27272a'],
+      [1, '#450a0a'],
+    ]);
     ctx.fillRect(0, 0, width, height);
   }
 
@@ -3142,10 +3172,11 @@ export function drawBoss(ctx: CanvasRenderingContext2D, boss: BossState, time: n
   const isVulnerable = boss.phase === 'VULNERABLE';
   const step = Math.floor(time * 6) % 2;
 
+  const isPhase3 = boss.hp <= Math.ceil(boss.maxHp * 0.35);
+  const isPhase2 = boss.hp <= Math.ceil(boss.maxHp * 0.65);
+
   if (boss.name.includes('Nocthar')) {
     // NOCTHAR, THE SHADOW KING (World 8 Dark Fantasy Sovereign Boss)
-    const isPhase3 = boss.hp <= 4;
-    const isPhase2 = boss.hp <= 8;
     const floatLift = Math.floor(Math.sin(time * 8) * 5);
 
     // Sweeping Shadow Cloak & Spectral Mantle
@@ -3184,8 +3215,6 @@ export function drawBoss(ctx: CanvasRenderingContext2D, boss: BossState, time: n
 
   if (boss.name.includes('Crystalis')) {
     // CRYSTALIS, THE CRYSTAL GUARDIAN (World 9 Prismatic Crystal Golem Boss)
-    const isPhase3 = boss.hp <= 4;
-    const isPhase2 = boss.hp <= 8;
     const pulse = Math.floor(time * 12) % 2 === 0;
 
     // Floating Shoulder Prism Shards
@@ -3233,8 +3262,6 @@ export function drawBoss(ctx: CanvasRenderingContext2D, boss: BossState, time: n
 
   if (boss.name.includes('Azhurak')) {
     // AZHURAK, THE ANCIENT COLOSSUS (World 10 Monumental Stone & Gold Temple Titan Boss)
-    const isPhase3 = boss.hp <= 5;
-    const isPhase2 = boss.hp <= 10;
 
     // Colossal Carved Stone & Golden Ziggurat Armor
     ctx.fillStyle = isVulnerable ? '#fde047' : '#292524';
@@ -3279,8 +3306,6 @@ export function drawBoss(ctx: CanvasRenderingContext2D, boss: BossState, time: n
 
   if (boss.name.includes('Chronos')) {
     // CHRONOS, THE TIMEKEEPER (Ancient Mechanical Clockwork Titan Guardian Boss)
-    const isPhase3 = boss.hp <= 3;
-    const isPhase2 = boss.hp <= 7;
     const gearPulse = Math.floor(time * (isPhase3 ? 16 : 10)) % 2;
 
     // Twin Rotating Shoulder Clockwork Gears
@@ -3358,8 +3383,6 @@ export function drawBoss(ctx: CanvasRenderingContext2D, boss: BossState, time: n
 
   if (boss.name.includes('Aetherion')) {
     // AETHERION, THE STORM SOVEREIGN (Majestic Celestial Thunderbird / Storm Phoenix Guardian Boss)
-    const isPhase3 = boss.hp <= 3;
-    const isPhase2 = boss.hp <= 6;
     const wingLift = Math.floor(Math.sin(time * (isPhase2 ? 14 : 10)) * 8);
     const wingX = boss.facing === -1 ? px + 20 : px + 4;
 
@@ -3445,8 +3468,6 @@ export function drawBoss(ctx: CanvasRenderingContext2D, boss: BossState, time: n
 
   if (boss.name.includes('Ignarok')) {
     // IGNAROK, THE INFERNO KING (Gigantic Multi-Phase Horned Fire Demon Boss)
-    const isPhase3 = boss.hp <= 2;
-    const isPhase2 = boss.hp <= 5;
     const wingLift = Math.floor(Math.sin(time * (isPhase2 ? 13 : 9)) * 7);
     const wingX = boss.facing === -1 ? px + 24 : px + 6;
 

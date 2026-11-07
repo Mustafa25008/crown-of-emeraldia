@@ -15,7 +15,7 @@ export const WORLD_10_LEVELS: LevelDefinition[] = [
 
 export const WORLD_10 = {
   id: 10,
-  name: 'World 10: Ancient Ruins',
+  name: 'Ancient Ruins',
   subtitle: 'Overgrown jungles, booby-trapped temples, and the Ancient Colossus',
   levels: WORLD_10_LEVELS,
 };

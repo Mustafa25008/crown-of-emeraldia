@@ -15,7 +15,7 @@ export const WORLD_8_LEVELS: LevelDefinition[] = [
 
 export const WORLD_8 = {
   id: 8,
-  name: 'World 8: Shadowveil Kingdom',
+  name: 'Shadowveil Kingdom',
   subtitle: 'Haunted forests, spectral manors, and the Shadow King',
   levels: WORLD_8_LEVELS,
 };

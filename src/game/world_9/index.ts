@@ -15,7 +15,7 @@ export const WORLD_9_LEVELS: LevelDefinition[] = [
 
 export const WORLD_9 = {
   id: 9,
-  name: 'World 9: Crystal Caverns',
+  name: 'Crystal Caverns',
   subtitle: 'Bioluminescent mines, prism labyrinths, and the Crystal Guardian',
   levels: WORLD_9_LEVELS,
 };

@@ -265,9 +265,30 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
      - Do **not** display the countdown timer inside the Pause modal.
    - When resuming (`gameState === 'PLAYING'`), unfreeze the engine (`setPaused(false)`) and resume audio (`soundManager.resumeAudio()`).
 
-5. **Adding Future Worlds & Levels**:
+5. **Select World Screen Standardized 3-Line Card Layout (`src/App.tsx` & `src/game/world_<W>/index.ts`)**:
+   - Every `WORLD_<W>` definition must set `name` strictly to the clean `[Kingdom / Region Name]` (e.g., `'Emeraldia Kingdom'`, `'Sapphire Ocean'`, `'Sunscorch Desert'`, `'Shadowveil Kingdom'`) without any `'WORLD X'` duplicate or `'World X:'` prefix.
+   - Never render long thematic subtitle descriptions on World Select cards.
+   - Every world card on the `WORLD_SELECT` screen must strictly follow this exact 3-line layout hierarchy:
+     - **Line 1**: `WORLD X` (in the matching world theme color).
+     - **Line 2**: `[Kingdom / Region Name]` (clean title without prefixes).
+     - **Line 3**: `X/5 STAGES` & `World Score: ...`.
+
+6. **Boss Health Scaling Formula (`getBossMaxHpForWorld` in `src/game/engine.ts`)**:
+   - All boss stages (`hasBoss: true`) must dynamically compute boss hit points (`hp` and `maxHp`) from the active `worldNumber` using the progressive stepping formula:
+     $$\text{maxHp} = 3 + \left\lfloor \frac{\text{worldNumber} - 1}{2} \right\rfloor \times 2$$
+   - **Mandatory Hit Progression Table**:
+     - **World 1–2**: `3` hits
+     - **World 3–4**: `5` hits
+     - **World 5–6**: `7` hits
+     - **World 7–8**: `9` hits
+     - **World 9–10**: `11` hits
+     - **Future Worlds > 10**: Continue adding `+2` hits after every 2 worlds (e.g., World 11–12 = `13` hits, World 13–14 = `15` hits).
+   - Multi-phase boss escalation thresholds (`bossEnraged` at $\le 65\%$ HP, `bossOverdrive` at $\le 35\%$ HP) and the Boss Health Bar UI (`HP: hp/maxHp`) must always scale dynamically from `boss.maxHp`.
+
+7. **Adding Future Worlds & Levels**:
    - Whenever new worlds (`world_11/`, `world_12/`, etc.) or levels are added in the future, strictly preserve all rules in this file:
-     - Modular `src/game/world_<W>/level_<L>.ts` structure and registration in `src/game/levels.ts`.
+     - Modular `src/game/world_<W>/level_<L>.ts` structure, clean `name` (no `"World X:"` prefix), and registration in `src/game/levels.ts`.
      - Ground alignment (`goalY: 6 * 32` for standard/boss flagpoles on row `16` ground; `goalY: 13 * 32` for locked doors with `requiresKey: true`).
      - Minimum 3–4 tiles vertical clearance under/above Question Blocks and power-up randomization rules.
-     - Exact Top Header Bar layout, Level Countdown Timer rules, Pause State Manager, and Unified `StageOutcomeModal` (`SCORE` and `COINS` only, with `<Loader2 />` + `"Loading..."` when `"▶ Watch Ad & Revive"` is clicked).
+     - Progressive Boss Health Scaling Formula (`getBossMaxHpForWorld(worldNumber)`).
+     - Exact Top Header Bar layout, Level Countdown Timer rules, Pause State Manager, Standardized 3-Line World Select Card Layout, and Unified `StageOutcomeModal` (`SCORE` and `COINS` only, with `<Loader2 />` + `"Loading..."` when `"▶ Watch Ad & Revive"` is clicked).

@@ -84,6 +84,18 @@ interface RuntimeMovingPlatform {
   dir: 1 | -1;
 }
 
+export function getBossMaxHpForWorld(worldNumber: number): number {
+  const activeWorld = Math.max(1, Math.floor(worldNumber || 1));
+  // Progressive stepping formula:
+  // World 1-2: 3 hits
+  // World 3-4: 5 hits
+  // World 5-6: 7 hits
+  // World 7-8: 9 hits
+  // World 9-10: 11 hits
+  // Future Worlds > 10: +2 hits every 2 worlds
+  return 3 + Math.floor((activeWorld - 1) / 2) * 2;
+}
+
 export class PlatformerEngine {
   private ctx: CanvasRenderingContext2D;
   private level: LevelDefinition;
@@ -133,6 +145,7 @@ export class PlatformerEngine {
   private minCameraX: number = 0;
   private elapsedTime: number = 0;
   private isPaused: boolean = false;
+  private needsPausedRender: boolean = true;
   private isDead: boolean = false;
   private deathTimer: number = 0;
   private isLevelFinishing: boolean = false;
@@ -294,21 +307,8 @@ export class PlatformerEngine {
       !isWorld4Boss &&
       !isWorld3Boss &&
       (this.level.worldId === 2 || this.level.id >= 6);
-    const bossHp = isWorld10Boss
-      ? 14
-      : isWorld9Boss
-      ? 12
-      : isWorld8Boss
-      ? 11
-      : isWorld7Boss
-      ? 10
-      : isWorld6Boss
-      ? 9
-      : isWorld5Boss
-      ? 8
-      : isWorld4Boss || isWorld3Boss || isWorld2Boss
-      ? 6
-      : 5;
+    const worldNumber = this.level.worldId || Math.floor((this.level.id - 1) / 5) + 1;
+    const bossHp = getBossMaxHpForWorld(worldNumber);
     const bossName = isWorld10Boss
       ? 'Azhurak, the Ancient Colossus'
       : isWorld9Boss
@@ -768,6 +768,7 @@ export class PlatformerEngine {
 
   public setPaused(paused: boolean) {
     this.isPaused = paused;
+    this.needsPausedRender = true;
     this.keys = {};
     this.jumpJustPressed = false;
     this.fireJustPressed = false;
@@ -793,6 +794,7 @@ export class PlatformerEngine {
       this.cancelSuperJumpCharge();
     }
     this.isPaused = false;
+    this.needsPausedRender = true;
     this.lastFrameTime = performance.now();
     this.emitHud();
   }
@@ -806,8 +808,12 @@ export class PlatformerEngine {
 
       if (!this.isPaused) {
         this.update(dt);
+        this.render();
+        this.needsPausedRender = true;
+      } else if (this.needsPausedRender) {
+        this.render();
+        this.needsPausedRender = false;
       }
-      this.render();
       this.rafId = requestAnimationFrame(loop);
     };
     this.rafId = requestAnimationFrame(loop);
@@ -1895,15 +1901,20 @@ export class PlatformerEngine {
   }
 
   private updateBumpedTiles(dt: number) {
-    for (const b of this.bumpedTiles) {
+    let writeIdx = 0;
+    for (let i = 0; i < this.bumpedTiles.length; i++) {
+      const b = this.bumpedTiles[i];
       const prevOffsetY = b.offsetY;
       b.timer -= dt;
       b.offsetY = b.timer > 0.07 ? -8 : -4;
       if (b.offsetY < prevOffsetY) {
         this.carryPowerUpsOnBumpedTile(b.tx, b.ty, b.offsetY);
       }
+      if (b.timer > 0) {
+        this.bumpedTiles[writeIdx++] = b;
+      }
     }
-    this.bumpedTiles = this.bumpedTiles.filter((b) => b.timer > 0);
+    this.bumpedTiles.length = writeIdx;
   }
 
   private updateCoins() {
@@ -2058,7 +2069,14 @@ export class PlatformerEngine {
         this.emitHud();
       }
     }
-    this.powerUps = this.powerUps.filter((p) => !p.collected && p.y < CANVAS_HEIGHT + 64);
+    let writeIdx = 0;
+    for (let i = 0; i < this.powerUps.length; i++) {
+      const p = this.powerUps[i];
+      if (!p.collected && p.y < CANVAS_HEIGHT + 64) {
+        this.powerUps[writeIdx++] = p;
+      }
+    }
+    this.powerUps.length = writeIdx;
   }
 
   private updateFireballs(dt: number) {
@@ -2169,7 +2187,14 @@ export class PlatformerEngine {
         fb.active = false;
       }
     }
-    this.fireballs = this.fireballs.filter((f) => f.active);
+    let writeIdx = 0;
+    for (let i = 0; i < this.fireballs.length; i++) {
+      const f = this.fireballs[i];
+      if (f.active) {
+        this.fireballs[writeIdx++] = f;
+      }
+    }
+    this.fireballs.length = writeIdx;
   }
 
   private getLavaGeyserState(
@@ -2910,20 +2935,10 @@ export class PlatformerEngine {
     const isIgnarok = this.boss.name.includes('Ignarok');
     const isHighTierBoss =
       isAzhurak || isCrystalis || isNocthar || isChronos || isAetherion || isIgnarok;
-    const bossEnraged =
-      (isAzhurak && this.boss.hp <= 9) ||
-      (isCrystalis && this.boss.hp <= 8) ||
-      (isNocthar && this.boss.hp <= 7) ||
-      (isChronos && this.boss.hp <= 7) ||
-      (isAetherion && this.boss.hp <= 6) ||
-      (isIgnarok && this.boss.hp <= 5);
-    const bossOverdrive =
-      (isAzhurak && this.boss.hp <= 4) ||
-      (isCrystalis && this.boss.hp <= 4) ||
-      (isNocthar && this.boss.hp <= 3) ||
-      (isChronos && this.boss.hp <= 3) ||
-      (isAetherion && this.boss.hp <= 3) ||
-      (isIgnarok && this.boss.hp <= 2);
+    const enragedThreshold = Math.ceil(this.boss.maxHp * 0.65);
+    const overdriveThreshold = Math.ceil(this.boss.maxHp * 0.35);
+    const bossEnraged = isHighTierBoss && this.boss.hp <= enragedThreshold;
+    const bossOverdrive = isHighTierBoss && this.boss.hp <= overdriveThreshold;
 
     // Boss State Machine with Multi-Phase Escalation + Fair Vulnerable Window
     if (this.boss.phase === 'IDLE') {
@@ -3129,21 +3144,22 @@ export class PlatformerEngine {
     const isAetherion = this.boss.name.includes('Aetherion');
     const isIgnarok = this.boss.name.includes('Ignarok');
     const isGlacior = this.boss.name.includes('Glacior');
+    const isEnragedVolley = this.boss.hp <= Math.ceil(this.boss.maxHp * 0.65);
     const speedsY =
       isAzhurak || isCrystalis || isNocthar
-        ? this.boss.hp <= 8
+        ? isEnragedVolley
           ? [-125, -62, 0, 62, 125]
           : [-98, -34, 34, 98]
         : isChronos
-        ? this.boss.hp <= 7
+        ? isEnragedVolley
           ? [-120, -60, 0, 60, 120]
           : [-95, -32, 32, 95]
         : isAetherion
-        ? this.boss.hp <= 6
+        ? isEnragedVolley
           ? [-115, -55, 0, 55, 115]
           : [-95, -30, 30, 95]
         : isIgnarok
-        ? this.boss.hp <= 5
+        ? isEnragedVolley
           ? [-110, -55, 0, 55, 110]
           : [-90, -30, 30, 90]
         : isGlacior
@@ -3362,7 +3378,9 @@ export class PlatformerEngine {
   }
 
   private spawnBurstParticles(x: number, y: number, color: string, count: number) {
+    const MAX_PARTICLES = 90;
     for (let i = 0; i < count; i++) {
+      if (this.particles.length >= MAX_PARTICLES) break;
       const angle = (Math.PI * 2 * i) / count + Math.random() * 0.4;
       const speed = 60 + Math.random() * 160;
       this.particles.push({
@@ -3380,19 +3398,29 @@ export class PlatformerEngine {
   }
 
   private updateParticles(dt: number) {
-    for (const p of this.particles) {
+    let pWrite = 0;
+    for (let i = 0; i < this.particles.length; i++) {
+      const p = this.particles[i];
       p.life -= dt;
-      p.x += p.vx * dt;
-      if (p.gravity) p.vy += 600 * dt;
-      p.y += p.vy * dt;
+      if (p.life > 0) {
+        p.x += p.vx * dt;
+        if (p.gravity) p.vy += 600 * dt;
+        p.y += p.vy * dt;
+        this.particles[pWrite++] = p;
+      }
     }
-    this.particles = this.particles.filter((p) => p.life > 0);
+    this.particles.length = pWrite;
 
-    for (const ft of this.floatingTexts) {
+    let ftWrite = 0;
+    for (let i = 0; i < this.floatingTexts.length; i++) {
+      const ft = this.floatingTexts[i];
       ft.life -= dt;
-      ft.y -= 38 * dt;
+      if (ft.life > 0) {
+        ft.y -= 38 * dt;
+        this.floatingTexts[ftWrite++] = ft;
+      }
     }
-    this.floatingTexts = this.floatingTexts.filter((ft) => ft.life > 0);
+    this.floatingTexts.length = ftWrite;
   }
 
   private rectsOverlap(
@@ -3455,23 +3483,47 @@ export class PlatformerEngine {
     // Translate world by cameraX
     ctx.translate(-Math.floor(this.cameraX), 0);
 
-    // 2. Visible Tilemap Range
+    // 2. Visible Tilemap Range & Camera Frustum Bounds
     const startCol = Math.max(0, Math.floor(this.cameraX / TILE_SIZE) - 1);
     const endCol = Math.min(
       this.activeWidthInTiles - 1,
       Math.ceil((this.cameraX + CANVAS_WIDTH) / TILE_SIZE) + 1
     );
+    const viewLeft = this.cameraX - 96;
+    const viewRight = this.cameraX + CANVAS_WIDTH + 96;
+
+    const bumpedLen = this.bumpedTiles.length;
+    const crumblingLen = this.crumblingBlocks.length;
+    const shakeShift = Math.floor(this.elapsedTime * 45) % 2 === 0 ? -2 : 2;
 
     for (let r = 0; r < this.activeHeightInTiles; r++) {
+      const rowTiles = this.tiles[r];
       for (let c = startCol; c <= endCol; c++) {
-        const tile = this.tiles[r][c];
+        const tile = rowTiles[c];
         if (tile === TileType.EMPTY) continue;
-        const bumped = this.bumpedTiles.find((b) => b.tx === c && b.ty === r);
-        const crumbling = this.crumblingBlocks.find(
-          (cb) => cb.col === c && cb.row === r && cb.state === 'SHAKING'
-        );
-        const offsetX = crumbling ? (Math.floor(this.elapsedTime * 45) % 2 === 0 ? -2 : 2) : 0;
-        const offsetY = bumped ? bumped.offsetY : 0;
+
+        let offsetY = 0;
+        if (bumpedLen > 0) {
+          for (let i = 0; i < bumpedLen; i++) {
+            const b = this.bumpedTiles[i];
+            if (b.tx === c && b.ty === r) {
+              offsetY = b.offsetY;
+              break;
+            }
+          }
+        }
+
+        let offsetX = 0;
+        if (crumblingLen > 0) {
+          for (let i = 0; i < crumblingLen; i++) {
+            const cb = this.crumblingBlocks[i];
+            if (cb.col === c && cb.row === r && cb.state === 'SHAKING') {
+              offsetX = shakeShift;
+              break;
+            }
+          }
+        }
+
         drawTile(
           ctx,
           tile,
@@ -3486,6 +3538,7 @@ export class PlatformerEngine {
     // 3. Moving Platforms, Wind Updrafts, Lightning Strikes, Lava Geysers & World 7 Chronos Mechanics
     if (!this.inHiddenRoom && this.level.windUpdrafts) {
       for (const u of this.level.windUpdrafts) {
+        if (u.endCol < startCol - 1 || u.startCol > endCol + 1) continue;
         drawWindUpdraft(ctx, u.startCol, u.endCol, u.minRow, u.maxRow, this.elapsedTime);
       }
     }
@@ -3501,12 +3554,14 @@ export class PlatformerEngine {
     }
     if (!this.inHiddenRoom && this.level.lavaGeysers) {
       for (const g of this.level.lavaGeysers) {
+        if (g.col < startCol - 1 || g.col > endCol + 1) continue;
         const { currentTopY, isWarning } = this.getLavaGeyserState(g);
         drawLavaGeyser(ctx, g.col, g.baseRow, currentTopY, isWarning, this.elapsedTime);
       }
     }
     if (!this.inHiddenRoom && this.level.lightningStrikes) {
       for (const ls of this.level.lightningStrikes) {
+        if (ls.col < startCol - 1 || ls.col > endCol + 1) continue;
         const state = this.getLightningStrikeState(ls);
         drawLightningStrike(ctx, ls.col, ls.topRow, ls.bottomRow, state, this.elapsedTime);
       }
@@ -3515,6 +3570,7 @@ export class PlatformerEngine {
     const steamVents = this.activeSteamVents;
     if (steamVents) {
       for (const sv of steamVents) {
+        if (sv.col < startCol - 1 || sv.col > endCol + 1) continue;
         const { currentTopY, isWarning } = this.getSteamVentState(sv);
         drawSteamVent(ctx, sv.col, sv.baseRow, currentTopY, isWarning, this.elapsedTime);
       }
@@ -3522,6 +3578,7 @@ export class PlatformerEngine {
     const crushers = this.activeCrusherPistons;
     if (crushers) {
       for (const cp of crushers) {
+        if (cp.col < startCol - 1 || cp.col > endCol + 1) continue;
         const { currentBottomY, isWarning } = this.getCrusherPistonState(cp);
         drawCrusherPiston(ctx, cp.col, cp.topRow, currentBottomY, isWarning, this.elapsedTime);
       }
@@ -3529,6 +3586,7 @@ export class PlatformerEngine {
     const pendulums = this.activeSwingingPendulums;
     if (pendulums) {
       for (const sp of pendulums) {
+        if (sp.pivotCol < startCol - 5 || sp.pivotCol > endCol + 5) continue;
         const { angle } = this.getPendulumBobPosition(sp);
         drawSwingingPendulum(
           ctx,
@@ -3543,20 +3601,26 @@ export class PlatformerEngine {
     const teleporters = this.activeTeleporters;
     if (teleporters) {
       for (const tp of teleporters) {
-        drawTeleporterPad(ctx, tp.fromCol, tp.fromRow, false, this.elapsedTime);
-        drawTeleporterPad(ctx, tp.toCol, tp.toRow, true, this.elapsedTime);
+        if (tp.fromCol >= startCol - 2 && tp.fromCol <= endCol + 2) {
+          drawTeleporterPad(ctx, tp.fromCol, tp.fromRow, false, this.elapsedTime);
+        }
+        if (tp.toCol >= startCol - 2 && tp.toCol <= endCol + 2) {
+          drawTeleporterPad(ctx, tp.toCol, tp.toRow, true, this.elapsedTime);
+        }
       }
     }
     if (this.level.hiddenRoom) {
       const hr = this.level.hiddenRoom;
       if (!this.inHiddenRoom) {
-        drawWarpPipePrompt(
-          ctx,
-          hr.entrancePipeCol,
-          hr.entrancePipeTopRow,
-          this.hasLevelKey ? 'SECRET CLEAR' : 'DOWN: SECRET',
-          this.elapsedTime
-        );
+        if (hr.entrancePipeCol >= startCol - 3 && hr.entrancePipeCol <= endCol + 3) {
+          drawWarpPipePrompt(
+            ctx,
+            hr.entrancePipeCol,
+            hr.entrancePipeTopRow,
+            this.hasLevelKey ? 'SECRET CLEAR' : 'DOWN: SECRET',
+            this.elapsedTime
+          );
+        }
       } else {
         drawWarpPipePrompt(
           ctx,
@@ -3571,23 +3635,30 @@ export class PlatformerEngine {
       }
     }
     for (const mp of this.movingPlatforms) {
+      if (mp.x + mp.width < viewLeft || mp.x > viewRight) continue;
       drawMovingPlatform(ctx, mp.x, mp.y, mp.width);
     }
     if (!this.inHiddenRoom && this.level.crystalLasers) {
       for (const cl of this.level.crystalLasers) {
+        if (cl.col < startCol - 1 || cl.col > endCol + 1) continue;
         const state = this.getCrystalLaserState(cl);
         drawCrystalLaser(ctx, cl.col, cl.topRow, cl.bottomRow, state, this.elapsedTime);
       }
     }
     if (!this.inHiddenRoom && this.level.arrowTraps) {
       for (const at of this.level.arrowTraps) {
+        if (at.col < startCol - 1 || at.col > endCol + 1) continue;
         drawArrowTrap(ctx, at.col, at.row, at.direction, this.elapsedTime);
       }
     }
 
     // 4. Checkpoint & Goal Flagpole / Locked Mechanical Door
     if (!this.inHiddenRoom) {
-      if (this.level.checkpoint) {
+      if (
+        this.level.checkpoint &&
+        this.level.checkpoint.x >= viewLeft &&
+        this.level.checkpoint.x <= viewRight
+      ) {
         drawCheckpointFlag(
           ctx,
           this.level.checkpoint.x,
@@ -3596,32 +3667,38 @@ export class PlatformerEngine {
           this.elapsedTime
         );
       }
-      if (this.level.requiresKey) {
-        drawLockedMechanicalDoor(
-          ctx,
-          this.level.goalX,
-          13 * TILE_SIZE,
-          this.doorUnlockState,
-          this.doorUnlockProgress,
-          this.elapsedTime
-        );
-      } else if (!this.level.hasBoss || this.boss.phase === 'DEFEATED') {
-        drawGoalFlagpole(ctx, this.level.goalX, this.level.goalY, this.elapsedTime);
+      if (this.level.goalX >= viewLeft - 64 && this.level.goalX <= viewRight + 64) {
+        if (this.level.requiresKey) {
+          drawLockedMechanicalDoor(
+            ctx,
+            this.level.goalX,
+            13 * TILE_SIZE,
+            this.doorUnlockState,
+            this.doorUnlockProgress,
+            this.elapsedTime
+          );
+        } else if (!this.level.hasBoss || this.boss.phase === 'DEFEATED') {
+          drawGoalFlagpole(ctx, this.level.goalX, this.level.goalY, this.elapsedTime);
+        }
       }
     }
 
-    // 5. Coins & Power-Ups
+    // 5. Coins & Power-Ups (Camera Frustum Culled)
     for (const coin of this.activeCoins.values()) {
-      if (!coin.collected) {
+      if (!coin.collected && coin.x >= viewLeft && coin.x <= viewRight) {
         drawCoin(ctx, coin.x, coin.y, this.elapsedTime);
       }
     }
     for (const item of this.powerUps) {
-      drawPowerUpItem(ctx, item, this.elapsedTime);
+      if (item.x + item.width >= viewLeft && item.x <= viewRight) {
+        drawPowerUpItem(ctx, item, this.elapsedTime);
+      }
     }
 
-    // 6. Enemies & Boss
+    // 6. Enemies & Boss (Camera Frustum Culled)
     for (const enemy of this.enemies) {
+      if (enemy.state === 'DEAD') continue;
+      if (enemy.x + enemy.width + 64 < viewLeft || enemy.x - 64 > viewRight) continue;
       drawEnemy(ctx, enemy, this.elapsedTime, theme);
     }
     if (this.level.hasBoss && !this.inHiddenRoom) {
@@ -3630,7 +3707,9 @@ export class PlatformerEngine {
 
     // 7. Fireballs
     for (const fb of this.fireballs) {
-      drawFireball(ctx, fb, this.elapsedTime);
+      if (fb.x >= viewLeft && fb.x <= viewRight) {
+        drawFireball(ctx, fb, this.elapsedTime);
+      }
     }
 
     // 8. Hero Pip
