@@ -210,6 +210,8 @@ export class PlatformerEngine {
   private fireJustPressed: boolean = false;
   private rafId: number | null = null;
   private lastFrameTime: number = 0;
+  private accumulator: number = 0;
+  private lastHudSignature: string = '';
 
   constructor(
     ctx: CanvasRenderingContext2D,
@@ -750,10 +752,17 @@ export class PlatformerEngine {
     }
   }
 
+  private handleResizeOrOrientation = () => {
+    this.lastFrameTime = performance.now();
+    this.accumulator = 0;
+  };
+
   private bindKeyboardListeners() {
     window.addEventListener('keydown', this.handleKeyDown);
     window.addEventListener('keyup', this.handleKeyUp);
     window.addEventListener('blur', this.handleBlur);
+    window.addEventListener('resize', this.handleResizeOrOrientation);
+    window.addEventListener('orientationchange', this.handleResizeOrOrientation);
   }
 
   public destroy() {
@@ -764,6 +773,8 @@ export class PlatformerEngine {
     window.removeEventListener('keydown', this.handleKeyDown);
     window.removeEventListener('keyup', this.handleKeyUp);
     window.removeEventListener('blur', this.handleBlur);
+    window.removeEventListener('resize', this.handleResizeOrOrientation);
+    window.removeEventListener('orientationchange', this.handleResizeOrOrientation);
   }
 
   public setPaused(paused: boolean) {
@@ -776,6 +787,7 @@ export class PlatformerEngine {
     this.currentDownHoldTime = 0;
     this.superJumpConsumedForHold = false;
     this.lastFrameTime = performance.now();
+    this.accumulator = 0;
   }
 
   public revivePlayer(refillLives: number = 3) {
@@ -796,21 +808,38 @@ export class PlatformerEngine {
     this.isPaused = false;
     this.needsPausedRender = true;
     this.lastFrameTime = performance.now();
+    this.accumulator = 0;
     this.emitHud();
   }
 
   public start() {
+    const FIXED_DT = 1 / 60;
     this.lastFrameTime = performance.now();
+    this.accumulator = 0;
+
     const loop = (now: number) => {
-      const rawDt = (now - this.lastFrameTime) / 1000;
+      const rawDt = Math.max(0, (now - this.lastFrameTime) / 1000);
       this.lastFrameTime = now;
-      const dt = Math.min(rawDt, 0.04); // Cap delta time to prevent tunneling on tab switch
 
       if (!this.isPaused) {
-        this.update(dt);
+        // Ignore huge frame gaps caused by mobile screen orientation rotation or tab switch
+        const frameDelta = rawDt > 0.25 ? FIXED_DT : Math.min(rawDt, 0.1);
+        this.accumulator += frameDelta;
+
+        let steps = 0;
+        while (this.accumulator >= FIXED_DT && steps < 4 && !this.isPaused) {
+          this.update(FIXED_DT);
+          this.accumulator -= FIXED_DT;
+          steps++;
+        }
+        if (steps === 4) {
+          this.accumulator = 0;
+        }
+
         this.render();
         this.needsPausedRender = true;
       } else if (this.needsPausedRender) {
+        this.accumulator = 0;
         this.render();
         this.needsPausedRender = false;
       }
@@ -3437,18 +3466,24 @@ export class PlatformerEngine {
   }
 
   private emitHud() {
+    const ceilTime = Math.ceil(this.timeRemaining);
+    const ceilStar = Math.ceil(this.starTimer);
+    const sig = `${this.score}|${this.coins}|${this.lives}|${ceilTime}|${this.level.id}|${this.inHiddenRoom ? 1 : 0}|${this.powerState}|${this.isInvincibleStar ? 1 : 0}|${ceilStar}|${this.checkpointReached ? 1 : 0}|${this.hasLevelKey ? 1 : 0}|${this.boss.active ? `${this.boss.hp}_${this.boss.phase}` : '0'}`;
+    if (sig === this.lastHudSignature) return;
+    this.lastHudSignature = sig;
+
     this.onHudUpdate({
       score: this.score,
       coins: this.coins,
       lives: this.lives,
-      timeRemaining: Math.ceil(this.timeRemaining),
+      timeRemaining: ceilTime,
       levelId: this.level.id,
       levelName: this.inHiddenRoom && this.level.hiddenRoom
         ? `${this.level.name} (Secret Room)`
         : this.level.name,
       powerState: this.powerState,
       isInvincibleStar: this.isInvincibleStar,
-      starTimeRemaining: Math.ceil(this.starTimer),
+      starTimeRemaining: ceilStar,
       checkpointReached: this.checkpointReached,
       requiresKey: Boolean(this.level.requiresKey),
       hasKey: this.hasLevelKey,

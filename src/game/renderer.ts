@@ -1084,7 +1084,82 @@ function drawClockworkTowerBackdrop(
   ctx.fillRect(dialX + 18, dialY + 18, handDir * 12, 4);
 }
 
+const tileSpriteCache = new Map<string, HTMLCanvasElement>();
+
+function getTileCacheKey(tile: TileType, theme: LevelTheme, time: number): string {
+  switch (tile) {
+    case TileType.GROUND_TOP:
+    case TileType.GROUND_DEEP:
+      return `${theme}_${tile}`;
+    case TileType.QUESTION_COIN:
+    case TileType.QUESTION_MUSHROOM:
+    case TileType.QUESTION_FIRE:
+    case TileType.QUESTION_STAR:
+    case TileType.QUESTION_FEATHER:
+      return `Q_${Math.floor(time * 5) % 3}`;
+    case TileType.LAVA_TOP:
+      return `LT_${Math.floor(time * 6) % 2}`;
+    case TileType.QUICKSAND_TOP:
+      return `QT_${Math.floor(time * 10) % 8}`;
+    case TileType.QUICKSAND_DEEP:
+      return `QD_${Math.floor(time * 8) % 8}`;
+    case TileType.FREEZING_WATER_TOP:
+      return `FWT_${Math.floor(time * 7) % 2}`;
+    case TileType.BURNING_ROCK:
+      return `BR_${Math.floor(time * 8) % 2}`;
+    case TileType.TEMP_CLOUD:
+      return `TC_${Math.floor(time * 8) % 2}`;
+    case TileType.STORM_SPIKE:
+      return `SS_${Math.floor(time * 12) % 2}`;
+    case TileType.CONVEYOR_LEFT:
+    case TileType.CONVEYOR_RIGHT:
+      return `CV_${tile}_${Math.floor(time * 24) % 16}`;
+    case TileType.TEMP_COG_PLATFORM:
+      return `TCP_${Math.floor(time * 10) % 2}`;
+    case TileType.GEAR_HAZARD:
+      return `GH_${Math.floor(time * 16) % 2}`;
+    case TileType.PHANTOM_BLOCK:
+      return `PB_${Math.floor(time * 9) % 2}`;
+    case TileType.CRYSTAL_SPIKE:
+      return `CS_${Math.floor(time * 10) % 2}`;
+    case TileType.MINE_RAIL_LEFT:
+    case TileType.MINE_RAIL_RIGHT:
+      return `MR_${tile}_${Math.floor(time * 28) % 16}`;
+    case TileType.POISON_PLANT:
+      return `PP_${Math.floor(time * 8) % 2}`;
+    default:
+      return `T_${tile}`;
+  }
+}
+
 export function drawTile(
+  ctx: CanvasRenderingContext2D,
+  tile: TileType,
+  x: number,
+  y: number,
+  theme: LevelTheme,
+  time: number
+) {
+  if (typeof document !== 'undefined') {
+    const key = getTileCacheKey(tile, theme, time);
+    let sprite = tileSpriteCache.get(key);
+    if (!sprite) {
+      sprite = document.createElement('canvas');
+      sprite.width = 32;
+      sprite.height = 32;
+      const sCtx = sprite.getContext('2d');
+      if (sCtx) {
+        renderTileDirect(sCtx, tile, 0, 0, theme, time);
+      }
+      tileSpriteCache.set(key, sprite);
+    }
+    ctx.drawImage(sprite, x, y);
+    return;
+  }
+  renderTileDirect(ctx, tile, x, y, theme, time);
+}
+
+function renderTileDirect(
   ctx: CanvasRenderingContext2D,
   tile: TileType,
   x: number,

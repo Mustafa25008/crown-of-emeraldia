@@ -269,6 +269,7 @@ export default function App() {
 
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const engineRef = useRef<PlatformerEngine | null>(null);
+  const isLandscapeLockedRef = useRef<boolean>(false);
 
   // Sync audio settings with SoundManager
   useEffect(() => {
@@ -283,7 +284,8 @@ export default function App() {
   }, []);
 
   const lockMobileLandscape = useCallback(() => {
-    if (!isMobileTouchDevice()) return;
+    if (!isMobileTouchDevice() || isLandscapeLockedRef.current) return;
+    isLandscapeLockedRef.current = true;
     try {
       const anyWin = window as unknown as {
         AndroidBridge?: { setOrientation?: (mode: string) => void };
@@ -316,7 +318,8 @@ export default function App() {
   }, [isMobileTouchDevice]);
 
   const unlockMobileToPortrait = useCallback(() => {
-    if (!isMobileTouchDevice()) return;
+    if (!isMobileTouchDevice() || !isLandscapeLockedRef.current) return;
+    isLandscapeLockedRef.current = false;
     try {
       const anyWin = window as unknown as {
         AndroidBridge?: { setOrientation?: (mode: string) => void };
@@ -1401,7 +1404,7 @@ export default function App() {
                       type="button"
                       aria-label="Move Left"
                       {...bindVirtualButton('ArrowLeft')}
-                      className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-2 flex items-center justify-center transition-transform cursor-pointer select-none touch-none backdrop-blur-[1px] ${
+                      className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-2 flex items-center justify-center transition-transform cursor-pointer select-none touch-none ${
                         activeVirtualKeys['ArrowLeft']
                           ? 'bg-white/40 border-white/80 text-white scale-95'
                           : 'bg-white/15 hover:bg-white/25 border-white/35 text-white/90'
@@ -1415,7 +1418,7 @@ export default function App() {
                         type="button"
                         aria-label="Up Jump"
                         {...bindVirtualButton('ArrowUp')}
-                        className={`md:hidden w-12 h-11 rounded-2xl border-2 flex items-center justify-center transition-transform cursor-pointer select-none touch-none backdrop-blur-[1px] ${
+                        className={`md:hidden w-12 h-11 rounded-2xl border-2 flex items-center justify-center transition-transform cursor-pointer select-none touch-none ${
                           activeVirtualKeys['ArrowUp']
                             ? 'bg-white/40 border-white/80 text-white scale-95'
                             : 'bg-white/15 hover:bg-white/25 border-white/35 text-white/90'
@@ -1428,7 +1431,7 @@ export default function App() {
                         type="button"
                         aria-label="Crouch Down"
                         {...bindVirtualButton('ArrowDown')}
-                        className={`w-12 h-11 sm:w-14 sm:h-14 rounded-2xl border-2 flex items-center justify-center transition-transform cursor-pointer select-none touch-none backdrop-blur-[1px] ${
+                        className={`w-12 h-11 sm:w-14 sm:h-14 rounded-2xl border-2 flex items-center justify-center transition-transform cursor-pointer select-none touch-none ${
                           activeVirtualKeys['ArrowDown']
                             ? 'bg-white/40 border-white/80 text-white scale-95'
                             : 'bg-white/15 hover:bg-white/25 border-white/35 text-white/90'
@@ -1442,7 +1445,7 @@ export default function App() {
                       type="button"
                       aria-label="Move Right"
                       {...bindVirtualButton('ArrowRight')}
-                      className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-2 flex items-center justify-center transition-transform cursor-pointer select-none touch-none backdrop-blur-[1px] ${
+                      className={`w-12 h-12 sm:w-14 sm:h-14 rounded-2xl border-2 flex items-center justify-center transition-transform cursor-pointer select-none touch-none ${
                         activeVirtualKeys['ArrowRight']
                           ? 'bg-white/40 border-white/80 text-white scale-95'
                           : 'bg-white/15 hover:bg-white/25 border-white/35 text-white/90'
@@ -1458,7 +1461,7 @@ export default function App() {
                       type="button"
                       aria-label="Fire and Sprint"
                       {...bindVirtualButton('KeyX')}
-                      className={`w-13 h-13 sm:w-15 sm:h-15 rounded-full border-2 flex items-center justify-center transition-transform cursor-pointer select-none touch-none backdrop-blur-[1px] ${
+                      className={`w-13 h-13 sm:w-15 sm:h-15 rounded-full border-2 flex items-center justify-center transition-transform cursor-pointer select-none touch-none ${
                         activeVirtualKeys['KeyX']
                           ? 'bg-orange-400/50 border-white/85 text-white scale-95'
                           : 'bg-white/15 hover:bg-white/25 border-white/35 text-white/90'
@@ -1471,7 +1474,7 @@ export default function App() {
                       type="button"
                       aria-label="Jump"
                       {...bindVirtualButton('Space')}
-                      className={`w-13 h-13 sm:w-15 sm:h-15 rounded-full border-2 flex items-center justify-center transition-transform cursor-pointer select-none touch-none backdrop-blur-[1px] ${
+                      className={`w-13 h-13 sm:w-15 sm:h-15 rounded-full border-2 flex items-center justify-center transition-transform cursor-pointer select-none touch-none ${
                         activeVirtualKeys['Space']
                           ? 'bg-emerald-400/50 border-white/85 text-white scale-95'
                           : 'bg-white/15 hover:bg-white/25 border-white/35 text-white/90'
