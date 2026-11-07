@@ -28,6 +28,7 @@ import {
   ArrowUp,
   Smartphone,
   Maximize2,
+  Loader2,
 } from 'lucide-react';
 import { GameState, HudSnapshot, PowerState, SaveProgress } from './game/types';
 import { LEVELS, WORLDS, getLevelById, getWorldById } from './game/levels';
@@ -202,7 +203,10 @@ function StageOutcomeModal({
             {isSuccess ? (
               <span>Next Level ➔</span>
             ) : isWatchingAd ? (
-              <span>Playing Rewarded Ad... (Refilling 3 Lives)</span>
+              <>
+                <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                <span>Loading...</span>
+              </>
             ) : (
               <span>▶ Watch Ad & Revive</span>
             )}

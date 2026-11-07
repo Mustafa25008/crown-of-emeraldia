@@ -253,6 +253,7 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
      - **Row 1 (Primary, full-width)**:
        - `"Next Level ➔"` (for `'stage_cleared'`)
        - `"▶ Watch Ad & Revive"` (for `'game_over'` and `'time_out'`, triggering the rewarded video ad flow to refill 3 lives, reset the level countdown timer, and resume the stage).
+       - **Clicked / Loading State (`isWatchingAd === true`)**: Whenever `"▶ Watch Ad & Revive"` is clicked, the button must display **only a spinning loading icon (`<Loader2 className="w-4 h-4 animate-spin shrink-0" />`) and `"Loading..."`** (never show long descriptive text like `"Playing Rewarded Ad... (Refilling 3 Lives)"`). This hook (`handleWatchAdAndRevive`) is ready for plugging in real AdMob Rewarded Ad Unit IDs (`window.AdMob` / `window.AndroidAdMob`) while falling back cleanly during testing.
      - **Row 2 (Secondary Grid - 2 buttons side-by-side)**:
        - `"Replay"` (for `'stage_cleared'`) or `"Try Again"` (for `'game_over'` / `'time_out'`) | `"Level Select"`.
 
@@ -264,3 +265,9 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
      - Do **not** display the countdown timer inside the Pause modal.
    - When resuming (`gameState === 'PLAYING'`), unfreeze the engine (`setPaused(false)`) and resume audio (`soundManager.resumeAudio()`).
 
+5. **Adding Future Worlds & Levels**:
+   - Whenever new worlds (`world_11/`, `world_12/`, etc.) or levels are added in the future, strictly preserve all rules in this file:
+     - Modular `src/game/world_<W>/level_<L>.ts` structure and registration in `src/game/levels.ts`.
+     - Ground alignment (`goalY: 6 * 32` for standard/boss flagpoles on row `16` ground; `goalY: 13 * 32` for locked doors with `requiresKey: true`).
+     - Minimum 3–4 tiles vertical clearance under/above Question Blocks and power-up randomization rules.
+     - Exact Top Header Bar layout, Level Countdown Timer rules, Pause State Manager, and Unified `StageOutcomeModal` (`SCORE` and `COINS` only, with `<Loader2 />` + `"Loading..."` when `"▶ Watch Ad & Revive"` is clicked).
