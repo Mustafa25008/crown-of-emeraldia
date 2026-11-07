@@ -6,6 +6,9 @@ import { WORLD_4, WORLD_4_LEVELS } from './world_4';
 import { WORLD_5, WORLD_5_LEVELS } from './world_5';
 import { WORLD_6, WORLD_6_LEVELS } from './world_6';
 import { WORLD_7, WORLD_7_LEVELS } from './world_7';
+import { WORLD_8, WORLD_8_LEVELS } from './world_8';
+import { WORLD_9, WORLD_9_LEVELS } from './world_9';
+import { WORLD_10, WORLD_10_LEVELS } from './world_10';
 
 export interface WorldRegistryEntry {
   id: number;
@@ -23,6 +26,9 @@ export const WORLDS: WorldRegistryEntry[] = [
   WORLD_5,
   WORLD_6,
   WORLD_7,
+  WORLD_8,
+  WORLD_9,
+  WORLD_10,
 ];
 
 // Flat list of all registered levels across all worlds
@@ -34,6 +40,9 @@ export const LEVELS: LevelDefinition[] = [
   ...WORLD_5_LEVELS,
   ...WORLD_6_LEVELS,
   ...WORLD_7_LEVELS,
+  ...WORLD_8_LEVELS,
+  ...WORLD_9_LEVELS,
+  ...WORLD_10_LEVELS,
 ];
 
 export function getWorldById(worldId: number): WorldRegistryEntry {
@@ -53,4 +62,8 @@ export * from './world_4';
 export * from './world_5';
 export * from './world_6';
 export * from './world_7';
+export * from './world_8';
+export * from './world_9';
+export * from './world_10';
+
 

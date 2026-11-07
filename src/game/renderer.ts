@@ -225,6 +225,62 @@ export function drawParallaxBackground(
     grad.addColorStop(1, '#0284c7');
     ctx.fillStyle = grad;
     ctx.fillRect(0, 0, width, height);
+  } else if (
+    theme === 'HAUNTED_WOODS' ||
+    theme === 'GRAVEYARD' ||
+    theme === 'PHANTOM_MANOR' ||
+    theme === 'SHADOW_CASTLE'
+  ) {
+    // World 8: Shadowveil Kingdom — Dark Fantasy Twilight & Cursed Full Moon
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, '#090514');
+    grad.addColorStop(0.45, '#1e1035');
+    grad.addColorStop(0.82, '#3b0764');
+    grad.addColorStop(1, '#4c1d95');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+
+    // Eerie Cursed Full Moon in upper sky
+    ctx.fillStyle = 'rgba(192, 132, 252, 0.24)';
+    ctx.fillRect(width - 156, 18, 76, 76);
+    ctx.fillStyle = '#e9d5ff';
+    ctx.fillRect(width - 146, 28, 56, 56);
+    ctx.fillStyle = '#f3e8ff';
+    ctx.fillRect(width - 136, 38, 36, 36);
+  } else if (
+    theme === 'CRYSTAL_CAVERN' ||
+    theme === 'SHIMMERING_MINES' ||
+    theme === 'LUMINOUS_LAKE' ||
+    theme === 'CRYSTAL_CORE'
+  ) {
+    // World 9: Crystal Caverns — Bioluminescent Crystal Fantasy
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    grad.addColorStop(0, '#061326');
+    grad.addColorStop(0.5, theme === 'CRYSTAL_CORE' ? '#311042' : '#0f2942');
+    grad.addColorStop(0.85, theme === 'LUMINOUS_LAKE' ? '#0891b2' : '#4338ca');
+    grad.addColorStop(1, '#22d3ee');
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
+  } else if (
+    theme === 'FORGOTTEN_JUNGLE' ||
+    theme === 'TEMPLE_OF_TRAPS' ||
+    theme === 'SUNKEN_RUINS' ||
+    theme === 'ETERNAL_TEMPLE'
+  ) {
+    // World 10: Ancient Ruins — Lost Civilization Jungle & Sacred Ziggurats
+    const grad = ctx.createLinearGradient(0, 0, 0, height);
+    if (theme === 'FORGOTTEN_JUNGLE' || theme === 'SUNKEN_RUINS') {
+      grad.addColorStop(0, '#052e16');
+      grad.addColorStop(0.5, '#14532d');
+      grad.addColorStop(0.85, '#15803d');
+      grad.addColorStop(1, '#ca8a04');
+    } else {
+      grad.addColorStop(0, '#1c1917');
+      grad.addColorStop(0.55, '#44403c');
+      grad.addColorStop(1, '#a16207');
+    }
+    ctx.fillStyle = grad;
+    ctx.fillRect(0, 0, width, height);
   } else {
     // CASTLE
     const grad = ctx.createLinearGradient(0, 0, 0, height);
@@ -402,6 +458,81 @@ export function drawParallaxBackground(
         ctx.fillRect(xCol + 24, 60, 6, height - 120);
       }
     }
+  } else if (
+    theme === 'HAUNTED_WOODS' ||
+    theme === 'GRAVEYARD' ||
+    theme === 'PHANTOM_MANOR' ||
+    theme === 'SHADOW_CASTLE'
+  ) {
+    // World 8 Far Parallax: Eerie Twilight Mist Clouds & Floating Ghostly Wisps
+    for (let i = -1; i < 6; i++) {
+      const cx = ((i * 240 - farOffset) % (width + 280) + (width + 280)) % (width + 280) - 100;
+      const cy = 22 + (Math.abs(i) % 2) * 24;
+      drawPixelCloud(ctx, Math.floor(cx), cy, '#4c1d95');
+    }
+    if (theme === 'PHANTOM_MANOR' || theme === 'SHADOW_CASTLE') {
+      // Dark Gothic Columns with Spectral Violet Torches
+      for (let i = -1; i < 7; i++) {
+        const px = ((i * 210 - farOffset) % (width + 240) + (width + 240)) % (width + 240) - 60;
+        const xCol = Math.floor(px);
+        const flicker = Math.floor(time * 10 + i) % 2 === 0;
+        ctx.fillStyle = '#140b29';
+        ctx.fillRect(xCol, 56, 44, height - 56);
+        ctx.fillStyle = '#2e1065';
+        ctx.fillRect(xCol + 6, 56, 12, height - 56);
+        ctx.fillStyle = '#3b0764';
+        ctx.fillRect(xCol + 18, 180, 8, 18);
+        ctx.fillStyle = flicker ? '#e879f9' : '#a855f7';
+        ctx.fillRect(xCol + 16, 166, 12, 14);
+        ctx.fillStyle = '#fdf4ff';
+        ctx.fillRect(xCol + 19, 170, 6, 8);
+      }
+    }
+  } else if (
+    theme === 'CRYSTAL_CAVERN' ||
+    theme === 'SHIMMERING_MINES' ||
+    theme === 'LUMINOUS_LAKE' ||
+    theme === 'CRYSTAL_CORE'
+  ) {
+    // World 9 Far Parallax: Shimmering Ceiling Prism Clusters & Bioluminescent Crystal Stars
+    for (let i = 0; i < 14; i++) {
+      const cx = ((i * 140 - farOffset) % (width + 180) + (width + 180)) % (width + 180) - 40;
+      const cy = 36 + (i % 4) * 38;
+      const pulse = Math.sin(time * 4 + i) > 0;
+      ctx.fillStyle = i % 2 === 0 ? (pulse ? '#67e8f9' : '#06b6d4') : pulse ? '#f0abfc' : '#c084fc';
+      ctx.fillRect(Math.floor(cx), cy, 6, 14);
+      ctx.fillRect(Math.floor(cx) - 4, cy + 4, 14, 6);
+    }
+  } else if (
+    theme === 'FORGOTTEN_JUNGLE' ||
+    theme === 'TEMPLE_OF_TRAPS' ||
+    theme === 'SUNKEN_RUINS' ||
+    theme === 'ETERNAL_TEMPLE'
+  ) {
+    // World 10 Far Parallax: Sunlit Jungle Clouds or Carved Ziggurat Temple Pillars
+    if (theme === 'FORGOTTEN_JUNGLE' || theme === 'SUNKEN_RUINS') {
+      for (let i = -1; i < 6; i++) {
+        const cx = ((i * 240 - farOffset) % (width + 280) + (width + 280)) % (width + 280) - 100;
+        const cy = 20 + (Math.abs(i) % 2) * 24;
+        drawPixelCloud(ctx, Math.floor(cx), cy, '#bbf7d0');
+      }
+    } else {
+      for (let i = -1; i < 7; i++) {
+        const px = ((i * 210 - farOffset) % (width + 240) + (width + 240)) % (width + 240) - 60;
+        const xCol = Math.floor(px);
+        const flicker = Math.floor(time * 10 + i) % 2 === 0;
+        ctx.fillStyle = '#292524';
+        ctx.fillRect(xCol, 48, 48, height - 48);
+        ctx.fillStyle = '#44403c';
+        ctx.fillRect(xCol + 6, 48, 14, height - 48);
+        ctx.fillStyle = '#eab308';
+        for (let hy = 88; hy < height - 120; hy += 64) {
+          ctx.fillRect(xCol + 6, hy, 36, 5);
+        }
+        ctx.fillStyle = flicker ? '#4ade80' : '#eab308';
+        ctx.fillRect(xCol + 18, 168, 12, 14);
+      }
+    }
   } else {
     // FORTRESS / CASTLE / FROST_CASTLE / INFERNO_CASTLE background brick arches & torches
     for (let i = -1; i < 8; i++) {
@@ -521,6 +652,48 @@ export function drawParallaxBackground(
         i,
         theme === 'LOST_DIMENSION'
       );
+    } else if (
+      theme === 'HAUNTED_WOODS' ||
+      theme === 'GRAVEYARD' ||
+      theme === 'PHANTOM_MANOR' ||
+      theme === 'SHADOW_CASTLE'
+    ) {
+      // Cursed gnarled silhouette trees & gothic crypt spires
+      ctx.fillStyle = '#1e1035';
+      ctx.fillRect(Math.floor(hx) + 20, height - 200, 22, 104);
+      ctx.fillRect(Math.floor(hx) + 4, height - 180, 18, 10);
+      ctx.fillRect(Math.floor(hx) + 42, height - 170, 18, 10);
+      ctx.fillStyle = '#581c87';
+      ctx.fillRect(Math.floor(hx) + 80, height - 132, 26, 36);
+      ctx.fillStyle = '#c084fc';
+      ctx.fillRect(Math.floor(hx) + 89, height - 122, 8, 14);
+    } else if (
+      theme === 'CRYSTAL_CAVERN' ||
+      theme === 'SHIMMERING_MINES' ||
+      theme === 'LUMINOUS_LAKE' ||
+      theme === 'CRYSTAL_CORE'
+    ) {
+      // Giant Glowing Crystal Clusters in Mid Parallax
+      const cColor = i % 2 === 0 ? '#06b6d4' : '#a855f7';
+      const cHighlight = i % 2 === 0 ? '#a5f3fc' : '#f3e8ff';
+      const ch = 95 + (i % 3) * 24;
+      ctx.fillStyle = cColor;
+      ctx.fillRect(Math.floor(hx) + 16, height - 96 - ch, 26, ch);
+      ctx.fillRect(Math.floor(hx) + 44, height - 96 - Math.floor(ch * 0.7), 18, Math.floor(ch * 0.7));
+      ctx.fillStyle = cHighlight;
+      ctx.fillRect(Math.floor(hx) + 22, height - 96 - ch + 6, 8, ch - 12);
+    } else if (
+      theme === 'FORGOTTEN_JUNGLE' ||
+      theme === 'TEMPLE_OF_TRAPS' ||
+      theme === 'SUNKEN_RUINS' ||
+      theme === 'ETERNAL_TEMPLE'
+    ) {
+      // Stepped Ancient Ziggurats & Hanging Jungle Vines
+      drawDistantPyramid(ctx, Math.floor(hx), height - 96, 170 + (i % 2) * 36, 115 + (i % 2) * 24);
+      ctx.fillStyle = '#15803d';
+      ctx.fillRect(Math.floor(hx) + 60, 0, 6, 90 + (i % 3) * 28);
+      ctx.fillStyle = '#4ade80';
+      ctx.fillRect(Math.floor(hx) + 62, 0, 2, 80 + (i % 3) * 28);
     } else if (
       theme === 'FORTRESS' ||
       theme === 'FROST_CASTLE' ||
@@ -1068,6 +1241,56 @@ export function drawTile(
         ctx.fillStyle = '#fbbf24';
         ctx.fillRect(x + 5, y + 15, 4, 4);
         ctx.fillRect(x + 23, y + 15, 4, 4);
+      } else if (
+        theme === 'HAUNTED_WOODS' ||
+        theme === 'GRAVEYARD' ||
+        theme === 'PHANTOM_MANOR' ||
+        theme === 'SHADOW_CASTLE'
+      ) {
+        // World 8: Dark Cursed Soil & Spectral Violet Moss Top
+        ctx.fillStyle = '#1e1b4b';
+        ctx.fillRect(x, y, s, s);
+        ctx.fillStyle = '#312e81';
+        ctx.fillRect(x + 4, y + 12, 10, 10);
+        ctx.fillRect(x + 18, y + 16, 10, 10);
+        ctx.fillStyle = '#6b21a8';
+        ctx.fillRect(x, y, s, 9);
+        ctx.fillStyle = '#c084fc';
+        ctx.fillRect(x, y, s, 4);
+      } else if (
+        theme === 'CRYSTAL_CAVERN' ||
+        theme === 'SHIMMERING_MINES' ||
+        theme === 'LUMINOUS_LAKE' ||
+        theme === 'CRYSTAL_CORE'
+      ) {
+        // World 9: Faceted Amethyst & Cyan Crystal Cavern Floor
+        ctx.fillStyle = '#1e1b4b';
+        ctx.fillRect(x, y, s, s);
+        ctx.fillStyle = '#312e81';
+        ctx.fillRect(x + 4, y + 12, 10, 10);
+        ctx.fillRect(x + 18, y + 16, 10, 10);
+        ctx.fillStyle = '#0891b2';
+        ctx.fillRect(x, y, s, 9);
+        ctx.fillStyle = '#67e8f9';
+        ctx.fillRect(x, y, s, 4);
+      } else if (
+        theme === 'FORGOTTEN_JUNGLE' ||
+        theme === 'TEMPLE_OF_TRAPS' ||
+        theme === 'SUNKEN_RUINS' ||
+        theme === 'ETERNAL_TEMPLE'
+      ) {
+        // World 10: Carved Ancient Temple Stone with Jungle Moss & Gold Trim
+        ctx.fillStyle = '#44403c';
+        ctx.fillRect(x, y, s, s);
+        ctx.fillStyle = '#57534e';
+        ctx.fillRect(x + 2, y + 10, s - 4, s - 12);
+        ctx.fillStyle = '#15803d';
+        ctx.fillRect(x, y, s, 9);
+        ctx.fillStyle = '#4ade80';
+        ctx.fillRect(x, y, s, 4);
+        ctx.fillStyle = '#eab308';
+        ctx.fillRect(x + 6, y + 14, 6, 4);
+        ctx.fillRect(x + 20, y + 14, 6, 4);
       } else if (theme === 'CAVERN') {
         ctx.fillStyle = '#312e81';
         ctx.fillRect(x, y, s, s);
@@ -1150,7 +1373,17 @@ export function drawTile(
         ctx.fillStyle = '#78350f';
         ctx.fillRect(x + 2, y + 2, 12, 12);
         ctx.fillRect(x + 16, y + 16, 12, 12);
-      } else if (theme === 'CAVERN') {
+      } else if (
+        theme === 'CAVERN' ||
+        theme === 'HAUNTED_WOODS' ||
+        theme === 'GRAVEYARD' ||
+        theme === 'PHANTOM_MANOR' ||
+        theme === 'SHADOW_CASTLE' ||
+        theme === 'CRYSTAL_CAVERN' ||
+        theme === 'SHIMMERING_MINES' ||
+        theme === 'LUMINOUS_LAKE' ||
+        theme === 'CRYSTAL_CORE'
+      ) {
         ctx.fillStyle = '#1e1b4b';
         ctx.fillRect(x, y, s, s);
         ctx.fillStyle = '#312e81';
@@ -1675,6 +1908,125 @@ export function drawTile(
       break;
     }
 
+    case TileType.PHANTOM_BLOCK: {
+      // World 8: Spectral Disappearing Phantom Platform
+      const shimmer = Math.floor(time * 9) % 2 === 0;
+      ctx.fillStyle = '#3b0764';
+      ctx.fillRect(x + 2, y + 2, s - 4, 16);
+      ctx.fillStyle = shimmer ? '#c084fc' : '#9333ea';
+      ctx.fillRect(x + 4, y + 4, s - 8, 10);
+      ctx.fillStyle = '#f3e8ff';
+      ctx.fillRect(x + 6, y + 4, s - 12, 3);
+      // Ghostly wisps underneath
+      ctx.fillStyle = '#a855f7';
+      ctx.fillRect(x + 6, y + 18, 4, 5);
+      ctx.fillRect(x + 15, y + 18, 4, 6);
+      ctx.fillRect(x + 23, y + 18, 4, 5);
+      break;
+    }
+
+    case TileType.CURSED_THORN: {
+      // World 8: Cursed Shadow-Thorn Briar Hazard
+      ctx.fillStyle = '#3b0764';
+      ctx.fillRect(x + 4, y + 10, s - 8, 22);
+      ctx.fillStyle = '#7e22ce';
+      ctx.fillRect(x + 6, y + 6, 6, 26);
+      ctx.fillRect(x + 18, y + 4, 6, 28);
+      ctx.fillStyle = '#e879f9';
+      ctx.fillRect(x + 7, y + 4, 4, 6);
+      ctx.fillRect(x + 19, y + 2, 4, 6);
+      ctx.fillRect(x + 2, y + 16, 4, 4);
+      ctx.fillRect(x + 26, y + 14, 4, 4);
+      break;
+    }
+
+    case TileType.CRYSTAL_SPIKE: {
+      // World 9: Glowing Prismatic Crystal Spike Hazard
+      const pulse = Math.floor(time * 10) % 2 === 0;
+      for (let i = 0; i < 2; i++) {
+        const sx = x + i * 16;
+        ctx.fillStyle = '#0891b2';
+        ctx.fillRect(sx + 4, y + 8, 8, 24);
+        ctx.fillRect(sx + 2, y + 16, 12, 16);
+        ctx.fillStyle = pulse ? '#f0abfc' : '#67e8f9';
+        ctx.fillRect(sx + 6, y + 4, 4, 24);
+        ctx.fillStyle = '#ffffff';
+        ctx.fillRect(sx + 7, y + 2, 2, 16);
+      }
+      break;
+    }
+
+    case TileType.MINE_RAIL_LEFT:
+    case TileType.MINE_RAIL_RIGHT: {
+      // World 9: High-Speed Shimmering Mine Cart Rail Track
+      const isRight = tile === TileType.MINE_RAIL_RIGHT;
+      const shift = Math.floor(time * 28) % 16;
+      ctx.fillStyle = '#1e293b';
+      ctx.fillRect(x, y, s, 18);
+      // Wooden ties
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(x + 4, y + 6, 6, 12);
+      ctx.fillRect(x + 20, y + 6, 6, 12);
+      // Glowing steel & crystal top rail
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillRect(x, y, s, 5);
+      ctx.fillStyle = '#22d3ee';
+      for (let i = 0; i < 2; i++) {
+        const rawPos = i * 16 + (isRight ? shift : 15 - shift);
+        const cx = x + (rawPos % 28);
+        ctx.fillRect(cx, y + 1, 5, 3);
+      }
+      break;
+    }
+
+    case TileType.FRAGILE_CRYSTAL: {
+      // World 9: Shattering Quartz Crystal Bridge
+      ctx.fillStyle = '#4c1d95';
+      ctx.fillRect(x, y, s, 18);
+      ctx.fillStyle = '#c084fc';
+      ctx.fillRect(x + 2, y + 2, s - 4, 13);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x + 4, y + 2, s - 8, 3);
+      ctx.fillStyle = '#22d3ee';
+      ctx.fillRect(x + 8, y + 6, 4, 8);
+      ctx.fillRect(x + 20, y + 5, 4, 9);
+      break;
+    }
+
+    case TileType.POISON_PLANT: {
+      // World 10: Venomous Jungle Carnivorous Flora Hazard
+      const snap = Math.floor(time * 8) % 2 === 0;
+      // Jungle vine stalk
+      ctx.fillStyle = '#15803d';
+      ctx.fillRect(x + 12, y + 14, 8, 18);
+      ctx.fillRect(x + 4, y + 22, 24, 6);
+      // Venomous bulb head
+      ctx.fillStyle = '#7e22ce';
+      ctx.fillRect(x + 4, y + 4, 24, 14);
+      ctx.fillStyle = snap ? '#a3e635' : '#facc15';
+      ctx.fillRect(x + 8, y + 2, 16, 6);
+      // Sharp white fangs
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(x + 8, y + 8, 3, 4);
+      ctx.fillRect(x + 15, y + 8, 3, 4);
+      ctx.fillRect(x + 21, y + 8, 3, 4);
+      break;
+    }
+
+    case TileType.ANCIENT_CRUMBLE: {
+      // World 10: Mossy Collapsing Ancient Temple Stone Bridge
+      ctx.fillStyle = '#44403c';
+      ctx.fillRect(x, y, s, 18);
+      ctx.fillStyle = '#78716c';
+      ctx.fillRect(x + 2, y + 2, s - 4, 13);
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(x + 2, y, s - 4, 4);
+      ctx.fillStyle = '#1c1917';
+      ctx.fillRect(x + 11, y + 5, 2, 10);
+      ctx.fillRect(x + 21, y + 6, 2, 9);
+      break;
+    }
+
     default:
       break;
   }
@@ -2042,10 +2394,31 @@ export function drawEnemy(
     theme === 'FORGOTTEN_FACTORY' ||
     theme === 'CLOCKWORK_TOWER' ||
     theme === 'LOST_DIMENSION';
+  const isShadowveilTheme =
+    theme === 'HAUNTED_WOODS' ||
+    theme === 'GRAVEYARD' ||
+    theme === 'PHANTOM_MANOR' ||
+    theme === 'SHADOW_CASTLE';
+  const isCrystalTheme =
+    theme === 'CRYSTAL_CAVERN' ||
+    theme === 'SHIMMERING_MINES' ||
+    theme === 'LUMINOUS_LAKE' ||
+    theme === 'CRYSTAL_CORE';
+  const isAncientRuinsTheme =
+    theme === 'FORGOTTEN_JUNGLE' ||
+    theme === 'TEMPLE_OF_TRAPS' ||
+    theme === 'SUNKEN_RUINS' ||
+    theme === 'ETERNAL_TEMPLE';
 
   if (enemy.type === 'SLIME') {
     if (enemy.state === 'SQUISHED') {
-      ctx.fillStyle = isChronosTheme
+      ctx.fillStyle = isShadowveilTheme
+        ? '#581c87'
+        : isCrystalTheme
+        ? '#0891b2'
+        : isAncientRuinsTheme
+        ? '#15803d'
+        : isChronosTheme
         ? '#92400e'
         : isCelestiaTheme
         ? '#0284c7'
@@ -2057,7 +2430,13 @@ export function drawEnemy(
         ? '#b45309'
         : '#be123c';
       ctx.fillRect(px + 2, py + 18, 24, 10);
-      ctx.fillStyle = isChronosTheme
+      ctx.fillStyle = isShadowveilTheme
+        ? '#e879f9'
+        : isCrystalTheme
+        ? '#a5f3fc'
+        : isAncientRuinsTheme
+        ? '#fde047'
+        : isChronosTheme
         ? '#38bdf8'
         : isCelestiaTheme
         ? '#fef08a'
@@ -2069,6 +2448,48 @@ export function drawEnemy(
         ? '#fde68a'
         : '#fda4af';
       ctx.fillRect(px + 6, py + 20, 16, 4);
+      return;
+    }
+    if (isShadowveilTheme) {
+      // Shadow Wisp / Spectral Ghost (World 8)
+      ctx.fillStyle = '#4c1d95';
+      ctx.fillRect(px + 2, py + 4 + step * 2, 24, 20);
+      ctx.fillStyle = '#a855f7';
+      ctx.fillRect(px + 4, py + 6 + step * 2, 20, 14);
+      // Wispy ghost tail hem
+      ctx.fillRect(px + 3, py + 22, 5, 5 - step * 2);
+      ctx.fillRect(px + 11, py + 22, 6, 4 + step * 2);
+      ctx.fillRect(px + 20, py + 22, 5, 5 - step * 2);
+      // Glowing cyan-magenta spectral eyes
+      ctx.fillStyle = '#fef08a';
+      ctx.fillRect(px + 7, py + 11 + step * 2, 4, 4);
+      ctx.fillRect(px + 17, py + 11 + step * 2, 4, 4);
+      return;
+    }
+    if (isCrystalTheme) {
+      // Prism Geode Slime (World 9)
+      ctx.fillStyle = '#0e7490';
+      ctx.fillRect(px + 2, py + 6 + step * 2, 24, 22 - step * 2);
+      ctx.fillStyle = '#22d3ee';
+      ctx.fillRect(px + 4, py + 8 + step * 2, 20, 16 - step * 2);
+      ctx.fillStyle = '#f0abfc';
+      ctx.fillRect(px + 9, py + 2 + step * 2, 10, 6);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(px + 7, py + 13, 3, 4);
+      ctx.fillRect(px + 18, py + 13, 3, 4);
+      return;
+    }
+    if (isAncientRuinsTheme) {
+      // Venomous Jungle Moss Slime / Temple Viper (World 10)
+      ctx.fillStyle = '#14532d';
+      ctx.fillRect(px + 2, py + 6 + step * 2, 24, 22 - step * 2);
+      ctx.fillStyle = '#22c55e';
+      ctx.fillRect(px + 4, py + 8 + step * 2, 20, 16 - step * 2);
+      ctx.fillStyle = '#eab308';
+      ctx.fillRect(px + 8, py + 4 + step * 2, 12, 4);
+      ctx.fillStyle = '#ef4444';
+      ctx.fillRect(px + 7, py + 13, 4, 4);
+      ctx.fillRect(px + 17, py + 13, 4, 4);
       return;
     }
     if (isChronosTheme) {
@@ -2186,10 +2607,16 @@ export function drawEnemy(
     ctx.fillRect(px + (step ? 2 : 4), py + 24, 8, 4);
     ctx.fillRect(px + (step ? 18 : 16), py + 24, 8, 4);
   } else if (enemy.type === 'BEETLE') {
-    // Armored Shell Beetle / Sea Turtle / Golden Scarab Tortoise / Glacier Tortoise / Obsidian Flame Tortoise / Winged Sky Tortoise / Bronze Gear-Tortoise
+    // Armored Shell Beetle / Sea Turtle / Golden Scarab Tortoise / Glacier Tortoise / Obsidian Flame Tortoise / Winged Sky Tortoise / Bronze Gear-Tortoise / Cursed Skull Tortoise / Amethyst Crystal Tortoise / Jade Relic Scarab
     const isShell = enemy.state === 'SHELL_IDLE' || enemy.state === 'SHELL_MOVING';
     const isDesert = theme === 'DESERT' || theme === 'PYRAMID';
-    ctx.fillStyle = isChronosTheme
+    ctx.fillStyle = isAncientRuinsTheme
+      ? '#064e3b'
+      : isCrystalTheme
+      ? '#4c1d95'
+      : isShadowveilTheme
+      ? '#312e81'
+      : isChronosTheme
       ? '#451a03'
       : isCelestiaTheme
       ? '#0284c7'
@@ -2201,7 +2628,13 @@ export function drawEnemy(
       ? '#78350f'
       : '#1e3a8a';
     ctx.fillRect(px + 2, py + (isShell ? 6 : 4), 24, isShell ? 22 : 20);
-    ctx.fillStyle = isChronosTheme
+    ctx.fillStyle = isAncientRuinsTheme
+      ? '#10b981'
+      : isCrystalTheme
+      ? '#c084fc'
+      : isShadowveilTheme
+      ? '#e2e8f0'
+      : isChronosTheme
       ? '#d97706'
       : isCelestiaTheme
       ? '#f59e0b'
@@ -2213,7 +2646,13 @@ export function drawEnemy(
       ? '#d97706'
       : '#2563eb';
     ctx.fillRect(px + 4, py + (isShell ? 8 : 6), 20, 16);
-    ctx.fillStyle = isChronosTheme
+    ctx.fillStyle = isAncientRuinsTheme
+      ? '#fbbf24'
+      : isCrystalTheme
+      ? '#67e8f9'
+      : isShadowveilTheme
+      ? '#a855f7'
+      : isChronosTheme
       ? '#38bdf8'
       : isCelestiaTheme
       ? '#ffffff'
@@ -2227,7 +2666,13 @@ export function drawEnemy(
     ctx.fillRect(px + 8, py + (isShell ? 10 : 8), 12, 6);
     if (!isShell) {
       // Head & legs
-      ctx.fillStyle = isChronosTheme
+      ctx.fillStyle = isAncientRuinsTheme
+        ? '#f59e0b'
+        : isCrystalTheme
+        ? '#f0abfc'
+        : isShadowveilTheme
+        ? '#f8fafc'
+        : isChronosTheme
         ? '#fbbf24'
         : isCelestiaTheme
         ? '#fef08a'
@@ -2265,6 +2710,41 @@ export function drawEnemy(
       ctx.fillRect(eyeX, py + 8, 5, 5);
       ctx.fillStyle = '#0f172a';
       ctx.fillRect(eyeX + (enemy.facing === 1 ? 2 : 0), py + 9, 3, 3);
+    } else if (isAncientRuinsTheme) {
+      // Swooping Golden Sun-Idol / Feathered Jungle Serpent Flyer
+      const wingY = step === 0 ? py + 2 : py + 12;
+      ctx.fillStyle = '#10b981';
+      ctx.fillRect(px, wingY, 9, 10);
+      ctx.fillRect(px + 19, wingY, 9, 10);
+      ctx.fillStyle = '#f59e0b';
+      ctx.fillRect(px + 8, py + 6, 12, 14);
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(px + 10, py + 3, 8, 3);
+      ctx.fillStyle = '#dc2626';
+      ctx.fillRect(px + 10, py + 10, 3, 3);
+      ctx.fillRect(px + 15, py + 10, 3, 3);
+    } else if (isCrystalTheme) {
+      // Hovering Prism Moth / Luminous Crystal Bat
+      const wingY = step === 0 ? py + 2 : py + 11;
+      ctx.fillStyle = '#67e8f9';
+      ctx.fillRect(px, wingY, 9, 10);
+      ctx.fillRect(px + 19, wingY, 9, 10);
+      ctx.fillStyle = '#a855f7';
+      ctx.fillRect(px + 8, py + 6, 12, 14);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(px + 10, py + 9, 3, 3);
+      ctx.fillRect(px + 15, py + 9, 3, 3);
+    } else if (isShadowveilTheme) {
+      // Phantom Vampire Bat / Spectral Nightwing
+      const wingY = step === 0 ? py + 2 : py + 12;
+      ctx.fillStyle = '#312e81';
+      ctx.fillRect(px, wingY, 9, 10);
+      ctx.fillRect(px + 19, wingY, 9, 10);
+      ctx.fillStyle = '#4c1d95';
+      ctx.fillRect(px + 8, py + 6, 12, 14);
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(px + 10, py + 9, 3, 3);
+      ctx.fillRect(px + 15, py + 9, 3, 3);
     } else if (isChronosTheme) {
       // Hovering Brass Chrono-Drone with Spinning Rotor Wings
       const wingY = step === 0 ? py + 3 : py + 11;
@@ -2357,6 +2837,65 @@ export function drawEnemy(
       ctx.fillStyle = '#38bdf8';
       ctx.fillRect(px + 8, py + 10, 4, 3);
       ctx.fillRect(px + 16, py + 10, 4, 3);
+    } else if (isAncientRuinsTheme) {
+      // Ancient Temple Idol Sentinel / Jade & Gold Sun Guardian
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(px + 2, py + 2, 24, 24);
+      ctx.fillStyle = '#d97706';
+      ctx.fillRect(px + 4, py + 4, 20, 18);
+      // Emerald Feathered Sun Crest
+      ctx.fillStyle = '#10b981';
+      ctx.fillRect(px + 6, py - 3, 16, 6);
+      // Glowing Sun Visor
+      ctx.fillStyle = '#0c0a09';
+      ctx.fillRect(px + 6, py + 9, 16, 5);
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(px + 8, py + 10, 4, 3);
+      ctx.fillRect(px + 16, py + 10, 4, 3);
+      // Stone Greaves
+      ctx.fillStyle = '#44403c';
+      ctx.fillRect(px + (step ? 3 : 6), py + 24, 7, 4);
+      ctx.fillRect(px + (step ? 18 : 15), py + 24, 7, 4);
+    } else if (isCrystalTheme) {
+      // Prismatic Crystal Golem / Diamond Sentinel
+      ctx.fillStyle = '#4c1d95';
+      ctx.fillRect(px + 2, py + 2, 24, 24);
+      ctx.fillStyle = '#a855f7';
+      ctx.fillRect(px + 4, py + 4, 20, 18);
+      // Crystalline Crown Spires
+      ctx.fillStyle = '#67e8f9';
+      ctx.fillRect(px + 4, py - 3, 5, 6);
+      ctx.fillRect(px + 19, py - 3, 5, 6);
+      // Glowing Cyan Crystal Eyes
+      ctx.fillStyle = '#1e1b4b';
+      ctx.fillRect(px + 6, py + 9, 16, 5);
+      ctx.fillStyle = '#ffffff';
+      ctx.fillRect(px + 8, py + 10, 4, 3);
+      ctx.fillRect(px + 16, py + 10, 4, 3);
+      // Crystal Greaves
+      ctx.fillStyle = '#6b21a8';
+      ctx.fillRect(px + (step ? 3 : 6), py + 24, 7, 4);
+      ctx.fillRect(px + (step ? 18 : 15), py + 24, 7, 4);
+    } else if (isShadowveilTheme) {
+      // Cursed Skeleton Revenant / Shadowveil Death Knight
+      ctx.fillStyle = '#1e1b4b';
+      ctx.fillRect(px + 2, py + 2, 24, 24);
+      ctx.fillStyle = '#4c1d95';
+      ctx.fillRect(px + 4, py + 4, 20, 18);
+      // Dark Horned Crown
+      ctx.fillStyle = '#c084fc';
+      ctx.fillRect(px + 2, py - 3, 5, 6);
+      ctx.fillRect(px + 21, py - 3, 5, 6);
+      // Glowing Spectral Visor
+      ctx.fillStyle = '#090514';
+      ctx.fillRect(px + 6, py + 9, 16, 5);
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(px + 8, py + 10, 4, 3);
+      ctx.fillRect(px + 16, py + 10, 4, 3);
+      // Dark Iron Greaves
+      ctx.fillStyle = '#312e81';
+      ctx.fillRect(px + (step ? 3 : 6), py + 24, 7, 4);
+      ctx.fillRect(px + (step ? 18 : 15), py + 24, 7, 4);
     } else if (isChronosTheme) {
       // Clockwork Brass Centurion / Temporal Automaton Sentinel
       ctx.fillStyle = '#451a03';
@@ -2476,13 +3015,25 @@ export function drawEnemy(
       ctx.fillRect(px + (step ? 18 : 15), py + 24, 7, 4);
     }
   } else if (enemy.type === 'FIRE_BAR') {
-    // Rotating Fire / Frost Crystal / Celestial Storm / Golden Clock-Hand Bar around pivot enemy.x, enemy.y
+    // Rotating Fire / Frost Crystal / Celestial Storm / Golden Clock-Hand / Shadow / Prism / Solar Bar
     const angle = enemy.angle || 0;
     for (let i = 0; i < 5; i++) {
       const dist = i * 18;
       const fx = Math.floor(enemy.x + Math.cos(angle) * dist - 7);
       const fy = Math.floor(enemy.y + Math.sin(angle) * dist - 7);
-      ctx.fillStyle = isChronosTheme
+      ctx.fillStyle = isShadowveilTheme
+        ? i % 2 === 0
+          ? '#9333ea'
+          : '#e879f9'
+        : isCrystalTheme
+        ? i % 2 === 0
+          ? '#06b6d4'
+          : '#f0abfc'
+        : isAncientRuinsTheme
+        ? i % 2 === 0
+          ? '#eab308'
+          : '#10b981'
+        : isChronosTheme
         ? i % 2 === 0
           ? '#d97706'
           : '#38bdf8'
@@ -2500,7 +3051,7 @@ export function drawEnemy(
       ctx.fillRect(fx, fy, 14, 14);
       ctx.fillStyle = isChronosTheme
         ? '#fef08a'
-        : isCelestiaTheme || isIceTheme
+        : isCelestiaTheme || isIceTheme || isCrystalTheme
         ? '#ffffff'
         : '#fef08a';
       ctx.fillRect(fx + 3, fy + 3, 8, 8);
@@ -2590,6 +3141,141 @@ export function drawBoss(ctx: CanvasRenderingContext2D, boss: BossState, time: n
 
   const isVulnerable = boss.phase === 'VULNERABLE';
   const step = Math.floor(time * 6) % 2;
+
+  if (boss.name.includes('Nocthar')) {
+    // NOCTHAR, THE SHADOW KING (World 8 Dark Fantasy Sovereign Boss)
+    const isPhase3 = boss.hp <= 4;
+    const isPhase2 = boss.hp <= 8;
+    const floatLift = Math.floor(Math.sin(time * 8) * 5);
+
+    // Sweeping Shadow Cloak & Spectral Mantle
+    ctx.fillStyle = isVulnerable ? '#fde047' : '#1e1035';
+    ctx.fillRect(px + 4, py + 10 + floatLift, w - 8, h - 14);
+    ctx.fillStyle = isVulnerable ? '#fef9c3' : isPhase3 ? '#9333ea' : isPhase2 ? '#6b21a8' : '#4c1d95';
+    ctx.fillRect(px + 10, py + 14 + floatLift, w - 20, h - 22);
+
+    // Glowing Void Core on Chest
+    ctx.fillStyle = '#e879f9';
+    ctx.fillRect(px + 22, py + 24 + floatLift, w - 44, 14);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(px + 26, py + 27 + floatLift, w - 52, 8);
+
+    // Crowned Shadow Helm & Twin Dark Horns
+    const headX = boss.facing === -1 ? px + 6 : px + w - 36;
+    ctx.fillStyle = '#090514';
+    ctx.fillRect(headX, py - 2 + floatLift, 30, 22);
+    ctx.fillStyle = '#c084fc';
+    ctx.fillRect(headX + 2, py - 12 + floatLift, 6, 12);
+    ctx.fillRect(headX + 12, py - 16 + floatLift, 6, 16);
+    ctx.fillRect(headX + 22, py - 12 + floatLift, 6, 12);
+
+    // Glowing Crimson-Violet Eyes
+    ctx.fillStyle = isVulnerable ? '#38bdf8' : '#f43f5e';
+    ctx.fillRect(headX + (boss.facing === -1 ? 5 : 15), py + 7 + floatLift, 10, 5);
+
+    if (isVulnerable) {
+      const starOffset = Math.floor(Math.sin(time * 10) * 10);
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(px + 20 + starOffset, py - 26, 8, 8);
+      ctx.fillRect(px + 38 - starOffset, py - 26, 8, 8);
+    }
+    return;
+  }
+
+  if (boss.name.includes('Crystalis')) {
+    // CRYSTALIS, THE CRYSTAL GUARDIAN (World 9 Prismatic Crystal Golem Boss)
+    const isPhase3 = boss.hp <= 4;
+    const isPhase2 = boss.hp <= 8;
+    const pulse = Math.floor(time * 12) % 2 === 0;
+
+    // Floating Shoulder Prism Shards
+    ctx.fillStyle = '#06b6d4';
+    ctx.fillRect(px - 8, py + 6 + step * 3, 16, 24);
+    ctx.fillRect(px + w - 8, py + 6 + (1 - step) * 3, 16, 24);
+    ctx.fillStyle = '#a5f3fc';
+    ctx.fillRect(px - 4, py + 10 + step * 3, 8, 16);
+    ctx.fillRect(px + w - 4, py + 10 + (1 - step) * 3, 8, 16);
+
+    // Faceted Crystalline Torso
+    ctx.fillStyle = isVulnerable ? '#fde047' : '#1e1b4b';
+    ctx.fillRect(px + 6, py + 10, w - 12, h - 18);
+    ctx.fillStyle = isVulnerable ? '#fef9c3' : isPhase3 ? '#ec4899' : isPhase2 ? '#a855f7' : '#0891b2';
+    ctx.fillRect(px + 10, py + 14, w - 20, h - 26);
+
+    // Radiant Prism Heart Core
+    ctx.fillStyle = pulse ? '#ffffff' : '#67e8f9';
+    ctx.fillRect(px + 20, py + 22, w - 40, 16);
+
+    // Crystal Crown & Guardian Visor
+    const headX = boss.facing === -1 ? px + 6 : px + w - 36;
+    ctx.fillStyle = '#0e7490';
+    ctx.fillRect(headX, py - 2, 30, 20);
+    ctx.fillStyle = '#f0abfc';
+    ctx.fillRect(headX + 4, py - 14, 6, 12);
+    ctx.fillRect(headX + 12, py - 18, 6, 16);
+    ctx.fillRect(headX + 20, py - 14, 6, 12);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(headX + (boss.facing === -1 ? 6 : 14), py + 6, 10, 5);
+
+    // Crystal Pillar Legs
+    ctx.fillStyle = '#155e75';
+    ctx.fillRect(px + 10, py + h - 10 + step * 2, 18, 10);
+    ctx.fillRect(px + w - 28, py + h - 10 + (1 - step) * 2, 18, 10);
+
+    if (isVulnerable) {
+      const starOffset = Math.floor(Math.sin(time * 10) * 10);
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(px + 20 + starOffset, py - 26, 8, 8);
+      ctx.fillRect(px + 38 - starOffset, py - 26, 8, 8);
+    }
+    return;
+  }
+
+  if (boss.name.includes('Azhurak')) {
+    // AZHURAK, THE ANCIENT COLOSSUS (World 10 Monumental Stone & Gold Temple Titan Boss)
+    const isPhase3 = boss.hp <= 5;
+    const isPhase2 = boss.hp <= 10;
+
+    // Colossal Carved Stone & Golden Ziggurat Armor
+    ctx.fillStyle = isVulnerable ? '#fde047' : '#292524';
+    ctx.fillRect(px + 4, py + 10, w - 8, h - 18);
+    ctx.fillStyle = isVulnerable ? '#fef9c3' : isPhase3 ? '#dc2626' : isPhase2 ? '#d97706' : '#57534e';
+    ctx.fillRect(px + 8, py + 14, w - 16, h - 26);
+
+    // Glowing Emerald-Gold Sun Emblem on Chest
+    ctx.fillStyle = '#eab308';
+    ctx.fillRect(px + 18, py + 20, w - 36, 18);
+    ctx.fillStyle = isPhase3 ? '#ef4444' : '#10b981';
+    ctx.fillRect(px + 22, py + 24, w - 44, 10);
+
+    // Ancient Sun-God Mask & Golden Headdress
+    const headX = boss.facing === -1 ? px + 6 : px + w - 36;
+    ctx.fillStyle = '#44403c';
+    ctx.fillRect(headX, py - 2, 30, 22);
+    ctx.fillStyle = '#eab308';
+    ctx.fillRect(headX - 2, py - 10, 34, 8);
+    ctx.fillStyle = '#10b981';
+    ctx.fillRect(headX + 4, py - 18, 6, 8);
+    ctx.fillRect(headX + 12, py - 22, 6, 12);
+    ctx.fillRect(headX + 20, py - 18, 6, 8);
+
+    // Glowing Ancient Eyes
+    ctx.fillStyle = isVulnerable ? '#38bdf8' : '#fef08a';
+    ctx.fillRect(headX + (boss.facing === -1 ? 5 : 15), py + 7, 10, 5);
+
+    // Heavy Stone Monolith Feet
+    ctx.fillStyle = '#1c1917';
+    ctx.fillRect(px + 8, py + h - 10 + step * 2, 20, 10);
+    ctx.fillRect(px + w - 28, py + h - 10 + (1 - step) * 2, 20, 10);
+
+    if (isVulnerable) {
+      const starOffset = Math.floor(Math.sin(time * 10) * 10);
+      ctx.fillStyle = '#fde047';
+      ctx.fillRect(px + 20 + starOffset, py - 26, 8, 8);
+      ctx.fillRect(px + 38 - starOffset, py - 26, 8, 8);
+    }
+    return;
+  }
 
   if (boss.name.includes('Chronos')) {
     // CHRONOS, THE TIMEKEEPER (Ancient Mechanical Clockwork Titan Guardian Boss)
@@ -3580,4 +4266,66 @@ export function drawParticlesAndFloatingText(
     ctx.fillText(ft.text, Math.floor(ft.x), Math.floor(ft.y));
   }
 }
+
+export function drawCrystalLaser(
+  ctx: CanvasRenderingContext2D,
+  col: number,
+  topRow: number,
+  bottomRow: number,
+  state: 'IDLE' | 'WARNING' | 'ACTIVE',
+  time: number
+) {
+  const x = col * 32;
+  const topY = topRow * 32;
+  const bottomY = bottomRow * 32;
+  const flicker = Math.floor(time * 20) % 2 === 0;
+
+  // Crystal Emitter Node at topRow
+  ctx.fillStyle = '#312e81';
+  ctx.fillRect(x + 4, topY, 24, 12);
+  ctx.fillStyle = state !== 'IDLE' ? '#f0abfc' : '#06b6d4';
+  ctx.fillRect(x + 8, topY + 3, 16, 6);
+
+  if (state === 'WARNING') {
+    ctx.fillStyle = flicker ? 'rgba(240, 171, 252, 0.55)' : 'rgba(103, 232, 249, 0.45)';
+    ctx.fillRect(x + 14, topY + 12, 4, bottomY - topY - 12);
+    return;
+  }
+
+  if (state === 'ACTIVE') {
+    ctx.fillStyle = 'rgba(217, 70, 239, 0.55)';
+    ctx.fillRect(x + 6, topY + 12, 20, bottomY - topY - 12);
+    ctx.fillStyle = flicker ? '#67e8f9' : '#f0abfc';
+    ctx.fillRect(x + 10, topY + 12, 12, bottomY - topY - 12);
+    ctx.fillStyle = '#ffffff';
+    ctx.fillRect(x + 13, topY + 12, 6, bottomY - topY - 12);
+  }
+}
+
+export function drawArrowTrap(
+  ctx: CanvasRenderingContext2D,
+  col: number,
+  row: number,
+  direction: -1 | 1,
+  time: number
+) {
+  const x = col * 32;
+  const y = row * 32;
+  const pulse = Math.floor(time * 8) % 2 === 0;
+
+  // Carved Stone Totem Face on the block
+  ctx.fillStyle = '#292524';
+  ctx.fillRect(x + 2, y + 2, 28, 28);
+  ctx.fillStyle = '#78716c';
+  ctx.fillRect(x + 4, y + 4, 24, 24);
+  // Glowing Emerald Totem Eyes
+  ctx.fillStyle = pulse ? '#4ade80' : '#eab308';
+  ctx.fillRect(x + 8, y + 8, 6, 4);
+  ctx.fillRect(x + 18, y + 8, 6, 4);
+  // Dark Dart Firing Aperture
+  ctx.fillStyle = '#090d16';
+  const portX = direction === -1 ? x + 2 : x + 22;
+  ctx.fillRect(portX, y + 16, 8, 8);
+}
+
 

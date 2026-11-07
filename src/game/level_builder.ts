@@ -156,3 +156,39 @@ export function addWarpPipe(grid: number[][], col: number, groundRow: number, he
   }
 }
 
+export function addPhantomBridge(grid: number[][], startCol: number, endCol: number, row: number) {
+  for (let c = startCol; c <= endCol; c++) {
+    if (c < 0 || c >= grid[0].length) continue;
+    grid[row][c] = TileType.PHANTOM_BLOCK;
+  }
+}
+
+export function addMineRail(
+  grid: number[][],
+  startCol: number,
+  endCol: number,
+  row: number,
+  direction: 'LEFT' | 'RIGHT'
+) {
+  const tile = direction === 'LEFT' ? TileType.MINE_RAIL_LEFT : TileType.MINE_RAIL_RIGHT;
+  for (let c = startCol; c <= endCol; c++) {
+    if (c < 0 || c >= grid[0].length) continue;
+    grid[row][c] = tile;
+  }
+}
+
+export function addFragileCrystalBridge(grid: number[][], startCol: number, endCol: number, row: number) {
+  for (let c = startCol; c <= endCol; c++) {
+    if (c < 0 || c >= grid[0].length) continue;
+    grid[row][c] = TileType.FRAGILE_CRYSTAL;
+  }
+}
+
+export function addAncientCrumbleBridge(grid: number[][], startCol: number, endCol: number, row: number) {
+  for (let c = startCol; c <= endCol; c++) {
+    if (c < 0 || c >= grid[0].length) continue;
+    grid[row][c] = TileType.ANCIENT_CRUMBLE;
+  }
+}
+
+

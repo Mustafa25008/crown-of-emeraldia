@@ -40,6 +40,8 @@ import {
   drawGoldenKey,
   drawLockedMechanicalDoor,
   drawChronosHudKeyBadge,
+  drawCrystalLaser,
+  drawArrowTrap,
   drawParticlesAndFloatingText,
 } from './renderer';
 
@@ -168,6 +170,7 @@ export class PlatformerEngine {
   private pipeStandTimer: number = 0;
   private pipeWarpCooldown: number = 0;
   private teleportCooldown: number = 0;
+  private arrowTrapTimers: number[] = [];
   private parentLevelSnapshot: {
     tiles: number[][];
     activeCoins: Map<string, { x: number; y: number; collected: boolean }>;
@@ -227,29 +230,62 @@ export class PlatformerEngine {
   }
 
   private createInitialBossState(): BossState {
-    const isWorld7Boss = this.level.worldId === 7 || this.level.id >= 31;
-    const isWorld6Boss = !isWorld7Boss && (this.level.worldId === 6 || this.level.id >= 26);
+    const isWorld10Boss = this.level.worldId === 10 || this.level.id >= 46;
+    const isWorld9Boss = !isWorld10Boss && (this.level.worldId === 9 || this.level.id >= 41);
+    const isWorld8Boss =
+      !isWorld10Boss && !isWorld9Boss && (this.level.worldId === 8 || this.level.id >= 36);
+    const isWorld7Boss =
+      !isWorld10Boss &&
+      !isWorld9Boss &&
+      !isWorld8Boss &&
+      (this.level.worldId === 7 || this.level.id >= 31);
+    const isWorld6Boss =
+      !isWorld10Boss &&
+      !isWorld9Boss &&
+      !isWorld8Boss &&
+      !isWorld7Boss &&
+      (this.level.worldId === 6 || this.level.id >= 26);
     const isWorld5Boss =
-      !isWorld7Boss && !isWorld6Boss && (this.level.worldId === 5 || this.level.id >= 21);
+      !isWorld10Boss &&
+      !isWorld9Boss &&
+      !isWorld8Boss &&
+      !isWorld7Boss &&
+      !isWorld6Boss &&
+      (this.level.worldId === 5 || this.level.id >= 21);
     const isWorld4Boss =
+      !isWorld10Boss &&
+      !isWorld9Boss &&
+      !isWorld8Boss &&
       !isWorld7Boss &&
       !isWorld6Boss &&
       !isWorld5Boss &&
       (this.level.worldId === 4 || this.level.id >= 16);
     const isWorld3Boss =
+      !isWorld10Boss &&
+      !isWorld9Boss &&
+      !isWorld8Boss &&
       !isWorld7Boss &&
       !isWorld6Boss &&
       !isWorld5Boss &&
       !isWorld4Boss &&
       (this.level.worldId === 3 || this.level.id >= 11);
     const isWorld2Boss =
+      !isWorld10Boss &&
+      !isWorld9Boss &&
+      !isWorld8Boss &&
       !isWorld7Boss &&
       !isWorld6Boss &&
       !isWorld5Boss &&
       !isWorld4Boss &&
       !isWorld3Boss &&
       (this.level.worldId === 2 || this.level.id >= 6);
-    const bossHp = isWorld7Boss
+    const bossHp = isWorld10Boss
+      ? 14
+      : isWorld9Boss
+      ? 12
+      : isWorld8Boss
+      ? 11
+      : isWorld7Boss
       ? 10
       : isWorld6Boss
       ? 9
@@ -258,7 +294,13 @@ export class PlatformerEngine {
       : isWorld4Boss || isWorld3Boss || isWorld2Boss
       ? 6
       : 5;
-    const bossName = isWorld7Boss
+    const bossName = isWorld10Boss
+      ? 'Azhurak, the Ancient Colossus'
+      : isWorld9Boss
+      ? 'Crystalis, the Crystal Guardian'
+      : isWorld8Boss
+      ? 'Nocthar, the Shadow King'
+      : isWorld7Boss
       ? 'Chronos, the Timekeeper'
       : isWorld6Boss
       ? 'Aetherion, the Storm Sovereign'
@@ -271,17 +313,27 @@ export class PlatformerEngine {
       : isWorld2Boss
       ? 'Abyssal Warlord Krakenos'
       : 'Ironclad King Dredge';
+    const spawnX =
+      isWorld10Boss || isWorld9Boss || isWorld8Boss
+        ? (this.level.bossArenaStartX || 152 * TILE_SIZE) + 22 * TILE_SIZE
+        : 112 * TILE_SIZE;
     return {
       active: false,
       name: bossName,
       hp: bossHp,
       maxHp: bossHp,
-      x: 112 * TILE_SIZE,
+      x: spawnX,
       y: 13 * TILE_SIZE,
       vx: 0,
       vy: 0,
-      width: isWorld7Boss || isWorld6Boss || isWorld5Boss ? 68 : 64,
-      height: isWorld7Boss || isWorld6Boss || isWorld5Boss ? 68 : 64,
+      width:
+        isWorld10Boss || isWorld9Boss || isWorld8Boss || isWorld7Boss || isWorld6Boss || isWorld5Boss
+          ? 68
+          : 64,
+      height:
+        isWorld10Boss || isWorld9Boss || isWorld8Boss || isWorld7Boss || isWorld6Boss || isWorld5Boss
+          ? 68
+          : 64,
       facing: -1,
       phase: 'IDLE',
       phaseTimer: 1.5,
@@ -434,6 +486,9 @@ export class PlatformerEngine {
       dir: 1,
     }));
 
+    this.arrowTrapTimers = (this.level.arrowTraps || []).map(
+      (at) => (at.intervalSeconds || 2.8) - ((at.phaseOffset || 0) % (at.intervalSeconds || 2.8))
+    );
     this.boss = this.createInitialBossState();
     this.emitHud();
   }
@@ -1266,6 +1321,8 @@ export class PlatformerEngine {
       t === TileType.WARP_PIPE_BODY_R ||
       t === TileType.CONVEYOR_LEFT ||
       t === TileType.CONVEYOR_RIGHT ||
+      t === TileType.MINE_RAIL_LEFT ||
+      t === TileType.MINE_RAIL_RIGHT ||
       t === TileType.BRIDGE ||
       t === TileType.CRUMBLE_BLOCK ||
       t === TileType.FRAGILE_ICE ||
@@ -1273,12 +1330,18 @@ export class PlatformerEngine {
       t === TileType.CLOUD_PLATFORM ||
       t === TileType.TEMP_CLOUD ||
       t === TileType.TEMP_COG_PLATFORM ||
+      t === TileType.PHANTOM_BLOCK ||
+      t === TileType.FRAGILE_CRYSTAL ||
+      t === TileType.ANCIENT_CRUMBLE ||
       t === TileType.SPIKE ||
       t === TileType.CACTUS ||
       t === TileType.ICICLE ||
       t === TileType.BURNING_ROCK ||
       t === TileType.STORM_SPIKE ||
-      t === TileType.GEAR_HAZARD
+      t === TileType.GEAR_HAZARD ||
+      t === TileType.CURSED_THORN ||
+      t === TileType.CRYSTAL_SPIKE ||
+      t === TileType.POISON_PLANT
     );
   }
 
@@ -1290,7 +1353,10 @@ export class PlatformerEngine {
       t === TileType.MAGMA_CRUMBLE ||
       t === TileType.CLOUD_PLATFORM ||
       t === TileType.TEMP_CLOUD ||
-      t === TileType.TEMP_COG_PLATFORM
+      t === TileType.TEMP_COG_PLATFORM ||
+      t === TileType.PHANTOM_BLOCK ||
+      t === TileType.FRAGILE_CRYSTAL ||
+      t === TileType.ANCIENT_CRUMBLE
     );
   }
 
@@ -1301,7 +1367,10 @@ export class PlatformerEngine {
       t === TileType.ICICLE ||
       t === TileType.BURNING_ROCK ||
       t === TileType.STORM_SPIKE ||
-      t === TileType.GEAR_HAZARD
+      t === TileType.GEAR_HAZARD ||
+      t === TileType.CURSED_THORN ||
+      t === TileType.CRYSTAL_SPIKE ||
+      t === TileType.POISON_PLANT
     );
   }
 
@@ -1311,8 +1380,8 @@ export class PlatformerEngine {
     const belowRow = Math.floor((this.py + this.pHeight + 2) / TILE_SIZE);
     for (let c = startCol; c <= endCol; c++) {
       const t = this.getTileAt(c, belowRow);
-      if (t === TileType.CONVEYOR_LEFT) return -1;
-      if (t === TileType.CONVEYOR_RIGHT) return 1;
+      if (t === TileType.CONVEYOR_LEFT || t === TileType.MINE_RAIL_LEFT) return -1;
+      if (t === TileType.CONVEYOR_RIGHT || t === TileType.MINE_RAIL_RIGHT) return 1;
     }
     return 0;
   }
@@ -1366,11 +1435,11 @@ export class PlatformerEngine {
     const existing = this.crumblingBlocks.find((cb) => cb.col === col && cb.row === row);
     if (!existing) {
       const delay =
-        originalTile === TileType.FRAGILE_ICE
+        originalTile === TileType.FRAGILE_ICE || originalTile === TileType.FRAGILE_CRYSTAL
           ? 0.36
-          : originalTile === TileType.MAGMA_CRUMBLE
+          : originalTile === TileType.MAGMA_CRUMBLE || originalTile === TileType.PHANTOM_BLOCK
           ? 0.38
-          : originalTile === TileType.TEMP_COG_PLATFORM
+          : originalTile === TileType.TEMP_COG_PLATFORM || originalTile === TileType.ANCIENT_CRUMBLE
           ? 0.4
           : 0.42;
       this.crumblingBlocks.push({ col, row, state: 'SHAKING', timer: delay, originalTile });
@@ -1387,13 +1456,16 @@ export class PlatformerEngine {
           this.tiles[cb.row][cb.col] = TileType.EMPTY;
           soundManager.playBreakBlock();
           const particleColor =
-            cb.originalTile === TileType.FRAGILE_ICE
+            cb.originalTile === TileType.FRAGILE_ICE || cb.originalTile === TileType.FRAGILE_CRYSTAL
               ? '#7dd3fc'
+              : cb.originalTile === TileType.PHANTOM_BLOCK
+              ? '#c084fc'
               : cb.originalTile === TileType.MAGMA_CRUMBLE
               ? '#f97316'
               : cb.originalTile === TileType.TEMP_CLOUD
               ? '#bae6fd'
-              : cb.originalTile === TileType.TEMP_COG_PLATFORM
+              : cb.originalTile === TileType.TEMP_COG_PLATFORM ||
+                cb.originalTile === TileType.ANCIENT_CRUMBLE
               ? '#fbbf24'
               : '#d97706';
           this.spawnBurstParticles(cb.col * TILE_SIZE + 16, cb.row * TILE_SIZE + 10, particleColor, 8);
@@ -1539,7 +1611,10 @@ export class PlatformerEngine {
               standTile === TileType.FRAGILE_ICE ||
               standTile === TileType.MAGMA_CRUMBLE ||
               standTile === TileType.TEMP_CLOUD ||
-              standTile === TileType.TEMP_COG_PLATFORM
+              standTile === TileType.TEMP_COG_PLATFORM ||
+              standTile === TileType.PHANTOM_BLOCK ||
+              standTile === TileType.FRAGILE_CRYSTAL ||
+              standTile === TileType.ANCIENT_CRUMBLE
             ) {
               this.triggerCrumbleBlock(cc, bottomRow, standTile);
             }
@@ -2520,6 +2595,66 @@ export class PlatformerEngine {
         }
       }
     }
+
+    // 6. World 9: Prismatic Crystal Lasers
+    if (!this.inHiddenRoom && this.level.crystalLasers && this.level.crystalLasers.length > 0) {
+      for (const cl of this.level.crystalLasers) {
+        const state = this.getCrystalLaserState(cl);
+        if (state === 'ACTIVE' && !this.isInvincibleStar) {
+          const lx = cl.col * TILE_SIZE + 8;
+          const lw = 16;
+          const ly = cl.topRow * TILE_SIZE;
+          const lh = Math.max(32, (cl.bottomRow - cl.topRow) * TILE_SIZE);
+          if (this.rectsOverlap(this.px, this.py, this.pWidth, this.pHeight, lx, ly, lw, lh)) {
+            this.damagePlayer();
+          }
+        }
+      }
+    }
+
+    // 7. World 10: Ancient Poison Dart / Stone Arrow Traps
+    if (!this.inHiddenRoom && this.level.arrowTraps && this.level.arrowTraps.length > 0) {
+      for (let i = 0; i < this.level.arrowTraps.length; i++) {
+        const at = this.level.arrowTraps[i];
+        this.arrowTrapTimers[i] = (this.arrowTrapTimers[i] ?? 1.8) - dt;
+        if (this.arrowTrapTimers[i] <= 0) {
+          this.arrowTrapTimers[i] = at.intervalSeconds || 2.8;
+          const trapX = at.col * TILE_SIZE + 16;
+          const trapY = at.row * TILE_SIZE + 16;
+          if (Math.abs(trapX - this.px) < CANVAS_WIDTH * 0.95) {
+            this.fireballs.push({
+              id: `arrow_trap_${i}_${Date.now()}_${Math.random()}`,
+              x: trapX + at.direction * 14,
+              y: trapY,
+              vx: at.direction * 270,
+              vy: 0,
+              radius: 7,
+              bounces: 0,
+              isEnemyProjectile: true,
+              active: true,
+            });
+            this.spawnBurstParticles(trapX + at.direction * 12, trapY, '#a3e635', 5);
+          }
+        }
+      }
+    }
+  }
+
+  private getCrystalLaserState(cl: {
+    col: number;
+    topRow: number;
+    bottomRow: number;
+    cycleSeconds?: number;
+    phaseOffset?: number;
+  }): 'IDLE' | 'WARNING' | 'ACTIVE' {
+    const cycle = cl.cycleSeconds || 3.4;
+    const t = ((this.elapsedTime + (cl.phaseOffset || 0)) % cycle + cycle) % cycle;
+    const warnStart = cycle * 0.42;
+    const activeStart = cycle * 0.64;
+    const activeEnd = cycle * 0.9;
+    if (t < warnStart || t >= activeEnd) return 'IDLE';
+    if (t < activeStart) return 'WARNING';
+    return 'ACTIVE';
   }
 
   private updateEnemies(dt: number) {
@@ -2713,14 +2848,25 @@ export class PlatformerEngine {
     this.boss.phaseTimer -= dt;
     this.boss.facing = this.px < this.boss.x ? -1 : 1;
 
+    const isAzhurak = this.boss.name.includes('Azhurak');
+    const isCrystalis = this.boss.name.includes('Crystalis');
+    const isNocthar = this.boss.name.includes('Nocthar');
     const isChronos = this.boss.name.includes('Chronos');
     const isAetherion = this.boss.name.includes('Aetherion');
     const isIgnarok = this.boss.name.includes('Ignarok');
+    const isHighTierBoss =
+      isAzhurak || isCrystalis || isNocthar || isChronos || isAetherion || isIgnarok;
     const bossEnraged =
+      (isAzhurak && this.boss.hp <= 9) ||
+      (isCrystalis && this.boss.hp <= 8) ||
+      (isNocthar && this.boss.hp <= 7) ||
       (isChronos && this.boss.hp <= 7) ||
       (isAetherion && this.boss.hp <= 6) ||
       (isIgnarok && this.boss.hp <= 5);
     const bossOverdrive =
+      (isAzhurak && this.boss.hp <= 4) ||
+      (isCrystalis && this.boss.hp <= 4) ||
+      (isNocthar && this.boss.hp <= 3) ||
       (isChronos && this.boss.hp <= 3) ||
       (isAetherion && this.boss.hp <= 3) ||
       (isIgnarok && this.boss.hp <= 2);
@@ -2736,15 +2882,35 @@ export class PlatformerEngine {
           this.boss.phaseTimer = bossOverdrive ? 1.15 : 1.4;
           this.spawnBossFireVolley();
         } else if (nextPattern === 1) {
+          if (isNocthar) {
+            // Nocthar Shadow Teleportation across the throne room!
+            soundManager.playTeleport();
+            this.spawnBurstParticles(this.boss.x + 32, this.boss.y + 32, '#c084fc', 20);
+            const arenaRight = Math.max(124 * TILE_SIZE, (this.level.widthInTiles - 10) * TILE_SIZE) - this.boss.width;
+            const targetSideX =
+              this.px > (arenaStart + arenaRight) * 0.5
+                ? arenaStart + 96
+                : arenaRight - 96;
+            this.boss.x = Math.max(arenaStart + 32, Math.min(arenaRight, targetSideX));
+            this.boss.facing = this.px < this.boss.x ? -1 : 1;
+            this.spawnBurstParticles(this.boss.x + 32, this.boss.y + 32, '#a855f7', 20);
+          }
           this.boss.phase = 'CHARGE';
           this.boss.phaseTimer = bossOverdrive ? 1.35 : 1.6;
-          const chargeSpeed = bossOverdrive ? 320 : bossEnraged ? 285 : 240;
+          const chargeSpeed = bossOverdrive ? 335 : bossEnraged ? 295 : 245;
           this.boss.vx = this.boss.facing * chargeSpeed;
         } else {
           this.boss.phase = 'JUMP_SLAM';
           this.boss.phaseTimer = 1.4;
-          this.boss.vy = isChronos ? -620 : isAetherion ? -610 : isIgnarok ? -590 : -560;
-          this.boss.vx = this.boss.facing * (bossEnraged ? 210 : 170);
+          this.boss.vy =
+            isAzhurak || isCrystalis || isNocthar || isChronos
+              ? -625
+              : isAetherion
+              ? -610
+              : isIgnarok
+              ? -590
+              : -560;
+          this.boss.vx = this.boss.facing * (bossEnraged ? 215 : 170);
           soundManager.playJump(true);
         }
         this.emitHud();
@@ -2753,21 +2919,21 @@ export class PlatformerEngine {
       this.boss.vx = 0;
       if (this.boss.phaseTimer <= 0) {
         this.boss.phase = 'VULNERABLE';
-        this.boss.phaseTimer = isChronos || isAetherion || isIgnarok ? 2.6 : 2.8;
+        this.boss.phaseTimer = isHighTierBoss ? 2.6 : 2.8;
         this.emitHud();
       }
     } else if (this.boss.phase === 'CHARGE') {
       if (this.boss.phaseTimer <= 0) {
         this.boss.vx = 0;
         this.boss.phase = 'VULNERABLE';
-        this.boss.phaseTimer = isChronos || isAetherion || isIgnarok ? 2.6 : 2.8;
+        this.boss.phaseTimer = isHighTierBoss ? 2.6 : 2.8;
         this.emitHud();
       }
     } else if (this.boss.phase === 'JUMP_SLAM') {
       if ((this.boss as BossState & { onGroundCheck?: boolean }).onGroundCheck && this.boss.phaseTimer < 0.9) {
         this.boss.vx = 0;
         this.boss.phase = 'VULNERABLE';
-        this.boss.phaseTimer = isChronos || isAetherion || isIgnarok ? 2.7 : 3.0;
+        this.boss.phaseTimer = isHighTierBoss ? 2.7 : 3.0;
         this.emitHud();
       }
     } else if (this.boss.phase === 'VULNERABLE') {
@@ -2785,7 +2951,8 @@ export class PlatformerEngine {
     this.boss.y += this.boss.vy * dt;
 
     const minArenaX = arenaStart + 16;
-    const maxArenaX = 124 * TILE_SIZE - this.boss.width;
+    const maxArenaX =
+      Math.max(124 * TILE_SIZE, (this.level.widthInTiles - 10) * TILE_SIZE) - this.boss.width;
     if (this.boss.x < minArenaX) {
       this.boss.x = minArenaX;
       this.boss.vx = -this.boss.vx;
@@ -2802,9 +2969,13 @@ export class PlatformerEngine {
         this.spawnBurstParticles(
           this.boss.x + 32,
           groundY + 60,
-          isChronos
-            ? '#38bdf8'
-            : isAetherion
+          isAzhurak
+            ? '#34d399'
+            : isCrystalis
+            ? '#e879f9'
+            : isNocthar
+            ? '#c084fc'
+            : isChronos || isAetherion
             ? '#38bdf8'
             : isGlacior
             ? '#7dd3fc'
@@ -2813,14 +2984,24 @@ export class PlatformerEngine {
             : '#fb923c',
           16
         );
-        if ((isGlacior || isIgnarok || isAetherion || isChronos) && this.boss.phase === 'JUMP_SLAM') {
+        if ((isGlacior || isHighTierBoss) && this.boss.phase === 'JUMP_SLAM') {
           // Ground Slam / Aerial Dive unleashes shockwaves left and right!
           for (const dir of [-1, 1] as const) {
             this.fireballs.push({
               id: `slam_wave_${Date.now()}_${dir}_${Math.random()}`,
               x: this.boss.x + (dir === -1 ? -4 : this.boss.width + 4),
               y: groundY + this.boss.height - 12,
-              vx: dir * (isChronos ? 275 : isAetherion ? 265 : isIgnarok ? 255 : 235),
+              vx:
+                dir *
+                (isAzhurak || isCrystalis
+                  ? 285
+                  : isNocthar || isChronos
+                  ? 275
+                  : isAetherion
+                  ? 265
+                  : isIgnarok
+                  ? 255
+                  : 235),
               vy: 0,
               radius: 8,
               bounces: 0,
@@ -2828,9 +3009,9 @@ export class PlatformerEngine {
               active: true,
             });
           }
-          // Ignarok / Aetherion / Chronos Phase 2/3 Ground Slam also triggers falling meteors, sky bolts, or time-rifts!
+          // Enraged Phase 2/3 Ground Slam also triggers falling ceiling debris, crystal shards, or shadow bolts!
           if (bossEnraged) {
-            const boltCount = bossOverdrive ? 3 : 2;
+            const boltCount = bossOverdrive ? 4 : 2;
             for (let m = 0; m < boltCount; m++) {
               const mx = arenaStart + 96 + ((m * 180 + Math.floor(this.elapsedTime * 90)) % 680);
               this.fireballs.push({
@@ -2838,7 +3019,7 @@ export class PlatformerEngine {
                 x: mx,
                 y: 44,
                 vx: 0,
-                vy: isChronos ? 265 : isAetherion ? 255 : 230,
+                vy: isAzhurak || isCrystalis || isNocthar || isChronos ? 270 : isAetherion ? 255 : 230,
                 radius: 9,
                 bounces: 0,
                 isEnemyProjectile: true,
@@ -2887,31 +3068,51 @@ export class PlatformerEngine {
     const startX = dir === -1 ? this.boss.x - 8 : this.boss.x + this.boss.width + 8;
     const startY = this.boss.y + 22;
 
+    const isAzhurak = this.boss.name.includes('Azhurak');
+    const isCrystalis = this.boss.name.includes('Crystalis');
+    const isNocthar = this.boss.name.includes('Nocthar');
     const isChronos = this.boss.name.includes('Chronos');
     const isAetherion = this.boss.name.includes('Aetherion');
     const isIgnarok = this.boss.name.includes('Ignarok');
     const isGlacior = this.boss.name.includes('Glacior');
-    const speedsY = isChronos
-      ? this.boss.hp <= 7
-        ? [-120, -60, 0, 60, 120]
-        : [-95, -32, 32, 95]
-      : isAetherion
-      ? this.boss.hp <= 6
-        ? [-115, -55, 0, 55, 115]
-        : [-95, -30, 30, 95]
-      : isIgnarok
-      ? this.boss.hp <= 5
-        ? [-110, -55, 0, 55, 110]
-        : [-90, -30, 30, 90]
-      : isGlacior
-      ? [-85, -25, 35, 95]
-      : [-60, 20, 95];
+    const speedsY =
+      isAzhurak || isCrystalis || isNocthar
+        ? this.boss.hp <= 8
+          ? [-125, -62, 0, 62, 125]
+          : [-98, -34, 34, 98]
+        : isChronos
+        ? this.boss.hp <= 7
+          ? [-120, -60, 0, 60, 120]
+          : [-95, -32, 32, 95]
+        : isAetherion
+        ? this.boss.hp <= 6
+          ? [-115, -55, 0, 55, 115]
+          : [-95, -30, 30, 95]
+        : isIgnarok
+        ? this.boss.hp <= 5
+          ? [-110, -55, 0, 55, 110]
+          : [-90, -30, 30, 90]
+        : isGlacior
+        ? [-85, -25, 35, 95]
+        : [-60, 20, 95];
     for (const vy of speedsY) {
       this.fireballs.push({
         id: `boss_fb_${Date.now()}_${Math.random()}`,
         x: startX,
         y: startY,
-        vx: dir * (isChronos ? 315 : isAetherion ? 305 : isIgnarok ? 295 : isGlacior ? 285 : 270),
+        vx:
+          dir *
+          (isAzhurak || isCrystalis
+            ? 325
+            : isNocthar || isChronos
+            ? 315
+            : isAetherion
+            ? 305
+            : isIgnarok
+            ? 295
+            : isGlacior
+            ? 285
+            : 270),
         vy,
         radius: 8,
         bounces: 0,
@@ -3316,6 +3517,17 @@ export class PlatformerEngine {
     }
     for (const mp of this.movingPlatforms) {
       drawMovingPlatform(ctx, mp.x, mp.y, mp.width);
+    }
+    if (!this.inHiddenRoom && this.level.crystalLasers) {
+      for (const cl of this.level.crystalLasers) {
+        const state = this.getCrystalLaserState(cl);
+        drawCrystalLaser(ctx, cl.col, cl.topRow, cl.bottomRow, state, this.elapsedTime);
+      }
+    }
+    if (!this.inHiddenRoom && this.level.arrowTraps) {
+      for (const at of this.level.arrowTraps) {
+        drawArrowTrap(ctx, at.col, at.row, at.direction, this.elapsedTime);
+      }
     }
 
     // 4. Checkpoint & Goal Flagpole / Locked Mechanical Door

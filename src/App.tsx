@@ -127,7 +127,13 @@ export default function App() {
       setCurrentLevelId(levelId);
       setSelectedWorldId(
         level.worldId ||
-          (levelId > 30
+          (levelId > 45
+            ? 10
+            : levelId > 40
+            ? 9
+            : levelId > 35
+            ? 8
+            : levelId > 30
             ? 7
             : levelId > 25
             ? 6
@@ -194,7 +200,10 @@ export default function App() {
               level.id === 20 ||
               level.id === 25 ||
               level.id === 30 ||
-              level.id === 35
+              level.id === 35 ||
+              level.id === 40 ||
+              level.id === 45 ||
+              level.id === 50
               ? 'WORLD_VICTORY'
               : 'LEVEL_COMPLETE';
           });
@@ -323,7 +332,10 @@ export default function App() {
       lvlId === 16 ||
       lvlId === 21 ||
       lvlId === 26 ||
-      lvlId === 31
+      lvlId === 31 ||
+      lvlId === 36 ||
+      lvlId === 41 ||
+      lvlId === 46
     )
       return true;
     const prevHigh = saveData.highScores[lvlId - 1] || 0;
@@ -512,6 +524,9 @@ export default function App() {
                 const isInfernoWorld = world.id === 5;
                 const isCelestiaWorld = world.id === 6;
                 const isChronosWorld = world.id === 7;
+                const isShadowveilWorld = world.id === 8;
+                const isCrystalWorld = world.id === 9;
+                const isRuinsWorld = world.id === 10;
 
                 return (
                   <button
@@ -521,7 +536,13 @@ export default function App() {
                       navigateToMenu('LEVEL_SELECT');
                     }}
                     className={`w-full bg-slate-950 border-2 ${
-                      isChronosWorld
+                      isRuinsWorld
+                        ? 'border-lime-500/75 hover:border-lime-400'
+                        : isCrystalWorld
+                        ? 'border-fuchsia-400/75 hover:border-fuchsia-300'
+                        : isShadowveilWorld
+                        ? 'border-purple-500/75 hover:border-purple-400'
+                        : isChronosWorld
                         ? 'border-yellow-500/75 hover:border-yellow-400'
                         : isCelestiaWorld
                         ? 'border-indigo-400/75 hover:border-indigo-300'
@@ -541,7 +562,13 @@ export default function App() {
                     <div className="text-[11px] text-slate-400">{world.subtitle}</div>
                     <div
                       className={`text-xs font-mono-num font-semibold ${
-                        isChronosWorld
+                        isRuinsWorld
+                          ? 'text-lime-300'
+                          : isCrystalWorld
+                          ? 'text-fuchsia-300'
+                          : isShadowveilWorld
+                          ? 'text-purple-300'
+                          : isChronosWorld
                           ? 'text-yellow-300'
                           : isCelestiaWorld
                           ? 'text-indigo-300'
@@ -1235,7 +1262,13 @@ export default function App() {
                         <div className="text-xs sm:text-sm font-bold text-emerald-400 mt-0.5 truncate">
                           Stage{' '}
                           {currentLevelDef.worldId ||
-                            (currentLevelId > 30
+                            (currentLevelId > 45
+                              ? 10
+                              : currentLevelId > 40
+                              ? 9
+                              : currentLevelId > 35
+                              ? 8
+                              : currentLevelId > 30
                               ? 7
                               : currentLevelId > 25
                               ? 6
@@ -1255,7 +1288,7 @@ export default function App() {
 
                     <div className="flex flex-col gap-2">
                       <button
-                        onClick={() => startLevel(Math.min(35, currentLevelId + 1), false)}
+                        onClick={() => startLevel(Math.min(50, currentLevelId + 1), false)}
                         className="w-full min-h-[38px] flex items-center justify-center gap-2 py-2 px-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
                       >
                         <span>Next Level</span>
@@ -1324,7 +1357,13 @@ export default function App() {
 
                     <div>
                       <div className="text-[10px] sm:text-xs font-bold text-amber-400">
-                        {currentLevelId >= 31
+                        {currentLevelId >= 46
+                          ? 'AZHURAK, THE ANCIENT COLOSSUS DEFEATED!'
+                          : currentLevelId >= 41
+                          ? 'CRYSTALIS, THE CRYSTAL GUARDIAN DEFEATED!'
+                          : currentLevelId >= 36
+                          ? 'NOCTHAR, THE SHADOW KING DEFEATED!'
+                          : currentLevelId >= 31
                           ? 'CHRONOS, THE TIMEKEEPER DEFEATED!'
                           : currentLevelId >= 26
                           ? 'AETHERION, THE STORM SOVEREIGN DEFEATED!'
@@ -1339,7 +1378,13 @@ export default function App() {
                           : 'IRONCLAD KING DREDGE DEFEATED!'}
                       </div>
                       <h3 className="font-pixel text-xs sm:text-base text-white mt-0.5">
-                        {currentLevelId >= 31
+                        {currentLevelId >= 46
+                          ? 'WORLD 10: ANCIENT RUINS CONQUERED!'
+                          : currentLevelId >= 41
+                          ? 'WORLD 9: CRYSTAL CAVERNS CONQUERED!'
+                          : currentLevelId >= 36
+                          ? 'WORLD 8: SHADOWVEIL KINGDOM CONQUERED!'
+                          : currentLevelId >= 31
                           ? 'WORLD 7: CHRONOS REALM CONQUERED!'
                           : currentLevelId >= 26
                           ? 'WORLD 6: CELESTIA KINGDOM CONQUERED!'
@@ -1414,11 +1459,38 @@ export default function App() {
                         >
                           Enter World 7
                         </button>
+                      ) : currentLevelId === 35 ? (
+                        <button
+                          onClick={() => startLevel(36, false)}
+                          className="min-h-[38px] py-2 px-3 bg-purple-400 hover:bg-purple-300 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
+                        >
+                          Enter World 8
+                        </button>
+                      ) : currentLevelId === 40 ? (
+                        <button
+                          onClick={() => startLevel(41, false)}
+                          className="min-h-[38px] py-2 px-3 bg-fuchsia-400 hover:bg-fuchsia-300 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
+                        >
+                          Enter World 9
+                        </button>
+                      ) : currentLevelId === 45 ? (
+                        <button
+                          onClick={() => startLevel(46, false)}
+                          className="min-h-[38px] py-2 px-3 bg-lime-400 hover:bg-lime-300 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
+                        >
+                          Enter World 10
+                        </button>
                       ) : (
                         <button
                           onClick={() =>
                             startLevel(
-                              currentLevelId >= 31
+                              currentLevelId >= 46
+                                ? 46
+                                : currentLevelId >= 41
+                                ? 41
+                                : currentLevelId >= 36
+                                ? 36
+                                : currentLevelId >= 31
                                 ? 31
                                 : currentLevelId >= 26
                                 ? 26
@@ -1437,7 +1509,13 @@ export default function App() {
                           className="min-h-[38px] py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
                         >
                           Replay World{' '}
-                          {currentLevelId >= 31
+                          {currentLevelId >= 46
+                            ? 10
+                            : currentLevelId >= 41
+                            ? 9
+                            : currentLevelId >= 36
+                            ? 8
+                            : currentLevelId >= 31
                             ? 7
                             : currentLevelId >= 26
                             ? 6

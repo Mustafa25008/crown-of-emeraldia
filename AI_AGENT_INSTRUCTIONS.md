@@ -4,24 +4,24 @@ This document defines the mandatory architectural standards, folder conventions,
 
 ---
 
-## 1. Project Folder Structure for Worlds & Levels
+## 1. Project Folder Structure for Worlds & Levels (Worlds 1 to 10)
 
-All worlds and levels must be organized modularly by world folder so new stages and worlds can be added cleanly without monolithic files:
+All 10 worlds (50 levels total) are organized modularly by world folder so stages and worlds can be maintained cleanly without monolithic files:
 
 ```text
 /src/game/
 ├── types.ts                  # Shared TypeScript interfaces, TileType enum, PowerState
-├── level_builder.ts          # Shared grid helpers (createEmptyGrid, fillGroundRange, addPipe, addStairs, addCoinRow)
-├── levels.ts                 # Master level registry combining all worlds
-├── engine.ts                 # Core physics, collision, and randomized power-up/star engine
-├── renderer.ts               # 16-bit pixel-art Canvas renderer
-├── world_1/
+├── level_builder.ts          # Shared grid helpers (createEmptyGrid, fillGroundRange, addPipe, addStairs, addCoinRow, etc.)
+├── levels.ts                 # Master level registry combining all 10 worlds (ALL_WORLDS, LEVELS)
+├── engine.ts                 # Core physics, collision, boss AI, secret rooms, and randomized power-up/star engine
+├── renderer.ts               # 16-bit pixel-art Canvas renderer for all 10 world themes and bosses
+├── world_1/                  # World 1: Emerald Kingdom (Grassland, Cavern, Sky Bridge, Fortress & Castle Stages 1-1 to 1-5)
 │   ├── index.ts              # Exports WORLD_1 and WORLD_1_LEVELS array (Levels 1-5)
-│   ├── level_1.ts            # Stage 1-1 definition (buildLevel1)
-│   ├── level_2.ts            # Stage 1-2 definition (buildLevel2)
-│   ├── level_3.ts            # Stage 1-3 definition (buildLevel3)
-│   ├── level_4.ts            # Stage 1-4 definition (buildLevel4)
-│   └── level_5.ts            # Stage 1-5 boss stage definition (buildLevel5)
+│   ├── level_1.ts            # Stage 1-1 definition (Emerald Meadows)
+│   ├── level_2.ts            # Stage 1-2 definition (Crystal Caverns)
+│   ├── level_3.ts            # Stage 1-3 definition (Canopy Sky-Bridge)
+│   ├── level_4.ts            # Stage 1-4 definition (Ironstone Keep)
+│   └── level_5.ts            # Stage 1-5 boss stage definition (Obsidian Throne & Boss Fight)
 ├── world_2/                  # World 2: Coral Abyss (Underwater Stages 2-1 to 2-4 + Boss Stage 2-5)
 │   ├── index.ts              # Exports WORLD_2 and WORLD_2_LEVELS array (Levels 6-10)
 │   ├── level_1.ts            # Stage 2-1 definition (Coral Shallows - Underwater)
@@ -43,79 +43,130 @@ All worlds and levels must be organized modularly by world folder so new stages 
 │   ├── level_3.ts            # Stage 4-3 definition (Frozen Depths - Ice Cavern, Icicles & Freezing Water)
 │   ├── level_4.ts            # Stage 4-4 definition (Blizzard Pass - Blizzard Wind & Exposed Ice Ledges)
 │   └── level_5.ts            # Stage 4-5 boss stage definition (Frostfang Castle & Glacior Boss Fight)
-└── world_5/                  # World 5: Inferno Kingdom (Volcano, Molten Cavern & Inferno Citadel Stages 5-1 to 5-5)
-    ├── index.ts              # Exports WORLD_5 and WORLD_5_LEVELS array (Levels 21-25)
-    ├── level_1.ts            # Stage 5-1 definition (Ashen Outskirts - Ash Ground, Burning Rocks & Lava Pools)
-    ├── level_2.ts            # Stage 5-2 definition (Molten Caverns - Flowing Lava, Falling Rocks & Magma Crumble)
-    ├── level_3.ts            # Stage 5-3 definition (Firefall Cliffs - Erupting Lava Geysers & Falling Debris)
-    ├── level_4.ts            # Stage 5-4 definition (The Burning Fortress - Fire Traps, Lava Chambers & Rotating Bars)
-    └── level_5.ts            # Stage 5-5 boss stage definition (Inferno Citadel & Ignarok Boss Fight)
+├── world_5/                  # World 5: Inferno Kingdom (Volcano, Molten Cavern & Inferno Citadel Stages 5-1 to 5-5)
+│   ├── index.ts              # Exports WORLD_5 and WORLD_5_LEVELS array (Levels 21-25)
+│   ├── level_1.ts            # Stage 5-1 definition (Ashen Outskirts - Ash Ground, Burning Rocks & Lava Pools)
+│   ├── level_2.ts            # Stage 5-2 definition (Molten Caverns - Flowing Lava, Falling Rocks & Magma Crumble)
+│   ├── level_3.ts            # Stage 5-3 definition (Firefall Cliffs - Erupting Lava Geysers & Falling Debris)
+│   ├── level_4.ts            # Stage 5-4 definition (The Burning Fortress - Fire Traps, Lava Chambers & Rotating Bars)
+│   └── level_5.ts            # Stage 5-5 boss stage definition (Inferno Citadel & Ignarok Boss Fight)
+├── world_6/                  # World 6: Celestia Kingdom (Floating Sky Islands, Sky Temple & Celestial Palace Stages 6-1 to 6-5)
+│   ├── index.ts              # Exports WORLD_6 and WORLD_6_LEVELS array (Levels 26-30)
+│   ├── level_1.ts            # Stage 6-1 definition (Cloudtop Meadows - Cloud Platforms & Bounce Clouds)
+│   ├── level_2.ts            # Stage 6-2 definition (Windrunner Heights - Updrafts, Sky Wind & Moving Clouds)
+│   ├── level_3.ts            # Stage 6-3 definition (Sky Temple Ruins - Disappearing Clouds & Rotating Traps)
+│   ├── level_4.ts            # Stage 6-4 definition (Starlight Ascent - Storm Lightning & High-Altitude Bridges)
+│   └── level_5.ts            # Stage 6-5 boss stage definition (Celestial Palace & Zephyros Boss Fight)
+├── world_7/                  # World 7: Chronos Realm (Clockwork Valley, Factory, Clock Tower, Rift & Citadel Stages 7-1 to 7-5)
+│   ├── index.ts              # Exports WORLD_7 and WORLD_7_LEVELS array (Levels 31-35)
+│   ├── level_1.ts            # Stage 7-1 definition (Gearworks Valley - Conveyors, Rotating Gears & Moving Platforms)
+│   ├── level_2.ts            # Stage 7-2 definition (The Forgotten Factory - Crushers, Steam Vents & Secret Room #1)
+│   ├── level_3.ts            # Stage 7-3 definition (Pendulum Passage - Swinging Pendulums & Timed Platforms)
+│   ├── level_4.ts            # Stage 7-4 definition (The Lost Dimension - Temporal Rifts, Golden Key & Secret Room #2)
+│   └── level_5.ts            # Stage 7-5 boss stage definition (Chronos Citadel & Chronok Boss Fight)
+├── world_8/                  # World 8: Shadowveil Kingdom (Dark Fantasy Stages 8-1 to 8-5)
+│   ├── index.ts              # Exports WORLD_8 and WORLD_8_LEVELS array (Levels 36-40)
+│   ├── level_1.ts            # Stage 8-1 definition (Haunted Woods - Cursed Thorns, Fog & Ghost Enemies)
+│   ├── level_2.ts            # Stage 8-2 definition (Forgotten Graveyard - Crumbling Crypts, Swamp Pits & Secret Room)
+│   ├── level_3.ts            # Stage 8-3 definition (Phantom Manor - Moving Furniture, Teleporters & Disappearing Floors)
+│   ├── level_4.ts            # Stage 8-4 definition (Cursed Moonlight - Moonlight Wind, Teleporters & Golden Key Door)
+│   └── level_5.ts            # Stage 8-5 boss stage definition (Shadowveil Castle & Nocthar Boss Fight)
+├── world_9/                  # World 9: Crystal Caverns (Crystal Fantasy Stages 9-1 to 9-5)
+│   ├── index.ts              # Exports WORLD_9 and WORLD_9_LEVELS array (Levels 41-45)
+│   ├── level_1.ts            # Stage 9-1 definition (Crystal Entrance - Glowing Crystal Spires & Shimmering Bridges)
+│   ├── level_2.ts            # Stage 9-2 definition (Shimmering Mines - Minecart Conveyors, Falling Shards & Secret Room)
+│   ├── level_3.ts            # Stage 9-3 definition (Luminous Lake - Underground Crystal Lake & Fragile Prism Bridges)
+│   ├── level_4.ts            # Stage 9-4 definition (The Crystal Labyrinth - Energy Beams, Teleporters & Golden Key)
+│   └── level_5.ts            # Stage 9-5 boss stage definition (Heart of the Crystal & Crystalis Boss Fight)
+└── world_10/                 # World 10: Ancient Ruins (Final World - Jungle Ruins & Golden Temple Stages 10-1 to 10-5)
+    ├── index.ts              # Exports WORLD_10 and WORLD_10_LEVELS array (Levels 46-50)
+    ├── level_1.ts            # Stage 10-1 definition (Overgrown Ruins - Jungle Vines, Mossy Pillars & Crumbling Stone)
+    ├── level_2.ts            # Stage 10-2 definition (Sunken Courtyard - Quicksand Basins, Crushers & Secret Relic Room)
+    ├── level_3.ts            # Stage 10-3 definition (Hall of Trials - Swinging Blades, Flame Jets & Timed Bridges)
+    ├── level_4.ts            # Stage 10-4 definition (The Sacred Ascent - Solar Beams, Updrafts, Tremors & Golden Key)
+    └── level_5.ts            # Stage 10-5 boss stage definition (Throne of the Ancients & Aethelgard Final Boss Fight)
 ```
 
-### Rules for Adding New Levels or Worlds:
-1. **One File Per Level**: Every stage must live in its own file (`src/game/world_<W>/level_<L>.ts`) and export both `buildWorld<W>Level<L>(): LevelDefinition` and the built constant.
-2. **Use `level_builder.ts` Helpers**: Always use `createEmptyGrid(cols)`, `fillGroundRange(grid, startCol, endCol)`, `fillIceGroundRange(grid, startCol, endCol)`, `addPipe(...)`, `addStairs(...)`, `addCoinRow(...)`, `addQuicksandPit(...)`, `addCrumbleBridge(...)`, `addFragileIceBridge(...)`, `addFreezingWaterPit(...)`, `addLavaPit(...)`, and `addMagmaCrumbleBridge(...)` from `src/game/level_builder.ts`.
+### Rules for All 10 Worlds & Adding/Updating Levels:
+1. **One File Per Level**: Every stage must live in its own file (`src/game/world_<W>/level_<L>.ts`) and export both `buildWorld<W>Level<L>(): LevelDefinition` and the built constant (`WORLD_<W>_LEVEL_<L>`).
+2. **Use `level_builder.ts` Helpers**: Always use `createEmptyGrid(cols)`, `fillGroundRange(...)`, `fillIceGroundRange(...)`, `fillCloudGroundRange(...)`, `fillClockworkGroundRange(...)`, `addPipe(...)`, `addStairs(...)`, `addCoinRow(...)`, `addQuicksandPit(...)`, `addCrumbleBridge(...)`, `addFragileIceBridge(...)`, `addFreezingWaterPit(...)`, `addLavaPit(...)`, `addMagmaCrumbleBridge(...)`, `addCloudPlatform(...)`, `addBounceCloudBridge(...)`, `addDisappearingCloudBridge(...)`, `addConveyorBelt(...)`, and `addTimedExperimentBridge(...)` from `src/game/level_builder.ts`.
 3. **Register in World Index**: Export all levels of a world from `src/game/world_<W>/index.ts` and register them in `src/game/levels.ts`.
-4. **Underwater Stages (`isUnderwater: true`, `theme: 'UNDERWATER'`, `musicTrack: 'UNDERWATER'`)**:
-   - In underwater worlds (such as World 2 Stages 2-1 through 2-4), set `isUnderwater: true`, `theme: 'UNDERWATER'`, and `musicTrack: 'UNDERWATER'`, while keeping the final Stage X-5 Castle Boss fight non-underwater (`isUnderwater: false`, `theme: 'CASTLE'`, `musicTrack: 'BOSS'`).
-   - Underwater physics allow the player to swim upward (`vy = -255`) with every Jump press (`Space`, `W`, `ArrowUp`, or on-screen Jump/Up buttons), with buoyant gravity (`480 px/s²`), gentle max sink speed (`210 px/s`), and an upper water-surface boundary at `y = 24px`.
-5. **Desert & Pyramid Stages (`theme: 'DESERT' | 'PYRAMID'`, `musicTrack: 'DESERT' | 'BOSS'`)**:
-   - **Quicksand (`TileType.QUICKSAND_TOP`, `TileType.QUICKSAND_DEEP`)**: Non-solid sinking sand tiles (`addQuicksandPit(grid, startCol, endCol)`). Players inside quicksand sink slowly (`58 px/s`), move at reduced horizontal speed, and can repeatedly press Jump (`vy = -310`) to hop out before sinking below the bottom of the pit.
-   - **Collapsing Sandstone (`TileType.CRUMBLE_BLOCK`)**: Solid sandstone blocks (`addCrumbleBridge(grid, row, startCol, endCol)`) that shake and crumble away `0.42s` after the player stands on them, then respawn `3.2s` later.
-   - **Solid Cactus Hazards (`TileType.CACTUS`)**: Solid hazard tiles (`isSolidTile` and `isHazardContactTile`) that block player movement while applying contact damage and reflect ground enemies horizontally just like `TileType.SPIKE`.
-   - **Sandstorm & Wind (`hasSandstorm: true`, `windForce?: number`)**: Applies periodic desert wind gusts that push the player horizontally while rendering blowing sand particles and a golden sandstorm haze overlay.
-6. **Frostfall Kingdom Stages (`theme: 'SNOW' | 'ICE_CAVERN' | 'FROST_CASTLE'`, `musicTrack: 'SNOW' | 'CAVERN' | 'CASTLE_BOSS'`)**:
-   - **Slippery Ice Surfaces (`TileType.ICE_GROUND`)**: Solid ice blocks (`fillIceGroundRange`) that reduce ground friction (`0.22x`) and turnaround skid traction while slightly boosting top glide speed.
-   - **Fragile Ice Platforms (`TileType.FRAGILE_ICE`)**: One-way ice ledges (`addFragileIceBridge`) that crack and shatter into cyan shards `0.36s` after the player lands on them, then refreeze `3.0s` later.
-   - **Solid Icicle Hazards (`TileType.ICICLE`) & Sub-Zero Freezing Water (`TileType.FREEZING_WATER_TOP`, `TileType.FREEZING_WATER_DEEP`)**: Icicles act as solid contact hazards that reflect enemies horizontally; freezing water pools chill and damage the player while allowing an escape jump before sinking into deep freezing water.
-   - **Blizzard Pass (`hasBlizzard: true`, `windForce?: number`)**: Combines strong mountain headwinds with swirling snowfall and whiteout frost haze (`drawBlizzardOverlay`).
-7. **Inferno Kingdom Stages (`theme: 'VOLCANO' | 'MOLTEN_CAVERN' | 'INFERNO_CASTLE'`, `musicTrack: 'VOLCANO' | 'CAVERN' | 'FORTRESS' | 'CASTLE_BOSS'`)**:
-   - **Burning Rocks (`TileType.BURNING_ROCK`) & Collapsing Magma Ledges (`TileType.MAGMA_CRUMBLE`)**: Burning rocks act as solid glowing magma hazards that reflect patrolling enemies and damage the player on contact; magma crumble ledges (`addMagmaCrumbleBridge`) shake and shatter into fiery embers `0.38s` after being stepped on, then reform `3.0s` later.
-   - **Erupting Lava Geysers (`lavaGeysers`), Rising Lava (`hasRisingLava: true`) & Falling Volcanic Debris (`hasFallingRocks: true`)**: Timed volcanic geysers telegraph with bubbling magma sparks before erupting upward; surging lava waves and falling volcanic meteors challenge platforming timing across World 5.
+4. **World 1: Emerald Kingdom (`theme: 'GRASSLAND' | 'CAVERN' | 'SKY_BRIDGE' | 'FORTRESS' | 'CASTLE'`)**:
+   - Classic fantasy platforming across Emerald Meadows (1-1), Crystal Caverns (1-2), Canopy Sky-Bridge (1-3), Ironstone Keep (1-4), and Obsidian Throne (1-5) featuring **Malakor, the Obsidian Tyrant**.
+5. **World 2: Coral Abyss (`isUnderwater: true`, `theme: 'UNDERWATER'`, `musicTrack: 'UNDERWATER'`)**:
+   - Stages 2-1 through 2-4 use underwater swimming physics (`isUnderwater: true`, `vy = -255` swim strokes, buoyant gravity `480 px/s²`), while Stage 2-5 (`Tidal Citadel`) is a non-underwater Castle Boss stage against the Abyssal Leviathan Lord.
+6. **World 3: Sunscorch Desert (`theme: 'DESERT' | 'PYRAMID'`, `musicTrack: 'DESERT' | 'BOSS'`)**:
+   - Features Quicksand (`TileType.QUICKSAND_TOP`, `TileType.QUICKSAND_DEEP`), Collapsing Sandstone (`TileType.CRUMBLE_BLOCK`), Solid Cactus hazards (`TileType.CACTUS`), Sandstorm & Wind (`hasSandstorm: true`, `windForce`), and Stage 3-5 Boss **Solkar, the Sand Titan**.
+7. **World 4: Frostfall Kingdom (`theme: 'SNOW' | 'ICE_CAVERN' | 'FROST_CASTLE'`, `musicTrack: 'SNOW' | 'CAVERN' | 'CASTLE_BOSS'`)**:
+   - Features Slippery Ice surfaces (`TileType.ICE_GROUND`), Fragile Ice platforms (`TileType.FRAGILE_ICE`), Solid Icicle hazards (`TileType.ICICLE`), Sub-Zero Freezing Water (`TileType.FREEZING_WATER_TOP`, `TileType.FREEZING_WATER_DEEP`), Blizzard winds (`hasBlizzard: true`), and Stage 4-5 Boss **Glacior, the Frost Monarch**.
+8. **World 5: Inferno Kingdom (`theme: 'VOLCANO' | 'MOLTEN_CAVERN' | 'INFERNO_CASTLE'`, `musicTrack: 'VOLCANO' | 'CAVERN' | 'FORTRESS' | 'CASTLE_BOSS'`)**:
+   - Features Burning Rocks (`TileType.BURNING_ROCK`), Collapsing Magma Ledges (`TileType.MAGMA_CRUMBLE`), Erupting Lava Geysers (`lavaGeysers`), Rising Lava (`hasRisingLava: true`), Falling Volcanic Debris (`hasFallingRocks: true`), and Stage 5-5 Boss **Ignarok, the Molten Colossus**.
+9. **World 6: Celestia Kingdom (`theme: 'SKY_ISLAND' | 'CLOUD_WIND' | 'SKY_TEMPLE' | 'STORM_SKY' | 'CELESTIAL_PALACE'`, `musicTrack: 'SKY_ISLAND' | 'SKY_TEMPLE' | 'STORM_SKY' | 'CELESTIAL_BOSS'`)**:
+   - Features Cloud Platforms (`TileType.CLOUD_PLATFORM`), Bounce Clouds (`TileType.BOUNCE_CLOUD`), Disappearing Clouds (`TileType.DISAPPEARING_CLOUD`), Vertical Updrafts (`updrafts`), Moving Platforms (`movingPlatforms`), Storm Lightning (`hasStormLightning: true`), and Stage 6-5 Boss **Zephyros, the Sky Sovereign**.
+10. **World 7: Chronos Realm (`theme: 'CLOCKWORK_VALLEY' | 'FACTORY' | 'CLOCK_TOWER' | 'CHRONO_RIFT' | 'CHRONOS_CITADEL'`, `musicTrack: 'CLOCKWORK' | 'FACTORY' | 'CLOCK_TOWER' | 'CHRONO_BOSS'`)**:
+    - Features Conveyor Belts (`TileType.CONVEYOR_LEFT`, `TileType.CONVEYOR_RIGHT`), Timed Clockwork Bridges (`TileType.TIMED_BLOCK`), Rotating Gear Hazards (`TileType.GEAR_HAZARD`), Industrial Crushers (`crusherPistons`), Steam Vents (`steamVents`), Swinging Pendulums (`swingingPendulums`), Secret Hidden Rooms (`secretRoom` in 7-2 & 7-4), Golden Key & Locked Exit Door (`requiresKey: true`, `keyPos` in 7-4), and Stage 7-5 Boss **Chronok, the Time Warden**.
+11. **World 8: Shadowveil Kingdom (`theme: 'HAUNTED_WOODS' | 'GRAVEYARD' | 'PHANTOM_MANOR' | 'CURSED_MOONLIGHT' | 'SHADOWVEIL_CASTLE'`, `musicTrack: 'SHADOWVEIL' | 'MANOR' | 'SHADOW_BOSS'`)**:
+    - Features Haunted Fog (`hasHauntedFog: true`), Cursed Thorns, Disappearing Phantom Floors, Moving Manor Furniture (`movingPlatforms`), Shadow Teleporters (`teleporters`), Hidden Crypt Secret Room (8-2), Golden Key & Locked Exit Gate (8-4), and Stage 8-5 Boss **Nocthar, the Shadow King** (who teleports between arena pillars and unleashes dark shadow orbs).
+12. **World 9: Crystal Caverns (`theme: 'CRYSTAL_ENTRANCE' | 'SHIMMERING_MINES' | 'LUMINOUS_LAKE' | 'CRYSTAL_LABYRINTH' | 'HEART_OF_CRYSTAL'`, `musicTrack: 'CRYSTAL' | 'CRYSTAL_DEPTHS' | 'CRYSTAL_BOSS'`)**:
+    - Features Crystal Spires (`TileType.CRYSTAL_SPIRE` solid hazard), Fragile Prismatic Bridges, Minecart Conveyors, Falling Crystal Shards, Periodic Crystal Laser Beams (`crystalLasers`), Teleporter Pads (`teleporters`), Secret Gem Vault (9-2), Golden Key & Locked Crystal Gate (9-4), and Stage 9-5 Boss **Crystalis, the Crystal Guardian** (who fires refracting prism bursts and summons crystal lasers).
+13. **World 10: Ancient Ruins (`theme: 'OVERGROWN_RUINS' | 'SUNKEN_COURTYARD' | 'HALL_OF_TRIALS' | 'SACRED_ASCENT' | 'THRONE_OF_THE_ANCIENTS'`, `musicTrack: 'ANCIENT_RUINS' | 'ANCIENT_TEMPLE' | 'FINAL_BOSS'`)**:
+    - Final World combining Overgrown Jungle Ruins, Sunken Quicksand Courtyards, Stone Crushers (`crusherPistons`), Swinging Temple Blades (`swingingPendulums`), Ancient Flame Jets (`steamVents`), Solar Laser Beams (`crystalLasers`), Thermal Updrafts (`updrafts`), Secret Relic Sanctuary (10-2), Sacred Golden Key (10-4), and Stage 10-5 Final Boss **Aethelgard, the Ancient Colossus**.
 
 ---
 
-## 2. Geometry, Vertical Clearance & Anti-Overlap Rules
+## 2. Geometry, Flagpole Ground Alignment, Vertical Clearance & Anti-Overlap Rules
 
 When the player collects a **Growth Mushroom**, **Solar Fire Flower**, or **Raccoon Feather**, the character grows from `24×28px` (`SMALL`) to `26×44px` (`BIG` / `FIRE` / `RACCOON`), which is nearly `1.5` tiles tall (`TILE_SIZE = 32px`).
 
-To prevent the grown character from getting stuck and to prevent visual overlaps:
-1. **Minimum 3 to 4 Tiles (`96px–128px`) Vertical Clearance Under Floating Blocks**:
+To prevent the grown character from getting stuck and to prevent visual misalignments or overlaps:
+1. **Goal Flagpole Ground Alignment (`goalY: 6 * 32` vs Locked Door `goalY: 13 * 32`)**:
+   - Standard solid ground top is at **row `16`** (`y = 16 * 32 = 512px`).
+   - In `renderer.ts` (`drawGoalFlagpole`), the level-end flagpole is `10` tiles tall (`poleHeight = 10 * 32 = 320px`) with its stone base block drawn at `goalY + 9 * 32` (`rows 6..15`).
+   - Therefore, for every standard flagpole stage and boss stage where the ground top is row `16`, **`goalY` MUST be set to `6 * 32` (`192px`)** so the flagpole base rests flush on top of the row `16` ground (and never sinks underground).
+   - For stages with a Locked Exit Door (`requiresKey: true`, such as 7-4, 8-4, 9-4, and 10-4), `drawLockedGoalDoor` renders a `3`-tile-tall (`96px`) archway, so **`goalY` MUST be set to `13 * 32` (`416px`)** so the bottom of the door sits flush on row `16`.
+   - The final victory staircase (`addStairs(grid, startCol, height)`) before a flagpole should end 2 to 3 columns before `goalX` (e.g., `addStairs(grid, 151, 6)` covers columns `151..156` before `goalX: 159 * 32`).
+2. **Player & Ground Enemy Spawn Alignment**:
+   - Standard `playerStart` on row `16` ground must be `{ x: 3 * 32, y: 14 * 32 }` (or `{ x: 3 * 32, y: 12 * 32 }` in underwater stages).
+   - Ground-patrolling enemies (`SLIME`, `BEETLE`, `KNIGHT`) placed on row `16` ground must use `y: 15 * 32`.
+   - Rotating `FIRE_BAR` hazards must be centered on a solid pivot block (`grid[row][col] = TileType.SOLID_STONE` with `x: col * 32 + 16, y: row * 32 + 16`).
+   - `teleporters` pads (`fromRow` / `toRow`) must specify the exact solid tile row of the ground or platform they rest on (`fromRow: 16` for standard ground, or `toRow: R_platform` for a platform at row `R_platform`), as the engine/renderer positions the pad on the top surface of that row.
+3. **Minimum 3 to 4 Tiles (`96px–128px`) Vertical Clearance Under Floating Blocks**:
    - Standard ground top is at **row `16`**. Any floating Question Block or Brick row above standard ground must be placed at **row `12` or higher** (leaving rows `13`, `14`, and `15` completely empty = `96px` clearance).
    - If a floating Question Block is placed above an elevated `TileType.BRIDGE` or platform at row `R_floor`, the floating block above it **must** be placed at **`R_floor - 4` or higher** (e.g., bridge at row `13` $\rightarrow$ Question Block at row `9`; platform at row `9` $\rightarrow$ Question Block at row `5`).
-2. **Minimum 3 to 4 Tiles (`96px–128px`) Top Headroom Above Every Question Block**:
+4. **Minimum 3 to 4 Tiles (`96px–128px`) Top Headroom Above Every Question Block**:
    - Stationary power-ups like `FIRE_FLOWER` spawn on top of the Question Block (`R_block - 1`), and the grown character is `44px` tall (`~1.4` tiles).
    - Therefore, every Question Block (`QUESTION_*`) **must** have at least **3 to 4 full empty tiles (`96px–128px`) of open space above it** (`R_block - 1`, `R_block - 2`, and `R_block - 3` must be `TileType.EMPTY` across `c - 1 .. c + 1`).
    - In underground or castle levels with a ceiling at row `0` (or stalactites at row `1`), never place a Question Block higher than **row `5`**, and never place ceiling stalactites (`grid[1][c]`) within 4 columns of an elevated platform or Question Block.
-3. **Zero Coin & Block Overlap**:
+5. **Zero Coin & Block Overlap**:
    - Never place a `CoinDef` on the same `(row, col)` or within `1` tile of a `BRICK`, `QUESTION_*`, or `SOLID_STONE` tile.
    - When placing a coin row above floating blocks at row `R_block`, place the coins at **`R_block - 2` or higher** (at least `64px` above the blocks).
-4. **Parallax Cloud Altitude**:
+6. **Parallax Cloud Altitude**:
    - Background clouds in `renderer.ts` must stay in the upper sky band (`y: 18px–62px`) so they never overlap high platforms or floating Question Blocks.
-5. **Solid Spike Hazards (`TileType.SPIKE`) for Players & Enemies**:
-   - `TileType.SPIKE` is a **solid hazard tile** (`isSolidTile` includes `TileType.SPIKE`):
-     - **Player Collision**: Players cannot walk or fall through spikes; colliding with spikes blocks movement just like a solid block while applying spike hazard damage (`damagePlayer()`).
-     - **Enemy Reflection**: When ground enemies (`SLIME`, `BEETLE`, `KNIGHT`, or moving shells) hit a `TileType.SPIKE` tile horizontally or encounter a spike at a ledge, they immediately reflect back in the opposite direction just like hitting a solid wall.
-     - **Level Design Requirement**: Whenever a row of spikes (`TileType.SPIKE`) is placed on the ground across multiple columns, always provide a reachable jump path or `TileType.BRIDGE` (at most `4` tiles above the ground, e.g. row `12`) so the player can jump over the solid spike formation.
-6. **Bumped Brick & Power-Up Item (Mushroom) Collision Interaction**:
+7. **Solid Spike & Theme Hazards (`TileType.SPIKE`, `CACTUS`, `ICICLE`, `BURNING_ROCK`, `GEAR_HAZARD`, `CRYSTAL_SPIRE`)**:
+   - All solid hazard tiles (`isSolidTile` and `isHazardContactTile`) block player movement while applying contact damage (`damagePlayer()`) and reflect ground enemies (`SLIME`, `BEETLE`, `KNIGHT`, or moving shells) horizontally just like hitting a solid wall.
+   - Whenever a row of solid hazards is placed on the ground across multiple columns, always provide a reachable jump path or `TileType.BRIDGE` (at most `4` tiles above the ground, e.g. row `12`) so the player can jump over the hazard formation.
+8. **Bumped Brick & Power-Up Item (Mushroom) Collision Interaction**:
    - When a solid block or brick is bumped from below (`this.bumpedTiles` with vertical displacement `offsetY`), its physical hitbox is shifted vertically by `offsetY` (`getTileHitbox(col, row)` in `src/game/engine.ts`).
    - When a brick moves upward (`carryPowerUpsOnBumpedTile`), any Mushroom or power-up item standing on or in contact with its top surface is carried/pushed upward with the brick so it never clips into the bumped tile, and settles naturally back down under gravity as the brick returns to its original position.
    - If a Mushroom is beside a brick rather than on top of it, horizontal collision and direction reversal (`item.vx = -item.vx`) occur only when their actual hitboxes (including any active `offsetY`) overlap.
 
 ---
 
-## 3. Power-Up & Invincibility Star Randomization Rules
+## 3. Power-Up, Charged Super Jump & Invincibility Star Rules
 
-### A. Power-Up Items & Character States
-The game features three core progression power-ups plus the Invincibility Star:
-1. **Growth Mushroom (`MUSHROOM` $\rightarrow$ `PowerState: 'BIG'`)**: Grows character larger (`26×44px`), allows breaking `TileType.BRICK` blocks from below, and absorbs 1 hit of damage.
-2. **Solar Fire Flower (`FIRE_FLOWER` $\rightarrow$ `PowerState: 'FIRE'`)**: Allows launching bouncing fireballs with `Shift` / `X` / `J` or the on-screen **FIRE** button.
+### A. Power-Up Items, Charged Super Jump & Character States
+The game features three core progression power-ups, the Charged Super Jump ability, and the Invincibility Star:
+1. **Growth Mushroom (`MUSHROOM` $\rightarrow$ `PowerState: 'BIG'`)**: Grows character larger (`26×44px`), allows breaking `TileType.BRICK` blocks from below, enables **Charged Super Jump**, and absorbs 1 hit of damage.
+2. **Solar Fire Flower (`FIRE_FLOWER` $\rightarrow$ `PowerState: 'FIRE'`)**: Allows launching bouncing fireballs with `Shift` / `X` / `J` or the on-screen **FIRE** button, and enables **Charged Super Jump**.
 3. **Raccoon Feather (`FEATHER` $\rightarrow$ `PowerState: 'RACCOON'`)**: Grants all 4 classic Raccoon abilities:
    - **Raccoon Transformation**: Pointed brown raccoon ears and a striped wagging tail.
    - **Flying and Gliding**: Jumping during a sprint run and holding/pressing **JUMP** allows the player to fly upward through the air until the Jump button is released.
    - **Tail Attack**: Pressing the **FIRE / ATTACK** button (`Shift` / `X` / `J` on PC or the on-screen **FIRE** button) triggers a 360° spinning tail whip (`tailSpinTimer`) that defeats nearby enemies, damages the vulnerable Boss, and breaks/activates adjacent Bricks and Question Blocks at waist height.
    - **Slow Falling**: Holding or tapping **JUMP** while descending in mid-air wags the raccoon tail to float and descend slowly (`95 px/s`).
-4. **Invincibility Star (`STAR` $\rightarrow$ `isInvincibleStar: true`)**: Grants temporary rainbow invincibility for 10 seconds, defeating enemies on contact.
+4. **Charged Super Jump (Eligible in `BIG` and `FIRE` forms only; not available in `SMALL` or `RACCOON`)**:
+   - **Activation**: Press and hold **Down** (`S`, `ArrowDown`, or on-screen Down button) while grounded in `BIG` or `FIRE` form for `1.5` seconds.
+   - **Ready State**: Once charged, the character blinks (`superJumpChargeTimer` up to `2.5s`) while Down remains held. Pressing **Jump** triggers a high-velocity Super Jump (`vy = -665`) and immediately consumes the charge. Releasing Down before jumping cancels the charge.
+5. **Invincibility Star (`STAR` $\rightarrow$ `isInvincibleStar: true`)**: Grants temporary rainbow invincibility for 10 seconds, defeating enemies on contact.
 
 ### B. Strict Block Placement Rules in Every Level File
 1. **Never Place Power-Up Blocks Adjacent to Each Other**:
@@ -150,13 +201,13 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
 
 1. **Desktop Keyboard Controls** (must always remain active):
    - **Move Left / Right**: `A` / `D` or `ArrowLeft` / `ArrowRight`
-   - **Down / Sit (When Grown)**: `S` or `ArrowDown` (makes grown character crouch/sit down to `28px` height and disables Left/Right walking while held)
-   - **Jump / Raccoon Fly / Slow Fall**: `Space`, `W`, or `ArrowUp`
+   - **Down / Sit (When Grown) & Charged Super Jump (Hold 1.5s in BIG/FIRE)**: `S` or `ArrowDown`
+   - **Jump / Raccoon Fly / Slow Fall / Enter Secret Pipe or Exit**: `Space`, `W`, or `ArrowUp`
    - **Sprint / Fireball / Tail Attack**: `Shift`, `X`, or `J`
    - **Pause**: `Escape` or `P`
 2. **Overlaid On-Screen Controller** (`PlatformerEngine.setVirtualKey(code, pressed)`):
    - Rendered **directly inside the game canvas container** (bottom-left and bottom-right corners) with a **lightly transparent** style (`bg-white/15`, `border-white/35`) and **icons only (no text labels)**.
-   - **Left Side**: Icon-only directional buttons (`ChevronLeft` mapped to `ArrowLeft`, `ChevronRight` mapped to `ArrowRight`, `ChevronDown` mapped to `ArrowDown` for sitting/crouching when grown, and mobile-only `ChevronUp` mapped to `ArrowUp` which performs the exact same jump/fly/slow-fall work as `JUMP`).
+   - **Left Side**: Icon-only directional buttons (`ChevronLeft` mapped to `ArrowLeft`, `ChevronRight` mapped to `ArrowRight`, `ChevronDown` mapped to `ArrowDown` for sitting/crouching and charging Super Jump when grown, and mobile-only `ChevronUp` mapped to `ArrowUp` which performs the exact same jump/fly/slow-fall work as `JUMP`).
    - **Right Side**: Icon-only circular action buttons (`Flame` mapped to `KeyX` for sprinting, shooting fireballs, and Raccoon tail spin attack; `ArrowUp` mapped to `Space` for jumping, Raccoon flight, and slow falling).
    - Both desktop keyboard listeners and on-screen touch/pointer buttons feed into the same engine input state simultaneously.
 3. **Mobile Landscape Requirement**:

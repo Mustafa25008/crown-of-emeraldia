@@ -35,7 +35,19 @@ export type LevelTheme =
   | 'CHRONOS_VALLEY'
   | 'FORGOTTEN_FACTORY'
   | 'CLOCKWORK_TOWER'
-  | 'LOST_DIMENSION';
+  | 'LOST_DIMENSION'
+  | 'HAUNTED_WOODS'
+  | 'GRAVEYARD'
+  | 'PHANTOM_MANOR'
+  | 'SHADOW_CASTLE'
+  | 'CRYSTAL_CAVERN'
+  | 'SHIMMERING_MINES'
+  | 'LUMINOUS_LAKE'
+  | 'CRYSTAL_CORE'
+  | 'FORGOTTEN_JUNGLE'
+  | 'TEMPLE_OF_TRAPS'
+  | 'SUNKEN_RUINS'
+  | 'ETERNAL_TEMPLE';
 
 export enum TileType {
   EMPTY = 0,
@@ -80,6 +92,14 @@ export enum TileType {
   WARP_PIPE_TOP_R = 39,
   WARP_PIPE_BODY_L = 40,
   WARP_PIPE_BODY_R = 41,
+  PHANTOM_BLOCK = 42,
+  CURSED_THORN = 43,
+  CRYSTAL_SPIKE = 44,
+  MINE_RAIL_LEFT = 45,
+  MINE_RAIL_RIGHT = 46,
+  FRAGILE_CRYSTAL = 47,
+  POISON_PLANT = 48,
+  ANCIENT_CRUMBLE = 49,
 }
 
 export interface LavaGeyserDef {
@@ -137,6 +157,22 @@ export interface TeleporterPairDef {
   fromRow: number;
   toCol: number;
   toRow: number;
+}
+
+export interface CrystalLaserDef {
+  col: number;
+  topRow: number;
+  bottomRow: number;
+  cycleSeconds?: number;
+  phaseOffset?: number;
+}
+
+export interface ArrowTrapDef {
+  col: number;
+  row: number;
+  direction: -1 | 1;
+  intervalSeconds?: number;
+  phaseOffset?: number;
 }
 
 export interface HiddenRoomDefinition {
@@ -210,6 +246,8 @@ export interface LevelDefinition {
   crusherPistons?: CrusherPistonDef[];
   swingingPendulums?: SwingingPendulumDef[];
   teleporters?: TeleporterPairDef[];
+  crystalLasers?: CrystalLaserDef[];
+  arrowTraps?: ArrowTrapDef[];
   requiresKey?: boolean;
   hiddenRoom?: HiddenRoomDefinition;
   windForce?: number;
@@ -224,7 +262,10 @@ export interface LevelDefinition {
     | 'SNOW'
     | 'VOLCANO'
     | 'CELESTIA'
-    | 'CHRONOS';
+    | 'CHRONOS'
+    | 'SHADOWVEIL'
+    | 'CRYSTAL'
+    | 'RUINS';
   widthInTiles: number;
   heightInTiles: number;
   tiles: number[][];
