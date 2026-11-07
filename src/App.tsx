@@ -6,6 +6,7 @@ import {
   VolumeX,
   Trophy,
   Heart,
+  Coins,
   Shield,
   Flame,
   Sparkles,
@@ -50,6 +51,188 @@ function GoldCoinIcon({ className = 'w-4 h-4' }: { className?: string }) {
   );
 }
 
+type OutcomeModalVariant = 'stage_cleared' | 'game_over' | 'time_out';
+
+interface StageOutcomeModalProps {
+  variant: OutcomeModalVariant;
+  isWorldVictory?: boolean;
+  currentLevelId: number;
+  levelName: string;
+  score: number;
+  coins: number;
+  isWatchingAd: boolean;
+  onPrimaryAction: () => void;
+  onSecondaryRetry: () => void;
+  onLevelSelect: () => void;
+}
+
+function StageOutcomeModal({
+  variant,
+  isWorldVictory = false,
+  currentLevelId,
+  levelName,
+  score,
+  coins,
+  isWatchingAd,
+  onPrimaryAction,
+  onSecondaryRetry,
+  onLevelSelect,
+}: StageOutcomeModalProps) {
+  const isSuccess = variant === 'stage_cleared';
+  const isTimeOut = variant === 'time_out';
+
+  const borderColorClass = isSuccess
+    ? isWorldVictory
+      ? 'border-amber-400/60'
+      : 'border-emerald-500/50'
+    : isTimeOut
+    ? 'border-amber-500/60'
+    : 'border-rose-500/50';
+
+  const bossDefeatedSubtitle =
+    currentLevelId >= 46
+      ? 'AZHURAK, THE ANCIENT COLOSSUS DEFEATED!'
+      : currentLevelId >= 41
+      ? 'CRYSTALIS, THE CRYSTAL GUARDIAN DEFEATED!'
+      : currentLevelId >= 36
+      ? 'NOCTHAR, THE SHADOW KING DEFEATED!'
+      : currentLevelId >= 31
+      ? 'CHRONOS, THE TIMEKEEPER DEFEATED!'
+      : currentLevelId >= 26
+      ? 'AETHERION, THE STORM SOVEREIGN DEFEATED!'
+      : currentLevelId >= 21
+      ? 'IGNAROK, THE INFERNO KING DEFEATED!'
+      : currentLevelId >= 16
+      ? 'GLACIOR, THE FROST DRAGON DEFEATED!'
+      : currentLevelId >= 11
+      ? 'SOLKAR, THE SAND TITAN DEFEATED!'
+      : currentLevelId >= 6
+      ? 'ABYSSAL WARLORD KRAKENOS DEFEATED!'
+      : 'IRONCLAD KING DREDGE DEFEATED!';
+
+  const worldConqueredTitle =
+    currentLevelId >= 46
+      ? 'WORLD 10: ANCIENT RUINS CONQUERED!'
+      : currentLevelId >= 41
+      ? 'WORLD 9: CRYSTAL CAVERNS CONQUERED!'
+      : currentLevelId >= 36
+      ? 'WORLD 8: SHADOWVEIL KINGDOM CONQUERED!'
+      : currentLevelId >= 31
+      ? 'WORLD 7: CHRONOS REALM CONQUERED!'
+      : currentLevelId >= 26
+      ? 'WORLD 6: CELESTIA KINGDOM CONQUERED!'
+      : currentLevelId >= 21
+      ? 'WORLD 5: INFERNO KINGDOM CONQUERED!'
+      : currentLevelId >= 16
+      ? 'WORLD 4: FROSTFALL KINGDOM CONQUERED!'
+      : currentLevelId >= 11
+      ? 'WORLD 3: SUNSCORCH DESERT CONQUERED!'
+      : currentLevelId >= 6
+      ? 'WORLD 2: CORAL ABYSS CONQUERED!'
+      : 'WORLD 1: EMERALDIA SAVED!';
+
+  return (
+    <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-4 overflow-y-auto z-20">
+      <div
+        className={`w-full max-w-sm sm:max-w-md bg-slate-900 border ${borderColorClass} rounded-2xl p-3.5 sm:p-5 text-center shadow-2xl space-y-2.5 sm:space-y-3.5 my-auto`}
+      >
+        {isSuccess && isWorldVictory && (
+          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center mx-auto">
+            <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300" />
+          </div>
+        )}
+
+        <div>
+          {isSuccess ? (
+            <>
+              <div
+                className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider ${
+                  isWorldVictory ? 'text-amber-400' : 'text-emerald-400'
+                }`}
+              >
+                {isWorldVictory ? bossDefeatedSubtitle : 'STAGE CLEARED!'}
+              </div>
+              <h3 className="font-pixel text-xs sm:text-base text-white mt-1">
+                {isWorldVictory ? worldConqueredTitle : levelName}
+              </h3>
+            </>
+          ) : isTimeOut ? (
+            <>
+              <h3 className="font-pixel text-sm sm:text-base text-amber-400">TIME UP!</h3>
+              <p className="text-[11px] sm:text-xs text-slate-300 mt-1">
+                Time ran out before reaching the goal in {levelName}.
+              </p>
+            </>
+          ) : (
+            <>
+              <h3 className="font-pixel text-sm sm:text-base text-rose-500">GAME OVER</h3>
+              <p className="text-[11px] sm:text-xs text-slate-300 mt-1">
+                Ranger Pip ran out of lives in {levelName}.
+              </p>
+            </>
+          )}
+        </div>
+
+        <div className="bg-slate-950 border border-slate-800 rounded-xl p-2 sm:p-3 grid grid-cols-2 gap-2 text-center font-mono-num text-xs">
+          <div className="px-1">
+            <div className="text-[10px] text-slate-400 truncate">SCORE</div>
+            <div className="text-xs sm:text-sm font-bold text-amber-400 mt-0.5">
+              {score.toLocaleString()}
+            </div>
+          </div>
+          <div className="px-1 border-l border-slate-800">
+            <div className="text-[10px] text-slate-400 truncate">COINS</div>
+            <div className="text-xs sm:text-sm font-bold text-yellow-300 mt-0.5">{coins}</div>
+          </div>
+        </div>
+
+        {/* Unified 2-Row Button Layout Structure */}
+        <div className="flex flex-col gap-2">
+          {/* Row 1 (Primary, full-width) */}
+          <button
+            type="button"
+            disabled={isWatchingAd}
+            onClick={onPrimaryAction}
+            className={`w-full min-h-[40px] flex items-center justify-center gap-2 py-2.5 px-4 font-bold text-xs rounded-xl shadow transition-all cursor-pointer ${
+              isSuccess
+                ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
+                : 'bg-amber-400 hover:bg-amber-300 text-slate-950 disabled:opacity-60'
+            }`}
+          >
+            {isSuccess ? (
+              <span>Next Level ➔</span>
+            ) : isWatchingAd ? (
+              <span>Playing Rewarded Ad... (Refilling 3 Lives)</span>
+            ) : (
+              <span>▶ Watch Ad & Revive</span>
+            )}
+          </button>
+
+          {/* Row 2 (Secondary Grid - 2 buttons side-by-side) */}
+          <div className="grid grid-cols-2 gap-2">
+            <button
+              type="button"
+              disabled={isWatchingAd}
+              onClick={onSecondaryRetry}
+              className="min-h-[38px] py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold text-xs rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+            >
+              {isSuccess ? 'Replay' : 'Try Again'}
+            </button>
+            <button
+              type="button"
+              disabled={isWatchingAd}
+              onClick={onLevelSelect}
+              className="min-h-[38px] py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+            >
+              Level Select
+            </button>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
+
 export default function App() {
   const [gameState, setGameState] = useState<GameState>('TITLE_MENU');
   const [saveData, setSaveData] = useState<SaveProgress>(() => loadProgress());
@@ -63,11 +246,13 @@ export default function App() {
   const [activeVirtualKeys, setActiveVirtualKeys] = useState<Record<string, boolean>>({});
   const [isPortraitMobile, setIsPortraitMobile] = useState<boolean>(false);
   const [dismissPortraitWarning, setDismissPortraitWarning] = useState<boolean>(false);
+  const [isWatchingAd, setIsWatchingAd] = useState<boolean>(false);
 
   const [hud, setHud] = useState<HudSnapshot>({
     score: 0,
     coins: 0,
     lives: 3,
+    timeRemaining: 180,
     levelId: 1,
     levelName: LEVELS[0].name,
     powerState: 'SMALL',
@@ -230,12 +415,26 @@ export default function App() {
             return 'GAME_OVER';
           });
         },
+        onTimeOut: (finalScore, finalCoins) => {
+          soundManager.stopMusic();
+          setCarriedScore(finalScore);
+          setCarriedCoins(finalCoins);
+          setGameState((prev) => {
+            if (prev !== 'PLAYING' && prev !== 'PAUSED') return prev;
+            return 'TIME_OUT';
+          });
+        },
         onPauseToggle: () => {
           setGameState((prev) => {
             if (prev !== 'PLAYING' && prev !== 'PAUSED') return prev;
             const next = prev === 'PLAYING' ? 'PAUSED' : 'PLAYING';
             if (engineRef.current) {
               engineRef.current.setPaused(next === 'PAUSED');
+            }
+            if (next === 'PAUSED') {
+              soundManager.pauseAllAudio();
+            } else {
+              soundManager.resumeAudio();
             }
             return next;
           });
@@ -255,7 +454,7 @@ export default function App() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [currentLevelId, runRestartCounter]);
 
-  // Sync pause and teardown state with engine when gameState changes
+  // Sync pause and teardown state with engine & audio when gameState changes
   useEffect(() => {
     const isMenuScreen =
       gameState === 'TITLE_MENU' ||
@@ -272,9 +471,52 @@ export default function App() {
     }
 
     if (engineRef.current) {
-      engineRef.current.setPaused(gameState !== 'PLAYING');
+      const shouldPause = gameState !== 'PLAYING';
+      engineRef.current.setPaused(shouldPause);
+      if (gameState === 'PAUSED') {
+        soundManager.pauseAllAudio();
+      } else if (gameState === 'PLAYING') {
+        soundManager.resumeAudio();
+      }
     }
   }, [gameState]);
+
+  const handleWatchAdAndRevive = useCallback(() => {
+    if (isWatchingAd) return;
+    setIsWatchingAd(true);
+    soundManager.pauseAllAudio();
+
+    const completeRewardRevive = () => {
+      setIsWatchingAd(false);
+      setCarriedLives(3);
+      if (engineRef.current) {
+        engineRef.current.revivePlayer(3);
+      }
+      setGameState('PLAYING');
+      const level = getLevelById(currentLevelId);
+      soundManager.playMusic(level.musicTrack);
+    };
+
+    // Invoke AdMob Rewarded Video bridge if present on mobile wrapper, otherwise run rewarded ad timer
+    const anyWin = window as unknown as {
+      AdMob?: { showRewardVideoAd?: () => Promise<unknown> };
+      AndroidAdMob?: { showRewardedAd?: (cb?: () => void) => void };
+    };
+    if (anyWin.AdMob?.showRewardVideoAd) {
+      anyWin.AdMob.showRewardVideoAd()
+        .then(() => completeRewardRevive())
+        .catch(() => completeRewardRevive());
+      return;
+    }
+    if (anyWin.AndroidAdMob?.showRewardedAd) {
+      anyWin.AndroidAdMob.showRewardedAd(() => completeRewardRevive());
+      return;
+    }
+
+    window.setTimeout(() => {
+      completeRewardRevive();
+    }, 1400);
+  }, [currentLevelId, isWatchingAd]);
 
   const toggleSound = () => {
     setSaveData((prev) => {
@@ -983,88 +1225,99 @@ export default function App() {
           gameState === 'PAUSED' ||
           gameState === 'LEVEL_COMPLETE' ||
           gameState === 'GAME_OVER' ||
+          gameState === 'TIME_OUT' ||
           gameState === 'WORLD_VICTORY') && (
           <div className="flex flex-col items-center w-full max-w-[820px] max-h-full">
-            {/* Top Retro HUD Bar */}
-            <div className="w-full bg-slate-900 border border-slate-800 rounded-t-xl px-3 py-1.5 sm:px-4 sm:py-2 flex items-center justify-between gap-2 sm:gap-4 text-xs shrink-0">
-              <div className="flex items-center gap-3 sm:gap-5 font-mono-num">
-                <div className="flex items-center gap-1.5">
-                  <Trophy className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span className="font-bold text-white text-xs sm:text-sm">
-                    {hud.score.toString().padStart(6, '0')}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <GoldCoinIcon className="w-4 h-4 shrink-0" />
-                  <span className="font-bold text-yellow-300 text-xs sm:text-sm">
-                    ×{hud.coins.toString().padStart(2, '0')}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1" aria-label={`Health: ${hud.lives}`}>
-                  {Array.from({ length: Math.max(3, Math.min(5, hud.lives)) }).map((_, idx) => {
-                    const isFilled = idx < hud.lives;
-                    return (
-                      <Heart
-                        key={idx}
-                        className={`w-4 h-4 shrink-0 ${
-                          isFilled
-                            ? 'text-rose-500 fill-rose-500'
-                            : 'text-slate-600 fill-slate-800'
-                        }`}
-                      />
-                    );
-                  })}
-                  {hud.lives > 5 && (
-                    <span className="font-bold text-white text-xs sm:text-sm ml-0.5">
-                      ×{hud.lives}
+            {/* Top Retro HUD Bar - strictly hidden whenever any modal (Pause, Success, Failure, Timeout) is active */}
+            {gameState === 'PLAYING' && (
+              <div className="w-full bg-slate-900 border border-slate-800 rounded-t-xl px-3 py-1.5 sm:px-4 sm:py-2 flex items-center justify-between gap-2 sm:gap-4 text-xs shrink-0">
+                <div className="flex items-center gap-3 sm:gap-5 font-mono-num">
+                  <div className="flex items-center gap-1.5">
+                    <Trophy className="w-4 h-4 text-amber-400 shrink-0" />
+                    <span className="font-bold text-white text-xs sm:text-sm">
+                      {hud.score.toString().padStart(6, '0')}
                     </span>
-                  )}
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <GoldCoinIcon className="w-4 h-4 shrink-0" />
+                    <span className="font-bold text-yellow-300 text-xs sm:text-sm">
+                      ×{hud.coins.toString().padStart(2, '0')}
+                    </span>
+                  </div>
+
+                  <div
+                    className={`flex items-center gap-1.5 whitespace-nowrap ${
+                      hud.timeRemaining <= 30 ? 'text-rose-400 animate-pulse' : 'text-amber-300'
+                    }`}
+                    title="Remaining Stage Time"
+                  >
+                    <Coins className="w-4 h-4 shrink-0" />
+                    <span className="font-bold text-xs sm:text-sm">
+                      {Math.floor(hud.timeRemaining / 60)}:
+                      {(hud.timeRemaining % 60).toString().padStart(2, '0')}
+                    </span>
+                  </div>
+
+                  <div className="flex items-center gap-1" aria-label={`Health: ${hud.lives}`}>
+                    {Array.from({ length: Math.max(3, Math.min(5, hud.lives)) }).map((_, idx) => {
+                      const isFilled = idx < hud.lives;
+                      return (
+                        <Heart
+                          key={idx}
+                          className={`w-4 h-4 shrink-0 ${
+                            isFilled
+                              ? 'text-rose-500 fill-rose-500'
+                              : 'text-slate-600 fill-slate-800'
+                          }`}
+                        />
+                      );
+                    })}
+                    {hud.lives > 5 && (
+                      <span className="font-bold text-white text-xs sm:text-sm ml-0.5">
+                        ×{hud.lives}
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <div className="flex items-center gap-2 sm:gap-4">
+                  <div className="text-slate-200 font-bold font-mono-num text-xs sm:text-sm whitespace-nowrap">
+                    World {activeWorldNum}-{activeStageNum}
+                  </div>
+
+                  <div className="flex items-center gap-1.5">
+                    <button
+                      onClick={toggleMusic}
+                      title="Toggle Sound"
+                      className="p-1.5 sm:p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors cursor-pointer"
+                    >
+                      {saveData.musicEnabled ? (
+                        <Volume2 className="w-4 h-4 text-emerald-400" />
+                      ) : (
+                        <VolumeX className="w-4 h-4 text-slate-400" />
+                      )}
+                    </button>
+                    <button
+                      onClick={() => {
+                        if (engineRef.current) {
+                          engineRef.current.setPaused(true);
+                        }
+                        soundManager.pauseAllAudio();
+                        setGameState('PAUSED');
+                      }}
+                      className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer text-xs"
+                    >
+                      <Pause className="w-3.5 h-3.5" />
+                      <span>Pause</span>
+                    </button>
+                  </div>
                 </div>
               </div>
+            )}
 
-              <div className="flex items-center gap-2 sm:gap-4">
-                <div className="text-slate-200 font-bold font-mono-num text-xs sm:text-sm whitespace-nowrap">
-                  World {activeWorldNum}-{activeStageNum}
-                </div>
-
-                <div className="flex items-center gap-1.5">
-                  <button
-                    onClick={toggleMusic}
-                    title="Toggle Sound"
-                    className="p-1.5 sm:p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors cursor-pointer"
-                  >
-                    {saveData.musicEnabled ? (
-                      <Volume2 className="w-4 h-4 text-emerald-400" />
-                    ) : (
-                      <VolumeX className="w-4 h-4 text-slate-400" />
-                    )}
-                  </button>
-                  <button
-                    onClick={() =>
-                      setGameState((prev) => (prev === 'PLAYING' ? 'PAUSED' : 'PLAYING'))
-                    }
-                    className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer text-xs"
-                  >
-                    {gameState === 'PAUSED' ? (
-                      <>
-                        <Play className="w-3.5 h-3.5 fill-current text-emerald-400" />
-                        <span>Resume</span>
-                      </>
-                    ) : (
-                      <>
-                        <Pause className="w-3.5 h-3.5" />
-                        <span>Pause</span>
-                      </>
-                    )}
-                  </button>
-                </div>
-              </div>
-            </div>
-
-            {/* Boss Health Bar Banner during Final Castle Fight */}
-            {hud.boss && hud.boss.active && (
+            {/* Boss Health Bar Banner during Final Castle Fight (Also hidden when modal is active) */}
+            {gameState === 'PLAYING' && hud.boss && hud.boss.active && (
               <div className="w-full bg-red-950/90 border-x border-b border-red-800/80 px-3 py-1 sm:px-4 sm:py-1.5 flex items-center justify-between gap-3 shrink-0">
                 <div className="flex items-center gap-2 text-xs font-bold text-red-200 truncate">
                   <Skull className="w-4 h-4 text-red-400 shrink-0" />
@@ -1092,7 +1345,11 @@ export default function App() {
 
             {/* Game Canvas Container (fits perfectly within mobile landscape height without scrolling) */}
             <div
-              className="relative w-full aspect-[800/608] bg-slate-950 border-x border-b border-slate-800 rounded-b-xl overflow-hidden shadow-2xl mx-auto"
+              className={`relative w-full aspect-[800/608] bg-slate-950 border-slate-800 overflow-hidden shadow-2xl mx-auto ${
+                gameState === 'PLAYING'
+                  ? 'border-x border-b rounded-b-xl'
+                  : 'border rounded-xl'
+              }`}
               style={{
                 maxHeight: 'calc(100dvh - 52px)',
                 maxWidth: 'calc((100dvh - 52px) * (800 / 608))',
@@ -1196,7 +1453,7 @@ export default function App() {
                 </div>
               )}
 
-              {/* PAUSE MODAL OVERLAY (Compact & Centered for Mobile Viewports) */}
+              {/* PAUSE MODAL OVERLAY (Freezes timer, pauses audio, hides main header) */}
               {gameState === 'PAUSED' && (
                 <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-4 overflow-y-auto z-20">
                   <div className="w-full max-w-xs sm:max-w-sm bg-slate-900 border border-slate-700 rounded-2xl p-3 sm:p-5 text-center shadow-2xl space-y-2.5 sm:space-y-4 my-auto">
@@ -1207,7 +1464,13 @@ export default function App() {
 
                     <div className="flex flex-col gap-2">
                       <button
-                        onClick={() => setGameState('PLAYING')}
+                        onClick={() => {
+                          if (engineRef.current) {
+                            engineRef.current.setPaused(false);
+                          }
+                          soundManager.resumeAudio();
+                          setGameState('PLAYING');
+                        }}
                         className="w-full min-h-[38px] py-2 px-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
                       >
                         Resume Game
@@ -1239,312 +1502,42 @@ export default function App() {
                 </div>
               )}
 
-              {/* LEVEL COMPLETE OVERLAY (Compact & Clean for Mobile Screens) */}
-              {gameState === 'LEVEL_COMPLETE' && (
-                <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-4 overflow-y-auto z-20">
-                  <div className="w-full max-w-sm sm:max-w-md bg-slate-900 border border-emerald-500/50 rounded-2xl p-3 sm:p-5 text-center shadow-2xl space-y-2.5 sm:space-y-3.5 my-auto">
-                    <div>
-                      <div className="text-[10px] sm:text-xs font-bold text-emerald-400 uppercase tracking-wider">
-                        STAGE CLEARED!
-                      </div>
-                      <h3 className="font-pixel text-xs sm:text-base text-white mt-1">{hud.levelName}</h3>
-                    </div>
-
-                    <div className="bg-slate-950 border border-slate-800 rounded-xl p-2 sm:p-3 grid grid-cols-3 gap-1 sm:gap-2 text-center font-mono-num text-xs">
-                      <div className="px-1">
-                        <div className="text-[10px] text-slate-400 truncate">SCORE</div>
-                        <div className="text-xs sm:text-sm font-bold text-amber-400 mt-0.5">
-                          {carriedScore.toLocaleString()}
-                        </div>
-                      </div>
-                      <div className="px-1 border-x border-slate-800">
-                        <div className="text-[10px] text-slate-400 truncate">COINS</div>
-                        <div className="text-xs sm:text-sm font-bold text-yellow-300 mt-0.5">
-                          {carriedCoins}
-                        </div>
-                      </div>
-                      <div className="px-1">
-                        <div className="text-[10px] text-slate-400 truncate">NEXT STAGE</div>
-                        <div className="text-xs sm:text-sm font-bold text-emerald-400 mt-0.5 truncate">
-                          Stage{' '}
-                          {currentLevelDef.worldId ||
-                            (currentLevelId > 45
-                              ? 10
-                              : currentLevelId > 40
-                              ? 9
-                              : currentLevelId > 35
-                              ? 8
-                              : currentLevelId > 30
-                              ? 7
-                              : currentLevelId > 25
-                              ? 6
-                              : currentLevelId > 20
-                              ? 5
-                              : currentLevelId > 15
-                              ? 4
-                              : currentLevelId > 10
-                              ? 3
-                              : currentLevelId > 5
-                              ? 2
-                              : 1)}
-                          -{(currentLevelDef.stageNumber || ((currentLevelId - 1) % 5) + 1) + 1}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                      <button
-                        onClick={() => startLevel(Math.min(50, currentLevelId + 1), false)}
-                        className="w-full min-h-[38px] flex items-center justify-center gap-2 py-2 px-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
-                      >
-                        <span>Next Level</span>
-                        <ArrowRight className="w-4 h-4" />
-                      </button>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => startLevel(currentLevelId, false)}
-                          className="min-h-[36px] py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
-                        >
-                          Replay Stage
-                        </button>
-                        <button
-                          onClick={() => navigateToMenu('LEVEL_SELECT')}
-                          className="min-h-[36px] py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
-                        >
-                          Level Select
-                        </button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* GAME OVER OVERLAY (Compact for Mobile) */}
-              {gameState === 'GAME_OVER' && (
-                <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-4 overflow-y-auto z-20">
-                  <div className="w-full max-w-xs sm:max-w-sm bg-slate-900 border border-rose-500/50 rounded-2xl p-3 sm:p-5 text-center shadow-2xl space-y-2.5 sm:space-y-3.5 my-auto">
-                    <div>
-                      <h3 className="font-pixel text-sm sm:text-base text-rose-500">GAME OVER</h3>
-                      <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5">
-                        Ranger Pip ran out of lives in {hud.levelName}.
-                      </p>
-                    </div>
-
-                    <div className="text-xs text-slate-400 font-mono-num bg-slate-950 border border-slate-800 rounded-xl py-1.5 px-3">
-                      Score: {carriedScore.toLocaleString()} · Coins: {carriedCoins}
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      <button
-                        onClick={() => navigateToMenu('LEVEL_SELECT')}
-                        className="min-h-[38px] py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
-                      >
-                        Level Select
-                      </button>
-                      <button
-                        onClick={() => startLevel(currentLevelId, true)}
-                        className="min-h-[38px] py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
-                      >
-                        Try Again (3 Lives)
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* WORLD VICTORY OVERLAY (Compact for Mobile) */}
-              {gameState === 'WORLD_VICTORY' && (
-                <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-4 overflow-y-auto z-20">
-                  <div className="w-full max-w-sm sm:max-w-md bg-slate-900 border border-amber-400/60 rounded-2xl p-3 sm:p-6 text-center shadow-2xl space-y-2 sm:space-y-3.5 my-auto">
-                    <div className="w-8 h-8 sm:w-11 sm:h-11 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center mx-auto">
-                      <Crown className="w-4 h-4 sm:w-6 sm:h-6 text-amber-300" />
-                    </div>
-
-                    <div>
-                      <div className="text-[10px] sm:text-xs font-bold text-amber-400">
-                        {currentLevelId >= 46
-                          ? 'AZHURAK, THE ANCIENT COLOSSUS DEFEATED!'
-                          : currentLevelId >= 41
-                          ? 'CRYSTALIS, THE CRYSTAL GUARDIAN DEFEATED!'
-                          : currentLevelId >= 36
-                          ? 'NOCTHAR, THE SHADOW KING DEFEATED!'
-                          : currentLevelId >= 31
-                          ? 'CHRONOS, THE TIMEKEEPER DEFEATED!'
-                          : currentLevelId >= 26
-                          ? 'AETHERION, THE STORM SOVEREIGN DEFEATED!'
-                          : currentLevelId >= 21
-                          ? 'IGNAROK, THE INFERNO KING DEFEATED!'
-                          : currentLevelId >= 16
-                          ? 'GLACIOR, THE FROST DRAGON DEFEATED!'
-                          : currentLevelId >= 11
-                          ? 'SOLKAR, THE SAND TITAN DEFEATED!'
-                          : currentLevelId >= 6
-                          ? 'ABYSSAL WARLORD KRAKENOS DEFEATED!'
-                          : 'IRONCLAD KING DREDGE DEFEATED!'}
-                      </div>
-                      <h3 className="font-pixel text-xs sm:text-base text-white mt-0.5">
-                        {currentLevelId >= 46
-                          ? 'WORLD 10: ANCIENT RUINS CONQUERED!'
-                          : currentLevelId >= 41
-                          ? 'WORLD 9: CRYSTAL CAVERNS CONQUERED!'
-                          : currentLevelId >= 36
-                          ? 'WORLD 8: SHADOWVEIL KINGDOM CONQUERED!'
-                          : currentLevelId >= 31
-                          ? 'WORLD 7: CHRONOS REALM CONQUERED!'
-                          : currentLevelId >= 26
-                          ? 'WORLD 6: CELESTIA KINGDOM CONQUERED!'
-                          : currentLevelId >= 21
-                          ? 'WORLD 5: INFERNO KINGDOM CONQUERED!'
-                          : currentLevelId >= 16
-                          ? 'WORLD 4: FROSTFALL KINGDOM CONQUERED!'
-                          : currentLevelId >= 11
-                          ? 'WORLD 3: SUNSCORCH DESERT CONQUERED!'
-                          : currentLevelId >= 6
-                          ? 'WORLD 2: CORAL ABYSS CONQUERED!'
-                          : 'WORLD 1: EMERALDIA SAVED!'}
-                      </h3>
-                    </div>
-
-                    <div className="bg-slate-950 border border-slate-800 rounded-xl p-2 sm:p-3 flex items-center justify-around font-mono-num text-xs">
-                      <div>
-                        <div className="text-[10px] text-slate-400">FINAL SCORE</div>
-                        <div className="text-sm sm:text-base font-bold text-amber-400 mt-0.5">
-                          {carriedScore.toLocaleString()}
-                        </div>
-                      </div>
-                      <div className="h-6 w-px bg-slate-800" />
-                      <div>
-                        <div className="text-[10px] text-slate-400">COINS COLLECTED</div>
-                        <div className="text-sm sm:text-base font-bold text-yellow-300 mt-0.5">
-                          {carriedCoins}
-                        </div>
-                      </div>
-                    </div>
-
-                    <div className="grid grid-cols-2 gap-2">
-                      {currentLevelId === 5 ? (
-                        <button
-                          onClick={() => startLevel(6, false)}
-                          className="min-h-[38px] py-2 px-3 bg-cyan-400 hover:bg-cyan-300 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
-                        >
-                          Enter World 2
-                        </button>
-                      ) : currentLevelId === 10 ? (
-                        <button
-                          onClick={() => startLevel(11, false)}
-                          className="min-h-[38px] py-2 px-3 bg-amber-400 hover:bg-amber-300 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
-                        >
-                          Enter World 3
-                        </button>
-                      ) : currentLevelId === 15 ? (
-                        <button
-                          onClick={() => startLevel(16, false)}
-                          className="min-h-[38px] py-2 px-3 bg-sky-400 hover:bg-sky-300 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
-                        >
-                          Enter World 4
-                        </button>
-                      ) : currentLevelId === 20 ? (
-                        <button
-                          onClick={() => startLevel(21, false)}
-                          className="min-h-[38px] py-2 px-3 bg-orange-500 hover:bg-orange-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
-                        >
-                          Enter World 5
-                        </button>
-                      ) : currentLevelId === 25 ? (
-                        <button
-                          onClick={() => startLevel(26, false)}
-                          className="min-h-[38px] py-2 px-3 bg-indigo-400 hover:bg-indigo-300 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
-                        >
-                          Enter World 6
-                        </button>
-                      ) : currentLevelId === 30 ? (
-                        <button
-                          onClick={() => startLevel(31, false)}
-                          className="min-h-[38px] py-2 px-3 bg-yellow-400 hover:bg-yellow-300 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
-                        >
-                          Enter World 7
-                        </button>
-                      ) : currentLevelId === 35 ? (
-                        <button
-                          onClick={() => startLevel(36, false)}
-                          className="min-h-[38px] py-2 px-3 bg-purple-400 hover:bg-purple-300 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
-                        >
-                          Enter World 8
-                        </button>
-                      ) : currentLevelId === 40 ? (
-                        <button
-                          onClick={() => startLevel(41, false)}
-                          className="min-h-[38px] py-2 px-3 bg-fuchsia-400 hover:bg-fuchsia-300 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
-                        >
-                          Enter World 9
-                        </button>
-                      ) : currentLevelId === 45 ? (
-                        <button
-                          onClick={() => startLevel(46, false)}
-                          className="min-h-[38px] py-2 px-3 bg-lime-400 hover:bg-lime-300 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
-                        >
-                          Enter World 10
-                        </button>
-                      ) : (
-                        <button
-                          onClick={() =>
-                            startLevel(
-                              currentLevelId >= 46
-                                ? 46
-                                : currentLevelId >= 41
-                                ? 41
-                                : currentLevelId >= 36
-                                ? 36
-                                : currentLevelId >= 31
-                                ? 31
-                                : currentLevelId >= 26
-                                ? 26
-                                : currentLevelId >= 21
-                                ? 21
-                                : currentLevelId >= 16
-                                ? 16
-                                : currentLevelId >= 11
-                                ? 11
-                                : currentLevelId >= 6
-                                ? 6
-                                : 1,
-                              true
-                            )
-                          }
-                          className="min-h-[38px] py-2 px-3 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
-                        >
-                          Replay World{' '}
-                          {currentLevelId >= 46
-                            ? 10
-                            : currentLevelId >= 41
-                            ? 9
-                            : currentLevelId >= 36
-                            ? 8
-                            : currentLevelId >= 31
-                            ? 7
-                            : currentLevelId >= 26
-                            ? 6
-                            : currentLevelId >= 21
-                            ? 5
-                            : currentLevelId >= 16
-                            ? 4
-                            : currentLevelId >= 11
-                            ? 3
-                            : currentLevelId >= 6
-                            ? 2
-                            : 1}
-                        </button>
-                      )}
-                      <button
-                        onClick={() => navigateToMenu('WORLD_SELECT')}
-                        className="min-h-[38px] py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
-                      >
-                        World Select
-                      </button>
-                    </div>
-                  </div>
-                </div>
+              {/* UNIFIED REUSABLE STAGE OUTCOME MODAL ('stage_cleared', 'game_over', 'time_out') */}
+              {(gameState === 'LEVEL_COMPLETE' ||
+                gameState === 'WORLD_VICTORY' ||
+                gameState === 'GAME_OVER' ||
+                gameState === 'TIME_OUT') && (
+                <StageOutcomeModal
+                  variant={
+                    gameState === 'LEVEL_COMPLETE' || gameState === 'WORLD_VICTORY'
+                      ? 'stage_cleared'
+                      : gameState === 'TIME_OUT'
+                      ? 'time_out'
+                      : 'game_over'
+                  }
+                  isWorldVictory={gameState === 'WORLD_VICTORY'}
+                  currentLevelId={currentLevelId}
+                  levelName={hud.levelName}
+                  score={carriedScore}
+                  coins={carriedCoins}
+                  isWatchingAd={isWatchingAd}
+                  onPrimaryAction={() => {
+                    if (gameState === 'LEVEL_COMPLETE' || gameState === 'WORLD_VICTORY') {
+                      const nextId = currentLevelId >= 50 ? 1 : currentLevelId + 1;
+                      startLevel(nextId, false);
+                    } else {
+                      handleWatchAdAndRevive();
+                    }
+                  }}
+                  onSecondaryRetry={() => {
+                    if (gameState === 'LEVEL_COMPLETE' || gameState === 'WORLD_VICTORY') {
+                      startLevel(currentLevelId, false);
+                    } else {
+                      startLevel(currentLevelId, true);
+                    }
+                  }}
+                  onLevelSelect={() => navigateToMenu('LEVEL_SELECT')}
+                />
               )}
             </div>
           </div>

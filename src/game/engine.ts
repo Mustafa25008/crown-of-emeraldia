@@ -91,6 +91,7 @@ export class PlatformerEngine {
   private onHudUpdate: (snapshot: HudSnapshot) => void;
   private onLevelComplete: (score: number, coins: number) => void;
   private onGameOver: (score: number, coins: number) => void;
+  private onTimeOut: (score: number, coins: number) => void;
   private onPauseToggle: () => void;
 
   // Player state
@@ -125,6 +126,7 @@ export class PlatformerEngine {
   private score: number = 0;
   private coins: number = 0;
   private lives: number = 3;
+  private timeRemaining: number = 180;
   private checkpointReached: boolean = false;
   private respawnPoint: { x: number; y: number };
   private cameraX: number = 0;
@@ -207,6 +209,7 @@ export class PlatformerEngine {
       onHudUpdate: (snapshot: HudSnapshot) => void;
       onLevelComplete: (score: number, coins: number) => void;
       onGameOver: (score: number, coins: number) => void;
+      onTimeOut: (score: number, coins: number) => void;
       onPauseToggle: () => void;
     }
   ) {
@@ -220,13 +223,25 @@ export class PlatformerEngine {
     this.onHudUpdate = callbacks.onHudUpdate;
     this.onLevelComplete = callbacks.onLevelComplete;
     this.onGameOver = callbacks.onGameOver;
+    this.onTimeOut = callbacks.onTimeOut;
     this.onPauseToggle = callbacks.onPauseToggle;
 
+    this.timeRemaining = this.getInitialLevelTime();
     this.respawnPoint = { ...level.playerStart };
     this.boss = this.createInitialBossState();
 
     this.initEntitiesFromLevel(true);
     this.bindKeyboardListeners();
+  }
+
+  private getInitialLevelTime(): number {
+    if (this.level.hasBoss) {
+      return 240; // 4:00 for boss stages
+    }
+    if (this.level.hiddenRoom || this.level.requiresKey || this.level.isUnderwater) {
+      return 210; // 3:30 for secret room / key / underwater stages
+    }
+    return 180; // 3:00 balanced standard stage time
   }
 
   private createInitialBossState(): BossState {
@@ -417,6 +432,7 @@ export class PlatformerEngine {
       this.parentLevelSnapshot = null;
     }
 
+    this.timeRemaining = this.getInitialLevelTime();
     this.updatePlayerDimensions();
     this.px = this.respawnPoint.x;
     this.py = this.respawnPoint.y - (this.pHeight - 28);
@@ -761,6 +777,26 @@ export class PlatformerEngine {
     this.lastFrameTime = performance.now();
   }
 
+  public revivePlayer(refillLives: number = 3) {
+    this.lives = refillLives;
+    this.timeRemaining = this.getInitialLevelTime();
+    if (this.isDead) {
+      this.initEntitiesFromLevel(false);
+    } else {
+      // Reviving from a timeout: restore timer, grant brief invulnerability, and resume safely
+      this.invulnTimer = 2.0;
+      this.pvx = 0;
+      this.pvy = 0;
+      this.keys = {};
+      this.jumpJustPressed = false;
+      this.fireJustPressed = false;
+      this.cancelSuperJumpCharge();
+    }
+    this.isPaused = false;
+    this.lastFrameTime = performance.now();
+    this.emitHud();
+  }
+
   public start() {
     this.lastFrameTime = performance.now();
     const loop = (now: number) => {
@@ -807,6 +843,24 @@ export class PlatformerEngine {
         this.isPaused = true;
         this.onLevelComplete(this.score, this.coins);
       }
+      return;
+    }
+
+    // Update Level Countdown Timer (freezes automatically when isPaused is true)
+    const prevCeilTime = Math.ceil(this.timeRemaining);
+    this.timeRemaining = Math.max(0, this.timeRemaining - dt);
+    const nextCeilTime = Math.ceil(this.timeRemaining);
+    if (nextCeilTime !== prevCeilTime) {
+      this.emitHud();
+    }
+    if (this.timeRemaining <= 0) {
+      this.timeRemaining = 0;
+      this.isPaused = true;
+      this.keys = {};
+      soundManager.stopMusic();
+      soundManager.playDeath();
+      this.emitHud();
+      this.onTimeOut(this.score, this.coins);
       return;
     }
 
@@ -3359,6 +3413,7 @@ export class PlatformerEngine {
       score: this.score,
       coins: this.coins,
       lives: this.lives,
+      timeRemaining: Math.ceil(this.timeRemaining),
       levelId: this.level.id,
       levelName: this.inHiddenRoom && this.level.hiddenRoom
         ? `${this.level.name} (Secret Room)`

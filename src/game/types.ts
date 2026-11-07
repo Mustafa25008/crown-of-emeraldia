@@ -9,6 +9,7 @@ export type GameState =
   | 'PAUSED'
   | 'LEVEL_COMPLETE'
   | 'GAME_OVER'
+  | 'TIME_OUT'
   | 'WORLD_VICTORY';
 
 export type PowerState = 'SMALL' | 'BIG' | 'FIRE' | 'RACCOON';
@@ -384,6 +385,7 @@ export interface HudSnapshot {
   score: number;
   coins: number;
   lives: number;
+  timeRemaining: number;
   levelId: number;
   levelName: string;
   powerState: PowerState;

@@ -215,3 +215,52 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
    - When opened in portrait on a mobile touch device, an orientation guard overlay prompts the user to rotate their device (`"PLEASE ROTATE YOUR DEVICE"` with animated phone rotation and fullscreen landscape option).
    - In landscape mode on mobile devices, the canvas container dynamically constrains height (`maxHeight: calc(100dvh - 52px)`) and width so that the entire retro viewport and overlaid touch buttons fit seamlessly without vertical page scrolling.
    - The web app manifest (`/public/manifest.json`) enforces `"orientation": "landscape"` and `"display": "standalone"`.
+
+---
+
+## 5. Top Header Bar, Level Countdown Timer, Unified Modal System & Pause State Manager
+
+1. **Top Header Bar (`src/App.tsx`)**:
+   - **Solid Dark Background**: Always keep the header bar solid and dark (`bg-slate-900 border border-slate-800`) so telemetry remains crisp and readable over moving game elements. Never make the header bar transparent.
+   - **Strict Modal Hiding Rule**: The Top Header Bar (and Boss Health Bar Banner) must **only** be rendered when `gameState === 'PLAYING'`. Whenever any modal (`PAUSED`, `LEVEL_COMPLETE`, `WORLD_VICTORY`, `GAME_OVER`, or `TIME_OUT`) is active, the main game header must be completely hidden so it never overlaps or shows through the modal background.
+   - **Left-Side Telemetry Order (Strictly 4 Items)**:
+     1. **Score**: `<Trophy />` icon + 6-digit zero-padded score (`000000`).
+     2. **Coins**: Custom `<GoldCoinIcon />` SVG gold coin emblem + coin count (`×00`).
+     3. **Level Countdown Timer**: Placed **directly next to Coins and before Health Hearts**, using the clock/timer icon (`<Coins />` from `lucide-react`) + `MM:SS` countdown (`pulsing red` when `≤ 30s`).
+     4. **Health Hearts**: Rendered directly as `<Heart />` icons.
+   - **Right-Side Controls**:
+     1. **Level Indicator**: Formatted simply as `"World x-y"` (e.g., `World 1-1`).
+     2. **Action Buttons**: Only the **Sound toggle** button and **Pause** button.
+   - **Removed / Forbidden Header Elements**:
+     - Do **not** display raw power status text (such as `"POWER: SMALL"` or `"POWER: BIG"`) in the header.
+     - Do **not** include a standalone Restart button in the header (Restart is available inside the Pause menu modal).
+     - Do **not** place the countdown timer on the right side of the header.
+
+2. **Level Countdown Timer & Reset Rules (`src/game/engine.ts`)**:
+   - **Balanced Stage Duration (`getInitialLevelTime()`)**:
+     - Standard stages: `180` seconds (`3:00`).
+     - Secret Room / Key / Underwater stages (`hiddenRoom`, `requiresKey`, or `isUnderwater`): `210` seconds (`3:30`).
+     - Boss stages (`hasBoss`): `240` seconds (`4:00`).
+   - **Automatic Reset**: The timer automatically resets to full stage time whenever a level starts, restarts, progresses to a new level, respawns, or revives via rewarded ad.
+   - **Timeout Handling**: If `timeRemaining` reaches `0` before reaching the goal, gameplay immediately stops (`isPaused = true`), stage music stops, the timeout chime plays, and `onTimeOut` transitions `gameState` to `'TIME_OUT'` (`"TIME UP!"` header).
+
+3. **Unified Reusable Modal System (`StageOutcomeModal` in `src/App.tsx`)**:
+   - **Single Reusable Component**: All stage completion and failure states (`'stage_cleared'`, `'game_over'`, and `'time_out'`) must render through the single `StageOutcomeModal` component.
+   - **Stats Summary Box (Strictly Score & Coins Only)**:
+     - The modal stats card must display **only 2 columns: `SCORE` and `COINS`**.
+     - Do **not** display `TIME LEFT` on success or `STATUS` (`0s LEFT` / `0 LIVES`) on failure/timeout inside the modal.
+   - **Mandatory 2-Row Button Layout across All Variants**:
+     - **Row 1 (Primary, full-width)**:
+       - `"Next Level ➔"` (for `'stage_cleared'`)
+       - `"▶ Watch Ad & Revive"` (for `'game_over'` and `'time_out'`, triggering the rewarded video ad flow to refill 3 lives, reset the level countdown timer, and resume the stage).
+     - **Row 2 (Secondary Grid - 2 buttons side-by-side)**:
+       - `"Replay"` (for `'stage_cleared'`) or `"Try Again"` (for `'game_over'` / `'time_out'`) | `"Level Select"`.
+
+4. **Pause State Manager (`src/App.tsx` & `src/game/audio.ts`)**:
+   - When the game is paused (`gameState === 'PAUSED'`):
+     - Immediately freeze the level countdown timer (`engineRef.current.setPaused(true)`).
+     - Automatically suspend/mute all active Web Audio sound effects and background chiptune music (`soundManager.pauseAllAudio()`).
+     - Hide the main game header bar while showing the Pause modal.
+     - Do **not** display the countdown timer inside the Pause modal.
+   - When resuming (`gameState === 'PLAYING'`), unfreeze the engine (`setPaused(false)`) and resume audio (`soundManager.resumeAudio()`).
+

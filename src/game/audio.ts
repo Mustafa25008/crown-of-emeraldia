@@ -25,6 +25,7 @@ class SoundManager {
   private musicInterval: number | null = null;
   private currentTrack: TrackName | null = null;
   private noteIndex: number = 0;
+  private isPaused: boolean = false;
 
   constructor() {
     // AudioContext will be initialized on first user interaction
@@ -38,7 +39,7 @@ class SoundManager {
         this.ctx = new AudioCtx();
       }
     }
-    if (this.ctx && this.ctx.state === 'suspended') {
+    if (this.ctx && this.ctx.state === 'suspended' && !this.isPaused) {
       this.ctx.resume().catch(() => {});
     }
     return this.ctx;
@@ -49,9 +50,28 @@ class SoundManager {
     this.musicEnabled = musicEnabled;
     this.volume = Math.max(0, Math.min(1, volume));
     if (!this.musicEnabled) {
-      this.stopMusic();
-    } else if (this.currentTrack && !this.musicInterval) {
-      this.playMusic(this.currentTrack);
+      this.stopMusicIntervalOnly();
+    } else if (this.currentTrack && !this.musicInterval && !this.isPaused) {
+      this.playMusic(this.currentTrack, false);
+    }
+  }
+
+  public pauseAllAudio() {
+    this.isPaused = true;
+    this.stopMusicIntervalOnly();
+    if (this.ctx && this.ctx.state === 'running') {
+      this.ctx.suspend().catch(() => {});
+    }
+  }
+
+  public resumeAudio() {
+    if (!this.isPaused) return;
+    this.isPaused = false;
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
+    }
+    if (this.musicEnabled && this.currentTrack && !this.musicInterval) {
+      this.playMusic(this.currentTrack, false);
     }
   }
 
@@ -63,7 +83,7 @@ class SoundManager {
     slideToFreq?: number,
     delayMs: number = 0
   ) {
-    if (!this.soundEnabled || this.volume <= 0.01) return;
+    if (this.isPaused || !this.soundEnabled || this.volume <= 0.01) return;
     const ctx = this.ensureContext();
     if (!ctx) return;
 
@@ -221,12 +241,18 @@ class SoundManager {
     this.playTone(480, 0.12, 'triangle', 0.14, 1280, 65);
   }
 
-  public playMusic(track: TrackName) {
+  public playMusic(track: TrackName, resetNoteIndex: boolean = true) {
     this.currentTrack = track;
+    this.isPaused = false;
+    if (this.ctx && this.ctx.state === 'suspended') {
+      this.ctx.resume().catch(() => {});
+    }
     if (!this.musicEnabled) return;
 
     this.stopMusicIntervalOnly();
-    this.noteIndex = 0;
+    if (resetNoteIndex) {
+      this.noteIndex = 0;
+    }
 
     const melodies: Record<TrackName, { notes: number[]; tempoMs: number; wave: OscillatorType; bass: number[] }> = {
       OVERWORLD: {
@@ -407,7 +433,7 @@ class SoundManager {
 
     const selected = melodies[track];
     this.musicInterval = window.setInterval(() => {
-      if (!this.musicEnabled || this.volume <= 0.01) return;
+      if (this.isPaused || !this.musicEnabled || this.volume <= 0.01) return;
       const ctx = this.ensureContext();
       if (!ctx || ctx.state !== 'running') return;
 
