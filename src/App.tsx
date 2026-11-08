@@ -1337,10 +1337,10 @@ export default function App() {
           gameState === 'GAME_OVER' ||
           gameState === 'TIME_OUT' ||
           gameState === 'WORLD_VICTORY') && (
-          <div className="w-full max-w-full flex items-center justify-center gap-2 sm:gap-3.5">
+          <div className="w-full max-w-full flex items-end sm:items-center justify-center gap-1.5 sm:gap-3">
             {/* LEFT EMPTY SIDE MARGIN: Clean Virtual Joystick / Thumbstick — Strictly Hidden on Desktop/PC */}
             {isMobileTouch && gameState === 'PLAYING' && (
-              <div className="mobile-touch-controls w-[134px] sm:w-[152px] shrink-0 self-stretch flex flex-col items-center justify-end pb-3 sm:pb-5 select-none touch-none z-10">
+              <div className="mobile-touch-controls w-[126px] sm:w-[144px] shrink-0 self-end flex flex-col items-center justify-end pb-3 sm:pb-5 select-none touch-none pointer-events-none z-10">
                 <div
                   role="group"
                   aria-label="Virtual Thumbstick"
@@ -1370,7 +1370,7 @@ export default function App() {
                     resetJoystick();
                   }}
                   onContextMenu={(e) => e.preventDefault()}
-                  className="relative w-[118px] h-[118px] sm:w-[132px] sm:h-[132px] rounded-full bg-slate-900/70 border-2 border-white/25 shadow-[0_8px_24px_rgba(0,0,0,0.65),inset_0_2px_6px_rgba(255,255,255,0.16)] flex items-center justify-center cursor-pointer select-none touch-none"
+                  className="pointer-events-auto relative w-[116px] h-[116px] sm:w-[130px] sm:h-[130px] rounded-full bg-slate-900/70 border-2 border-white/25 shadow-[0_8px_24px_rgba(0,0,0,0.65),inset_0_2px_6px_rgba(255,255,255,0.16)] flex items-center justify-center cursor-pointer select-none touch-none"
                 >
                   {/* Sleek Centered Inner Knob / Handle (Moves smoothly Left, Right, or Down) */}
                   <div
@@ -1388,54 +1388,54 @@ export default function App() {
               </div>
             )}
 
-            {/* CENTER GAMEPLAY COLUMN: Top Header Bar + Boss Health Bar + Unobstructed 800x608 Canvas */}
+            {/* CENTER GAMEPLAY COLUMN: Top Header Bar + Boss Health Bar + Unobstructed 896x608 Native Pixel Canvas */}
             <div
-              className="flex flex-col items-center w-full max-w-[820px] max-h-full min-w-0"
+              className="flex flex-col items-center w-full max-w-[920px] max-h-full min-w-0"
               style={{
                 maxWidth:
                   isMobileTouch && gameState === 'PLAYING'
-                    ? 'min(calc(100vw - 284px), calc((100dvh - 48px) * (800 / 608)))'
-                    : 'calc((100dvh - 52px) * (800 / 608))',
+                    ? 'min(calc(100vw - 264px), calc((100dvh - 46px) * (896 / 608)))'
+                    : 'calc((100dvh - 52px) * (896 / 608))',
               }}
             >
               {/* Top Retro HUD Bar - strictly hidden whenever any modal (Pause, Success, Failure, Timeout) is active */}
               {gameState === 'PLAYING' && (
-                <div className="w-full bg-slate-900 border border-slate-800 rounded-t-xl px-2.5 py-1.5 sm:px-4 sm:py-2 flex items-center justify-between gap-2 sm:gap-4 text-xs shrink-0">
-                  <div className="flex items-center gap-2.5 sm:gap-5 font-mono-num">
-                    <div className="flex items-center gap-1.5">
-                      <Trophy className="w-4 h-4 text-amber-400 shrink-0" />
+                <div className="relative z-30 pointer-events-auto w-full bg-slate-900 border border-slate-800 rounded-t-xl px-2.5 py-1.5 sm:px-4 sm:py-2 flex items-center justify-between gap-2 sm:gap-4 text-xs shrink-0">
+                  <div className="flex items-center gap-2 sm:gap-4 font-mono-num min-w-0">
+                    <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                      <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
                       <span className="font-bold text-white text-xs sm:text-sm">
                         {hud.score.toString().padStart(6, '0')}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1.5">
-                      <GoldCoinIcon className="w-4 h-4 shrink-0" />
+                    <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
+                      <GoldCoinIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                       <span className="font-bold text-yellow-300 text-xs sm:text-sm">
                         ×{hud.coins.toString().padStart(2, '0')}
                       </span>
                     </div>
 
                     <div
-                      className={`flex items-center gap-1.5 whitespace-nowrap ${
+                      className={`flex items-center gap-1 sm:gap-1.5 whitespace-nowrap shrink-0 ${
                         hud.timeRemaining <= 30 ? 'text-rose-400 animate-pulse' : 'text-amber-300'
                       }`}
                       title="Remaining Stage Time"
                     >
-                      <Coins className="w-4 h-4 shrink-0" />
+                      <Coins className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
                       <span className="font-bold text-xs sm:text-sm">
                         {Math.floor(hud.timeRemaining / 60)}:
                         {(hud.timeRemaining % 60).toString().padStart(2, '0')}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-1" aria-label={`Health: ${hud.lives}`}>
+                    <div className="flex items-center gap-0.5 sm:gap-1 shrink-0" aria-label={`Health: ${hud.lives}`}>
                       {Array.from({ length: Math.max(3, Math.min(5, hud.lives)) }).map((_, idx) => {
                         const isFilled = idx < hud.lives;
                         return (
                           <Heart
                             key={idx}
-                            className={`w-4 h-4 shrink-0 ${
+                            className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${
                               isFilled
                                 ? 'text-rose-500 fill-rose-500'
                                 : 'text-slate-600 fill-slate-800'
@@ -1451,16 +1451,19 @@ export default function App() {
                     </div>
                   </div>
 
-                  <div className="flex items-center gap-2 sm:gap-4">
+                  <div className="flex items-center gap-2 sm:gap-3.5 shrink-0">
                     <div className="text-slate-200 font-bold font-mono-num text-xs sm:text-sm whitespace-nowrap">
                       World {activeWorldNum}-{activeStageNum}
                     </div>
 
-                    <div className="flex items-center gap-1.5">
+                    <div className="flex items-center gap-1.5 shrink-0">
                       <button
+                        type="button"
+                        onPointerDown={(e) => e.stopPropagation()}
                         onClick={toggleMusic}
                         title="Toggle Sound"
-                        className="p-1.5 sm:p-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-200 transition-colors cursor-pointer"
+                        aria-label="Toggle Sound"
+                        className="pointer-events-auto touch-manipulation p-1.5 sm:p-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 transition-all cursor-pointer shrink-0"
                       >
                         {saveData.musicEnabled ? (
                           <Volume2 className="w-4 h-4 text-emerald-400" />
@@ -1469,6 +1472,8 @@ export default function App() {
                         )}
                       </button>
                       <button
+                        type="button"
+                        onPointerDown={(e) => e.stopPropagation()}
                         onClick={() => {
                           if (engineRef.current) {
                             engineRef.current.setPaused(true);
@@ -1476,7 +1481,7 @@ export default function App() {
                           soundManager.pauseAllAudio();
                           setGameState('PAUSED');
                         }}
-                        className="flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg bg-slate-800 hover:bg-slate-700 text-slate-100 font-medium transition-colors whitespace-nowrap shrink-0 cursor-pointer text-xs"
+                        className="pointer-events-auto touch-manipulation flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-100 font-medium transition-all whitespace-nowrap shrink-0 cursor-pointer text-xs"
                       >
                         <Pause className="w-3.5 h-3.5" />
                         <span>Pause</span>
@@ -1518,15 +1523,15 @@ export default function App() {
                 </div>
               )}
 
-              {/* Game Canvas Container (Clean & unobstructed — no overlapping bottom controller bar) */}
+              {/* Game Canvas Container (28x19 tiles = 896x608 native 1:1 pixel ratio — no stretching or distortion) */}
               <div
-                className={`relative w-full aspect-[800/608] bg-slate-950 border-slate-800 overflow-hidden shadow-2xl mx-auto ${
+                className={`relative w-full aspect-[896/608] bg-slate-950 border-slate-800 overflow-hidden shadow-2xl mx-auto ${
                   gameState === 'PLAYING'
                     ? 'border-x border-b rounded-b-xl'
                     : 'border rounded-xl'
                 }`}
                 style={{
-                  maxHeight: 'calc(100dvh - 48px)',
+                  maxHeight: 'calc(100dvh - 46px)',
                 }}
               >
                 <canvas
@@ -1625,16 +1630,16 @@ export default function App() {
               </div>
             </div>
 
-            {/* RIGHT EMPTY SIDE MARGIN: Separated Mobile Action Buttons (Fire 🔥 & Jump ↑) — Strictly Hidden on Desktop/PC */}
+            {/* RIGHT EMPTY SIDE MARGIN: Separated Mobile Action Buttons (Fire 🔥 & Jump ↑ in 100% Transparent Container) — Strictly Hidden on Desktop/PC */}
             {isMobileTouch && gameState === 'PLAYING' && (
-              <div className="mobile-touch-controls w-[134px] sm:w-[152px] shrink-0 self-stretch flex flex-col items-center justify-end pb-3 sm:pb-5 select-none touch-none z-10">
-                <div className="bg-slate-900/70 border border-white/20 rounded-3xl p-2.5 sm:p-3 shadow-[0_8px_24px_rgba(0,0,0,0.65),inset_0_1px_1px_rgba(255,255,255,0.2)] flex items-end justify-center gap-3 sm:gap-3.5">
-                  {/* Fire / Spin Attack / Sprint Button (🔥) */}
+              <div className="mobile-touch-controls w-[126px] sm:w-[144px] shrink-0 self-end flex flex-col items-center justify-end pb-3 sm:pb-5 select-none touch-none pointer-events-none z-10">
+                <div className="bg-transparent flex items-end justify-center gap-3 sm:gap-3.5">
+                  {/* Fire / Spin Attack / Sprint Button (🔥 — Lower / Backward) */}
                   <button
                     type="button"
                     aria-label="Fire and Sprint"
                     {...bindVirtualButton('KeyX')}
-                    className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 flex items-center justify-center transition-transform duration-75 cursor-pointer select-none touch-none shadow-[0_4px_12px_rgba(0,0,0,0.55),inset_0_1px_2px_rgba(255,255,255,0.35)] ${
+                    className={`pointer-events-auto w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 flex items-center justify-center transition-transform duration-75 cursor-pointer select-none touch-none shadow-[0_4px_12px_rgba(0,0,0,0.55),inset_0_1px_2px_rgba(255,255,255,0.35)] ${
                       activeVirtualKeys['KeyX']
                         ? 'bg-orange-400/60 border-white/95 text-white scale-95'
                         : 'bg-gradient-to-b from-orange-500/35 to-orange-600/15 hover:from-orange-500/45 hover:to-orange-600/25 border-white/40 text-orange-100'
@@ -1643,12 +1648,12 @@ export default function App() {
                     <Flame className="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.4]" />
                   </button>
 
-                  {/* Jump Button (↑ — Separated & Ergonomically Elevated) */}
+                  {/* Jump Button (↑ — Higher / Forward Diagonal Layout) */}
                   <button
                     type="button"
                     aria-label="Jump"
                     {...bindVirtualButton('Space')}
-                    className={`w-15 h-15 sm:w-[68px] sm:h-[68px] -translate-y-3 rounded-full border-2 flex items-center justify-center transition-transform duration-75 cursor-pointer select-none touch-none shadow-[0_4px_12px_rgba(0,0,0,0.55),inset_0_1px_2px_rgba(255,255,255,0.35)] ${
+                    className={`pointer-events-auto w-15 h-15 sm:w-[68px] sm:h-[68px] -translate-y-3.5 rounded-full border-2 flex items-center justify-center transition-transform duration-75 cursor-pointer select-none touch-none shadow-[0_4px_12px_rgba(0,0,0,0.55),inset_0_1px_2px_rgba(255,255,255,0.35)] ${
                       activeVirtualKeys['Space']
                         ? 'bg-emerald-400/60 border-white/95 text-white scale-95'
                         : 'bg-gradient-to-b from-emerald-500/35 to-emerald-600/15 hover:from-emerald-500/45 hover:to-emerald-600/25 border-white/40 text-emerald-100'

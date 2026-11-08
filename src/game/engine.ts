@@ -45,7 +45,7 @@ import {
   drawParticlesAndFloatingText,
 } from './renderer';
 
-export const CANVAS_WIDTH = 800;
+export const CANVAS_WIDTH = 896; // 28 tiles * 32px (wider native 1:1 pixel viewport, no stretching)
 export const CANVAS_HEIGHT = 608; // 19 tiles * 32px
 export const TILE_SIZE = 32;
 
@@ -941,8 +941,9 @@ export class PlatformerEngine {
     // 5. Update Smooth Scrolling Camera
     const targetCamX = this.px - CANVAS_WIDTH * 0.36;
     const maxCamX = Math.max(0, this.activeWidthInTiles * TILE_SIZE - CANVAS_WIDTH);
+    const effectiveMinCamX = Math.min(this.minCameraX, maxCamX);
     this.cameraX += (targetCamX - this.cameraX) * Math.min(1, dt * 10);
-    this.cameraX = Math.max(this.minCameraX, Math.min(maxCamX, this.cameraX));
+    this.cameraX = Math.max(effectiveMinCamX, Math.min(maxCamX, this.cameraX));
 
     this.jumpJustPressed = false;
     this.fireJustPressed = false;
@@ -2542,9 +2543,10 @@ export class PlatformerEngine {
     this.py = hr.returnPosition.y - (this.pHeight - 28);
     this.pvx = 0;
     this.pvy = -180;
+    const maxReturnCamX = Math.max(0, this.level.widthInTiles * TILE_SIZE - CANVAS_WIDTH);
     this.cameraX = Math.max(
-      this.minCameraX,
-      Math.min(this.level.widthInTiles * TILE_SIZE - CANVAS_WIDTH, this.px - CANVAS_WIDTH * 0.36)
+      Math.min(this.minCameraX, maxReturnCamX),
+      Math.min(maxReturnCamX, this.px - CANVAS_WIDTH * 0.36)
     );
     this.spawnBurstParticles(this.px + 12, this.py + 16, '#fde047', 18);
     this.emitHud();

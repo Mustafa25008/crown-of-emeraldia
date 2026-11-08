@@ -210,20 +210,26 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
 
 2. **Mobile Touch Controller Redesign, Geometry, Location & Function (`src/App.tsx`, `PlatformerEngine.setVirtualKey`)**:
    - **Zero Canvas Overlap Rule**: Never render a bottom-bar controller or any touch buttons inside/overlapping the `<canvas>` container.
-   - **3-Column Mobile Landscape Viewport Geometry**:
-     - When `isMobileTouch && gameState === 'PLAYING'`, the gameplay area renders a 3-column horizontal flex layout:
-       `[Left Empty Side Margin Virtual Joystick/Touchpad]  [Center Header + 800×608 Gameplay Canvas]  [Right Empty Side Margin Action Buttons]`
-      - The center gameplay column enforces `maxWidth: min(calc(100vw - 284px), calc((100dvh - 48px) * (800 / 608)))` and `maxHeight: calc(100dvh - 48px)`. This mathematically guarantees at least `134px–152px` of dedicated empty margin space on both the **left** and **right** sides outside the `<canvas>` across all mobile landscape screen aspect ratios (`16:9`, `18:9`, `19.5:9`, `20:9`), so the touch controls never block or obscure any game elements, characters, or blocks.
-   - **Left Empty Side Margin — Clean Virtual Joystick / Thumbstick (`w-[134px] sm:w-[152px]` outside the left edge of the canvas)**:
+   - **Native Unstretched Canvas & Header Width (`896×608`, `28×19` tiles at `32×32px`)**:
+     - `CANVAS_WIDTH` in `src/game/engine.ts` is `896` (`28` tiles × `32px`) and `CANVAS_HEIGHT` is `608` (`19` tiles × `32px`), paired with `aspect-[896/608]` on the canvas wrapper in `src/App.tsx`.
+     - Because `896` is an exact multiple of `TILE_SIZE = 32`, this widens both the gameplay viewport and the Top Header Bar by `+96px` (`+3` native tiles, `1.5` tiles on each side) **with zero stretching or distortion of the internal pixel art graphics/sprites**.
+     - On **Desktop / PC**, the centered column uses `max-w-[920px]` and `maxWidth: calc((100dvh - 52px) * (896 / 608))` for a clean, balanced retro arcade presentation.
+     - On **Mobile Landscape** (`isMobileTouch && gameState === 'PLAYING'`), the gameplay area renders a 3-column horizontal flex layout:
+       `[Left Empty Side Margin Virtual Joystick]  [Center Header + 896×608 Gameplay Canvas]  [Right Empty Side Margin Action Buttons]`
+       with `maxWidth: min(calc(100vw - 264px), calc((100dvh - 46px) * (896 / 608)))` and `maxHeight: calc(100dvh - 46px)` on the center column. This provides ample horizontal width for the Top Header Bar (so Audio and Pause buttons never overflow or clip) while guaranteeing `128px–144px` of dedicated empty side margin on both the left and right edges outside the `<canvas>`.
+   - **Non-Blocking Side Margins (`self-end pointer-events-none`)**:
+     - Both the Left and Right side margin containers must use `self-end pointer-events-none` (with `pointer-events-auto` applied only to the interactive Joystick ring and the individual Fire/Jump buttons) so the upper side margins never cover or intercept clicks/touches on the Top Header Bar's Audio and Pause buttons.
+   - **Left Empty Side Margin — Clean Virtual Joystick / Thumbstick (`w-[128px] sm:w-[144px]` outside the left edge of the canvas)**:
      - Do **not** render separate individual arrow button boxes (`<`, `>`, `↓`), arrow icons inside the ring, or multiple non-absolute flex sibling circles that overlap.
      - Instead, render a clean, two-part **Virtual Joystick / Thumbstick** anchored in the bottom-left empty margin:
-       1. **Outer Base Ring**: A fixed, semi-transparent circular base ring (`w-[118px] h-[118px] sm:w-[132px] sm:h-[132px] rounded-full bg-slate-900/70 border-2 border-white/25 flex items-center justify-center`).
+       1. **Outer Base Ring**: A fixed, semi-transparent circular base ring (`w-[116px] h-[116px] sm:w-[128px] sm:h-[128px] rounded-full bg-slate-900/70 border-2 border-white/25 flex items-center justify-center pointer-events-auto`).
        2. **Centered Inner Knob / Handle (`joystickKnobRef`)**: A single sleek circular thumbstick handle (`w-14 h-14 sm:w-16 sm:h-16 rounded-full`) centered inside the outer ring that moves smoothly via hardware-accelerated `translate3d(x, y, 0)` (caching `getBoundingClientRect()` once on `onPointerDown` via `cacheJoystickBounds` so `onPointerMove` has zero layout reads) when touched or dragged **Left (`ArrowLeft`)**, **Right (`ArrowRight`)**, or **Down (`ArrowDown`)** (for ducking/sitting when large, entering secret warp pipes, and holding 1.5s to charge Super Jump), and springs smoothly back to center `(0, 0)` on release.
-   - **Right Empty Side Margin — Separated Action Buttons (`w-[134px] sm:w-[152px]` outside the right edge of the canvas)**:
-     - Anchored at the bottom-right margin in a matching translucent/glassmorphic retro arcade housing (`rounded-3xl p-2.5 sm:p-3 gap-3 sm:gap-3.5`):
-       - **Fire (`🔥`, `Flame` icon, lower-left button `w-14 h-14 sm:w-16 sm:h-16`)**: Mapped to `KeyX` — holds to sprint, launches bouncing fireballs in `FIRE` form, and triggers the 360° spinning tail whip in `RACCOON` form.
-       - **Jump (`↑`, `ArrowUp` icon, upper-right elevated button `w-15 h-15 sm:w-[68px] sm:h-[68px] -translate-y-3`)**: Mapped to `Space` — jumps (variable height based on hold), swims upward in underwater stages, flies/glides and slow-falls in `RACCOON` form, and executes Charged Super Jumps.
-   - **Performance Rule for Touch Controls**: Style the touchpad and buttons using GPU-friendly translucent gradients, inset specular borders, and direct ref-based `translate3d` puck transforms without `backdrop-blur` over animated canvas layers so mobile frame rates stay locked at 60 FPS.
+   - **Right Empty Side Margin — Separated Action Buttons in 100% Transparent Container (`w-[128px] sm:w-[144px]` outside the right edge of the canvas)**:
+     - **100% Transparent Container Rule**: The right-side action buttons container must be **100% transparent** (`bg-transparent flex items-end justify-center gap-3 sm:gap-3.5`) with **no** visible background box, dark panel, or outer box border, so the two circular arcade buttons float naturally in the right margin.
+     - Keep the ergonomic diagonal layout for the right thumb:
+       - **Fire (`🔥`, `Flame` icon, lower/backward button `w-14 h-14 sm:w-16 sm:h-16 pointer-events-auto`)**: Mapped to `KeyX` — holds to sprint, launches bouncing fireballs in `FIRE` form, and triggers the 360° spinning tail whip in `RACCOON` form.
+       - **Jump (`↑`, `ArrowUp` icon, higher/forward elevated button `w-15 h-15 sm:w-[66px] sm:h-[66px] -translate-y-3.5 pointer-events-auto`)**: Mapped to `Space` — jumps (variable height based on hold), swims upward in underwater stages, flies/glides and slow-falls in `RACCOON` form, and executes Charged Super Jumps.
+   - **Performance Rule for Touch Controls**: Style the thumbstick and buttons using GPU-friendly translucent gradients, inset specular borders, and direct ref-based `translate3d` knob transforms without `backdrop-blur` over animated canvas layers so mobile frame rates stay locked at 60 FPS.
 
 3. **Mobile Dynamic Auto-Orientation & 60Hz Fixed-Timestep Performance (`src/App.tsx`, `src/game/engine.ts`, `src/game/renderer.ts`)**:
    - **Never** render a forced `"Landscape Orientation Required / Please Rotate Your Device"` warning modal or overlay.
@@ -239,7 +245,7 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
 ## 5. Top Header Bar, Level Countdown Timer, Unified Modal System & Pause State Manager
 
 1. **Top Header Bar (`src/App.tsx`)**:
-   - **Solid Dark Background**: Always keep the header bar solid and dark (`bg-slate-900 border border-slate-800`) so telemetry remains crisp and readable over moving game elements. Never make the header bar transparent.
+   - **Solid Dark Background & Full Clickability**: Always keep the header bar solid and dark (`relative z-30 pointer-events-auto bg-slate-900 border border-slate-800`) so telemetry remains crisp and readable over moving game elements and the **Audio** and **Pause** buttons are 100% clickable/tappable on both Desktop and Mobile (`type="button"`, `onPointerDown={(e) => e.stopPropagation()}`, `touch-manipulation`). Never make the header bar transparent.
    - **Strict Modal Hiding Rule**: The Top Header Bar (and Boss Health Bar Banner) must **only** be rendered when `gameState === 'PLAYING'`. Whenever any modal (`PAUSED`, `LEVEL_COMPLETE`, `WORLD_VICTORY`, `GAME_OVER`, or `TIME_OUT`) is active, the main game header must be completely hidden so it never overlaps or shows through the modal background.
    - **Left-Side Telemetry Order (Strictly 4 Items)**:
      1. **Score**: `<Trophy />` icon + 6-digit zero-padded score (`000000`).
@@ -248,7 +254,7 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
      4. **Health Hearts**: Rendered directly as `<Heart />` icons.
    - **Right-Side Controls**:
      1. **Level Indicator**: Formatted simply as `"World x-y"` (e.g., `World 1-1`).
-     2. **Action Buttons**: Only the **Sound toggle** button and **Pause** button.
+     2. **Action Buttons**: Only the **Sound toggle** button and **Pause** button (`type="button"`, `touch-manipulation`, never clipped or blocked by side margins).
    - **Removed / Forbidden Header Elements**:
      - Do **not** display raw power status text (such as `"POWER: SMALL"` or `"POWER: BIG"`) in the header.
      - Do **not** include a standalone Restart button in the header (Restart is available inside the Pause menu modal).
