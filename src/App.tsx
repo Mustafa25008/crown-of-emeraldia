@@ -21,8 +21,6 @@ import {
   HelpCircle,
   ChevronRight,
   Feather,
-  ChevronLeft,
-  ChevronDown,
   ArrowUp,
   Loader2,
 } from 'lucide-react';
@@ -1327,12 +1325,12 @@ export default function App() {
           gameState === 'TIME_OUT' ||
           gameState === 'WORLD_VICTORY') && (
           <div className="w-full max-w-full flex items-center justify-center gap-1.5 sm:gap-3">
-            {/* LEFT EMPTY SIDE MARGIN: Unified Virtual Joystick / Touchpad (Left, Right, Down Zones) — Strictly Hidden on Desktop/PC */}
+            {/* LEFT EMPTY SIDE MARGIN: Clean Virtual Joystick / Thumbstick — Strictly Hidden on Desktop/PC */}
             {isMobileTouch && gameState === 'PLAYING' && (
               <div className="mobile-touch-controls w-[114px] sm:w-[132px] shrink-0 self-stretch flex flex-col items-center justify-end pb-3 sm:pb-5 select-none touch-none z-10">
                 <div
                   role="group"
-                  aria-label="Virtual Movement Touchpad"
+                  aria-label="Virtual Thumbstick"
                   onPointerDown={(e) => {
                     e.preventDefault();
                     activeJoystickPointerRef.current = e.pointerId;
@@ -1358,51 +1356,19 @@ export default function App() {
                     resetJoystick();
                   }}
                   onContextMenu={(e) => e.preventDefault()}
-                  className="relative w-[104px] h-[104px] sm:w-[118px] sm:h-[118px] rounded-full bg-slate-900/75 border-2 border-white/25 shadow-[0_8px_24px_rgba(0,0,0,0.65),inset_0_2px_6px_rgba(255,255,255,0.18)] flex items-center justify-center cursor-pointer select-none touch-none"
+                  className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-slate-900/70 border-2 border-white/25 shadow-[0_8px_24px_rgba(0,0,0,0.65),inset_0_2px_6px_rgba(255,255,255,0.16)] flex items-center justify-center cursor-pointer select-none touch-none"
                 >
-                  {/* Inner Concentric Track Ring & Crosshair Guide */}
-                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border border-white/15 bg-white/[0.03] pointer-events-none" />
-
-                  {/* Left Zone Indicator (←) */}
-                  <ChevronLeft
-                    className={`absolute left-1.5 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none transition-colors ${
-                      activeVirtualKeys['ArrowLeft']
-                        ? 'text-emerald-300 stroke-[3]'
-                        : 'text-white/45 stroke-[2.25]'
-                    }`}
-                  />
-
-                  {/* Right Zone Indicator (→) */}
-                  <ChevronRight
-                    className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none transition-colors ${
-                      activeVirtualKeys['ArrowRight']
-                        ? 'text-emerald-300 stroke-[3]'
-                        : 'text-white/45 stroke-[2.25]'
-                    }`}
-                  />
-
-                  {/* Down Zone Indicator (↓ for Ducking/Sitting, Pipes & Super Jump) */}
-                  <ChevronDown
-                    className={`absolute bottom-1.5 left-1/2 -translate-x-1/2 w-5 h-5 pointer-events-none transition-colors ${
-                      activeVirtualKeys['ArrowDown']
-                        ? 'text-amber-300 stroke-[3]'
-                        : 'text-white/45 stroke-[2.25]'
-                    }`}
-                  />
-
-                  {/* Floating Translucent Arcade Thumbstick Puck */}
+                  {/* Sleek Centered Inner Knob / Handle (Moves smoothly Left, Right, or Down) */}
                   <div
                     ref={joystickKnobRef}
-                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full border-2 flex items-center justify-center pointer-events-none shadow-[0_4px_12px_rgba(0,0,0,0.55),inset_0_2px_2px_rgba(255,255,255,0.45)] ${
-                      activeVirtualKeys['ArrowLeft'] ||
-                      activeVirtualKeys['ArrowRight'] ||
+                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full border-2 pointer-events-none shadow-[0_4px_12px_rgba(0,0,0,0.6),inset_0_2px_2px_rgba(255,255,255,0.45)] ${
                       activeVirtualKeys['ArrowDown']
-                        ? 'bg-gradient-to-b from-emerald-400/55 to-teal-500/35 border-white/95'
-                        : 'bg-gradient-to-b from-white/35 to-white/15 border-white/55'
+                        ? 'bg-gradient-to-b from-amber-400/60 to-amber-600/35 border-white/95'
+                        : activeVirtualKeys['ArrowLeft'] || activeVirtualKeys['ArrowRight']
+                        ? 'bg-gradient-to-b from-emerald-400/60 to-emerald-600/35 border-white/95'
+                        : 'bg-gradient-to-b from-white/35 to-white/15 border-white/60'
                     }`}
-                  >
-                    <div className="w-4 h-4 rounded-full border border-white/40 bg-white/20" />
-                  </div>
+                  />
                 </div>
               </div>
             )}
