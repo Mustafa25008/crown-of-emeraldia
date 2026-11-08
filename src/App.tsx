@@ -626,16 +626,27 @@ export default function App() {
 
   const joystickKnobRef = useRef<HTMLDivElement | null>(null);
   const activeJoystickPointerRef = useRef<number | null>(null);
+  const joystickCenterRef = useRef<{ x: number; y: number; maxRadius: number }>({
+    x: 0,
+    y: 0,
+    maxRadius: 38,
+  });
+
+  const cacheJoystickBounds = useCallback((padEl: HTMLDivElement) => {
+    const rect = padEl.getBoundingClientRect();
+    joystickCenterRef.current = {
+      x: rect.left + rect.width / 2,
+      y: rect.top + rect.height / 2,
+      maxRadius: rect.width * 0.31,
+    };
+  }, []);
 
   const updateJoystickFromPointer = useCallback(
-    (clientX: number, clientY: number, padEl: HTMLDivElement) => {
-      const rect = padEl.getBoundingClientRect();
-      const centerX = rect.left + rect.width / 2;
-      const centerY = rect.top + rect.height / 2;
+    (clientX: number, clientY: number) => {
+      const { x: centerX, y: centerY, maxRadius } = joystickCenterRef.current;
       const rawDx = clientX - centerX;
       const rawDy = clientY - centerY;
       const dist = Math.hypot(rawDx, rawDy);
-      const maxRadius = rect.width * 0.28;
 
       let clampedX = rawDx;
       let clampedY = rawDy;
@@ -646,10 +657,11 @@ export default function App() {
       }
 
       if (joystickKnobRef.current) {
+        joystickKnobRef.current.style.transition = 'none';
         joystickKnobRef.current.style.transform = `translate3d(${clampedX.toFixed(1)}px, ${clampedY.toFixed(1)}px, 0)`;
       }
 
-      const deadzone = 8;
+      const deadzone = 6;
       if (dist < deadzone) {
         handleVirtualInput('ArrowLeft', false);
         handleVirtualInput('ArrowRight', false);
@@ -657,10 +669,10 @@ export default function App() {
         return;
       }
 
-      const isPureDown = rawDy > 12 && Math.abs(rawDx) < rawDy * 0.55;
+      const isPureDown = rawDy > 10 && Math.abs(rawDx) < rawDy * 0.55;
       const wantLeft = !isPureDown && rawDx < -deadzone;
       const wantRight = !isPureDown && rawDx > deadzone;
-      const wantDown = rawDy > 12 && rawDy > Math.abs(rawDx) * 0.65;
+      const wantDown = rawDy > 10 && rawDy > Math.abs(rawDx) * 0.65;
 
       handleVirtualInput('ArrowLeft', wantLeft);
       handleVirtualInput('ArrowRight', wantRight);
@@ -672,6 +684,7 @@ export default function App() {
   const resetJoystick = useCallback(() => {
     activeJoystickPointerRef.current = null;
     if (joystickKnobRef.current) {
+      joystickKnobRef.current.style.transition = 'transform 140ms cubic-bezier(0.22, 1, 0.36, 1)';
       joystickKnobRef.current.style.transform = 'translate3d(0px, 0px, 0)';
     }
     handleVirtualInput('ArrowLeft', false);
@@ -1324,10 +1337,10 @@ export default function App() {
           gameState === 'GAME_OVER' ||
           gameState === 'TIME_OUT' ||
           gameState === 'WORLD_VICTORY') && (
-          <div className="w-full max-w-full flex items-center justify-center gap-1.5 sm:gap-3">
+          <div className="w-full max-w-full flex items-center justify-center gap-2 sm:gap-3.5">
             {/* LEFT EMPTY SIDE MARGIN: Clean Virtual Joystick / Thumbstick — Strictly Hidden on Desktop/PC */}
             {isMobileTouch && gameState === 'PLAYING' && (
-              <div className="mobile-touch-controls w-[114px] sm:w-[132px] shrink-0 self-stretch flex flex-col items-center justify-end pb-3 sm:pb-5 select-none touch-none z-10">
+              <div className="mobile-touch-controls w-[134px] sm:w-[152px] shrink-0 self-stretch flex flex-col items-center justify-end pb-3 sm:pb-5 select-none touch-none z-10">
                 <div
                   role="group"
                   aria-label="Virtual Thumbstick"
@@ -1335,12 +1348,13 @@ export default function App() {
                     e.preventDefault();
                     activeJoystickPointerRef.current = e.pointerId;
                     e.currentTarget.setPointerCapture(e.pointerId);
-                    updateJoystickFromPointer(e.clientX, e.clientY, e.currentTarget);
+                    cacheJoystickBounds(e.currentTarget);
+                    updateJoystickFromPointer(e.clientX, e.clientY);
                   }}
                   onPointerMove={(e) => {
                     if (activeJoystickPointerRef.current !== e.pointerId) return;
                     e.preventDefault();
-                    updateJoystickFromPointer(e.clientX, e.clientY, e.currentTarget);
+                    updateJoystickFromPointer(e.clientX, e.clientY);
                   }}
                   onPointerUp={(e) => {
                     if (activeJoystickPointerRef.current !== e.pointerId) return;
@@ -1356,12 +1370,13 @@ export default function App() {
                     resetJoystick();
                   }}
                   onContextMenu={(e) => e.preventDefault()}
-                  className="relative w-24 h-24 sm:w-28 sm:h-28 rounded-full bg-slate-900/70 border-2 border-white/25 shadow-[0_8px_24px_rgba(0,0,0,0.65),inset_0_2px_6px_rgba(255,255,255,0.16)] flex items-center justify-center cursor-pointer select-none touch-none"
+                  className="relative w-[118px] h-[118px] sm:w-[132px] sm:h-[132px] rounded-full bg-slate-900/70 border-2 border-white/25 shadow-[0_8px_24px_rgba(0,0,0,0.65),inset_0_2px_6px_rgba(255,255,255,0.16)] flex items-center justify-center cursor-pointer select-none touch-none"
                 >
                   {/* Sleek Centered Inner Knob / Handle (Moves smoothly Left, Right, or Down) */}
                   <div
                     ref={joystickKnobRef}
-                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full border-2 pointer-events-none shadow-[0_4px_12px_rgba(0,0,0,0.6),inset_0_2px_2px_rgba(255,255,255,0.45)] ${
+                    style={{ willChange: 'transform' }}
+                    className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 pointer-events-none shadow-[0_4px_14px_rgba(0,0,0,0.65),inset_0_2px_3px_rgba(255,255,255,0.45)] ${
                       activeVirtualKeys['ArrowDown']
                         ? 'bg-gradient-to-b from-amber-400/60 to-amber-600/35 border-white/95'
                         : activeVirtualKeys['ArrowLeft'] || activeVirtualKeys['ArrowRight']
@@ -1379,7 +1394,7 @@ export default function App() {
               style={{
                 maxWidth:
                   isMobileTouch && gameState === 'PLAYING'
-                    ? 'min(calc(100vw - 244px), calc((100dvh - 48px) * (800 / 608)))'
+                    ? 'min(calc(100vw - 284px), calc((100dvh - 48px) * (800 / 608)))'
                     : 'calc((100dvh - 52px) * (800 / 608))',
               }}
             >
@@ -1612,20 +1627,20 @@ export default function App() {
 
             {/* RIGHT EMPTY SIDE MARGIN: Separated Mobile Action Buttons (Fire 🔥 & Jump ↑) — Strictly Hidden on Desktop/PC */}
             {isMobileTouch && gameState === 'PLAYING' && (
-              <div className="mobile-touch-controls w-[114px] sm:w-[132px] shrink-0 self-stretch flex flex-col items-center justify-end pb-3 sm:pb-5 select-none touch-none z-10">
-                <div className="bg-slate-900/70 border border-white/20 rounded-2xl p-2 shadow-[0_8px_24px_rgba(0,0,0,0.65),inset_0_1px_1px_rgba(255,255,255,0.2)] flex items-end justify-center gap-2.5">
+              <div className="mobile-touch-controls w-[134px] sm:w-[152px] shrink-0 self-stretch flex flex-col items-center justify-end pb-3 sm:pb-5 select-none touch-none z-10">
+                <div className="bg-slate-900/70 border border-white/20 rounded-3xl p-2.5 sm:p-3 shadow-[0_8px_24px_rgba(0,0,0,0.65),inset_0_1px_1px_rgba(255,255,255,0.2)] flex items-end justify-center gap-3 sm:gap-3.5">
                   {/* Fire / Spin Attack / Sprint Button (🔥) */}
                   <button
                     type="button"
                     aria-label="Fire and Sprint"
                     {...bindVirtualButton('KeyX')}
-                    className={`w-11 h-11 sm:w-13 sm:h-13 rounded-full border-2 flex items-center justify-center transition-transform cursor-pointer select-none touch-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)] ${
+                    className={`w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 flex items-center justify-center transition-transform duration-75 cursor-pointer select-none touch-none shadow-[0_4px_12px_rgba(0,0,0,0.55),inset_0_1px_2px_rgba(255,255,255,0.35)] ${
                       activeVirtualKeys['KeyX']
-                        ? 'bg-orange-400/55 border-white/95 text-white scale-95'
-                        : 'bg-gradient-to-b from-orange-500/30 to-orange-600/15 hover:from-orange-500/40 hover:to-orange-600/25 border-white/35 text-orange-100'
+                        ? 'bg-orange-400/60 border-white/95 text-white scale-95'
+                        : 'bg-gradient-to-b from-orange-500/35 to-orange-600/15 hover:from-orange-500/45 hover:to-orange-600/25 border-white/40 text-orange-100'
                     }`}
                   >
-                    <Flame className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.4]" />
+                    <Flame className="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.4]" />
                   </button>
 
                   {/* Jump Button (↑ — Separated & Ergonomically Elevated) */}
@@ -1633,13 +1648,13 @@ export default function App() {
                     type="button"
                     aria-label="Jump"
                     {...bindVirtualButton('Space')}
-                    className={`w-12 h-12 sm:w-14 sm:h-14 -translate-y-2.5 rounded-full border-2 flex items-center justify-center transition-transform cursor-pointer select-none touch-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)] ${
+                    className={`w-15 h-15 sm:w-[68px] sm:h-[68px] -translate-y-3 rounded-full border-2 flex items-center justify-center transition-transform duration-75 cursor-pointer select-none touch-none shadow-[0_4px_12px_rgba(0,0,0,0.55),inset_0_1px_2px_rgba(255,255,255,0.35)] ${
                       activeVirtualKeys['Space']
-                        ? 'bg-emerald-400/55 border-white/95 text-white scale-95'
-                        : 'bg-gradient-to-b from-emerald-500/30 to-emerald-600/15 hover:from-emerald-500/40 hover:to-emerald-600/25 border-white/35 text-emerald-100'
+                        ? 'bg-emerald-400/60 border-white/95 text-white scale-95'
+                        : 'bg-gradient-to-b from-emerald-500/35 to-emerald-600/15 hover:from-emerald-500/45 hover:to-emerald-600/25 border-white/40 text-emerald-100'
                     }`}
                   >
-                    <ArrowUp className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.75]" />
+                    <ArrowUp className="w-7 h-7 sm:w-8 sm:h-8 stroke-[2.75]" />
                   </button>
                 </div>
               </div>
