@@ -212,17 +212,19 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
    - **Zero Canvas Overlap Rule**: Never render a bottom-bar controller or any touch buttons inside/overlapping the `<canvas>` container.
    - **3-Column Mobile Landscape Viewport Geometry**:
      - When `isMobileTouch && gameState === 'PLAYING'`, the gameplay area renders a 3-column horizontal flex layout:
-       `[Left Empty Side Margin D-Pad]  [Center Header + 800×608 Gameplay Canvas]  [Right Empty Side Margin Action Buttons]`
+       `[Left Empty Side Margin Virtual Joystick/Touchpad]  [Center Header + 800×608 Gameplay Canvas]  [Right Empty Side Margin Action Buttons]`
      - The center gameplay column enforces `maxWidth: min(calc(100vw - 244px), calc((100dvh - 48px) * (800 / 608)))` and `maxHeight: calc(100dvh - 48px)`. This mathematically guarantees at least `114px–132px` of dedicated empty margin space on both the **left** and **right** sides outside the `<canvas>` across all mobile landscape screen aspect ratios (`16:9`, `18:9`, `19.5:9`, `20:9`), so the touch controls never block or obscure any game elements, characters, or blocks.
-   - **Left Empty Side Margin — Movement D-Pad (`w-[114px] sm:w-[132px]` outside the left edge of the canvas)**:
-     - Anchored at the bottom-left margin in a translucent/glassmorphic retro arcade housing (`bg-slate-900/70 border border-white/20 rounded-2xl p-2 shadow-[0_8px_24px_rgba(0,0,0,0.65),inset_0_1px_1px_rgba(255,255,255,0.2)]`):
-       - **Top Row**: **Left (`←`, `ChevronLeft`)** mapped to `ArrowLeft` (walk/sprint left) and **Right (`→`, `ChevronRight`)** mapped to `ArrowRight` (walk/sprint right).
-       - **Bottom Center Row**: **Down (`↓`, `ChevronDown`)** mapped to `ArrowDown` (ducking/sitting when the character is large in `BIG`/`FIRE`/`RACCOON` form, entering secret warp pipes, and holding 1.5s to charge Super Jump in `BIG`/`FIRE` form).
+   - **Left Empty Side Margin — Unified Touchpad / Virtual Joystick (`w-[114px] sm:w-[132px]` outside the left edge of the canvas)**:
+     - Do **not** render separate individual arrow button boxes (`<`, `>`, `↓`) on the left side.
+     - Instead, render a single **Unified Touchpad / Virtual Joystick** (`w-[104px] h-[104px] sm:w-[118px] sm:h-[118px] rounded-full bg-slate-900/75 border-2 border-white/25`) anchored at the bottom-left empty margin:
+       - Features an inner concentric track ring, directional zone indicators (`ChevronLeft` on the left edge, `ChevronRight` on the right edge, and `ChevronDown` on the bottom edge), and a floating 3D translucent thumbstick puck (`joystickKnobRef` translated via hardware-accelerated `translate3d(x, y, 0)` with zero per-pixel React re-renders).
+       - Allows the player's thumb to **slide or press naturally** across **Left (`ArrowLeft`)**, **Right (`ArrowRight`)**, and **Down (`ArrowDown`)** zones within the unified pad without needing to lift their thumb (`updateJoystickFromPointer` & `resetJoystick`).
+       - Pushing or sliding into the **Down (`↓`)** zone triggers ducking/sitting when grown (`BIG`/`FIRE`/`RACCOON`), entering secret warp pipes, and holding 1.5s to charge Super Jump in `BIG`/`FIRE` form.
    - **Right Empty Side Margin — Separated Action Buttons (`w-[114px] sm:w-[132px]` outside the right edge of the canvas)**:
      - Anchored at the bottom-right margin in a matching translucent/glassmorphic retro arcade housing:
        - **Fire (`🔥`, `Flame` icon, lower-left button)**: Mapped to `KeyX` — holds to sprint, launches bouncing fireballs in `FIRE` form, and triggers the 360° spinning tail whip in `RACCOON` form.
        - **Jump (`↑`, `ArrowUp` icon, upper-right elevated button `-translate-y-2.5`)**: Mapped to `Space` — jumps (variable height based on hold), swims upward in underwater stages, flies/glides and slow-falls in `RACCOON` form, and executes Charged Super Jumps.
-   - **Performance Rule for Touch Buttons**: Style buttons using GPU-friendly translucent gradients and inset specular borders (`bg-gradient-to-b`, `shadow-[inset_0_1px_1px_...]`) without `backdrop-blur` over animated canvas layers so mobile frame rates stay locked at 60 FPS.
+   - **Performance Rule for Touch Controls**: Style the touchpad and buttons using GPU-friendly translucent gradients, inset specular borders, and direct ref-based `translate3d` puck transforms without `backdrop-blur` over animated canvas layers so mobile frame rates stay locked at 60 FPS.
 
 3. **Mobile Dynamic Auto-Orientation & 60Hz Fixed-Timestep Performance (`src/App.tsx`, `src/game/engine.ts`, `src/game/renderer.ts`)**:
    - **Never** render a forced `"Landscape Orientation Required / Please Rotate Your Device"` warning modal or overlay.
@@ -308,6 +310,6 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
      - Ground alignment (`goalY: 6 * 32` for standard/boss flagpoles on row `16` ground; `goalY: 13 * 32` for locked doors with `requiresKey: true`).
      - Minimum 3–4 tiles vertical clearance under/above Question Blocks and power-up randomization rules.
      - Progressive Boss Health Scaling Formula (`getBossMaxHpForWorld(worldNumber)`).
-     - Desktop/PC Keyboard-Only Rule (never show touch controllers on desktop) and Mobile Landscape Side-Margin Touch Controllers (Left D-Pad `←`, `→`, `↓` and Right separated Action Buttons `🔥`, `↑` placed in the left/right empty side margins outside the gameplay canvas).
+     - Desktop/PC Keyboard-Only Rule (never show touch controllers on desktop) and Mobile Landscape Side-Margin Touch Controllers (Left Unified Virtual Joystick / Touchpad with Left/Right/Down zones and Right separated Action Buttons `🔥`, `↑` placed in the left/right empty side margins outside the gameplay canvas).
      - Mobile Dynamic Auto-Orientation (`lockMobileLandscape()` when entering any level, `unlockMobileToPortrait()` when exiting to menus/World Select, with zero forced rotation warning modals).
      - Exact Top Header Bar layout, Level Countdown Timer rules, Pause State Manager, Standardized 3-Line World Select Card Layout, and Unified `StageOutcomeModal` (`SCORE` and `COINS` only, with `<Loader2 />` + `"Loading..."` when `"▶ Watch Ad & Revive"` is clicked).

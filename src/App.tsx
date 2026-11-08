@@ -626,6 +626,61 @@ export default function App() {
     });
   }, []);
 
+  const joystickKnobRef = useRef<HTMLDivElement | null>(null);
+  const activeJoystickPointerRef = useRef<number | null>(null);
+
+  const updateJoystickFromPointer = useCallback(
+    (clientX: number, clientY: number, padEl: HTMLDivElement) => {
+      const rect = padEl.getBoundingClientRect();
+      const centerX = rect.left + rect.width / 2;
+      const centerY = rect.top + rect.height / 2;
+      const rawDx = clientX - centerX;
+      const rawDy = clientY - centerY;
+      const dist = Math.hypot(rawDx, rawDy);
+      const maxRadius = rect.width * 0.28;
+
+      let clampedX = rawDx;
+      let clampedY = rawDy;
+      if (dist > maxRadius && dist > 0) {
+        const scale = maxRadius / dist;
+        clampedX = rawDx * scale;
+        clampedY = rawDy * scale;
+      }
+
+      if (joystickKnobRef.current) {
+        joystickKnobRef.current.style.transform = `translate3d(${clampedX.toFixed(1)}px, ${clampedY.toFixed(1)}px, 0)`;
+      }
+
+      const deadzone = 8;
+      if (dist < deadzone) {
+        handleVirtualInput('ArrowLeft', false);
+        handleVirtualInput('ArrowRight', false);
+        handleVirtualInput('ArrowDown', false);
+        return;
+      }
+
+      const isPureDown = rawDy > 12 && Math.abs(rawDx) < rawDy * 0.55;
+      const wantLeft = !isPureDown && rawDx < -deadzone;
+      const wantRight = !isPureDown && rawDx > deadzone;
+      const wantDown = rawDy > 12 && rawDy > Math.abs(rawDx) * 0.65;
+
+      handleVirtualInput('ArrowLeft', wantLeft);
+      handleVirtualInput('ArrowRight', wantRight);
+      handleVirtualInput('ArrowDown', wantDown);
+    },
+    [handleVirtualInput]
+  );
+
+  const resetJoystick = useCallback(() => {
+    activeJoystickPointerRef.current = null;
+    if (joystickKnobRef.current) {
+      joystickKnobRef.current.style.transform = 'translate3d(0px, 0px, 0)';
+    }
+    handleVirtualInput('ArrowLeft', false);
+    handleVirtualInput('ArrowRight', false);
+    handleVirtualInput('ArrowDown', false);
+  }, [handleVirtualInput]);
+
   const bindVirtualButton = (code: string) => ({
     onPointerDown: (e: React.PointerEvent<HTMLButtonElement>) => {
       e.preventDefault();
@@ -1272,52 +1327,82 @@ export default function App() {
           gameState === 'TIME_OUT' ||
           gameState === 'WORLD_VICTORY') && (
           <div className="w-full max-w-full flex items-center justify-center gap-1.5 sm:gap-3">
-            {/* LEFT EMPTY SIDE MARGIN: Mobile Touch Movement D-Pad (Left, Right, Down) — Strictly Hidden on Desktop/PC */}
+            {/* LEFT EMPTY SIDE MARGIN: Unified Virtual Joystick / Touchpad (Left, Right, Down Zones) — Strictly Hidden on Desktop/PC */}
             {isMobileTouch && gameState === 'PLAYING' && (
               <div className="mobile-touch-controls w-[114px] sm:w-[132px] shrink-0 self-stretch flex flex-col items-center justify-end pb-3 sm:pb-5 select-none touch-none z-10">
-                <div className="bg-slate-900/70 border border-white/20 rounded-2xl p-2 shadow-[0_8px_24px_rgba(0,0,0,0.65),inset_0_1px_1px_rgba(255,255,255,0.2)] flex flex-col items-center gap-2">
-                  {/* Top Row: Left (←) and Right (→) */}
-                  <div className="flex items-center gap-2">
-                    <button
-                      type="button"
-                      aria-label="Move Left"
-                      {...bindVirtualButton('ArrowLeft')}
-                      className={`w-11 h-11 sm:w-13 sm:h-13 rounded-xl border-2 flex items-center justify-center transition-transform cursor-pointer select-none touch-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)] ${
-                        activeVirtualKeys['ArrowLeft']
-                          ? 'bg-emerald-400/45 border-white/90 text-white scale-95'
-                          : 'bg-gradient-to-b from-white/25 to-white/10 hover:from-white/30 hover:to-white/15 border-white/35 text-white'
-                      }`}
-                    >
-                      <ChevronLeft className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.75]" />
-                    </button>
+                <div
+                  role="group"
+                  aria-label="Virtual Movement Touchpad"
+                  onPointerDown={(e) => {
+                    e.preventDefault();
+                    activeJoystickPointerRef.current = e.pointerId;
+                    e.currentTarget.setPointerCapture(e.pointerId);
+                    updateJoystickFromPointer(e.clientX, e.clientY, e.currentTarget);
+                  }}
+                  onPointerMove={(e) => {
+                    if (activeJoystickPointerRef.current !== e.pointerId) return;
+                    e.preventDefault();
+                    updateJoystickFromPointer(e.clientX, e.clientY, e.currentTarget);
+                  }}
+                  onPointerUp={(e) => {
+                    if (activeJoystickPointerRef.current !== e.pointerId) return;
+                    e.preventDefault();
+                    resetJoystick();
+                  }}
+                  onPointerCancel={(e) => {
+                    if (activeJoystickPointerRef.current !== e.pointerId) return;
+                    e.preventDefault();
+                    resetJoystick();
+                  }}
+                  onLostPointerCapture={() => {
+                    resetJoystick();
+                  }}
+                  onContextMenu={(e) => e.preventDefault()}
+                  className="relative w-[104px] h-[104px] sm:w-[118px] sm:h-[118px] rounded-full bg-slate-900/75 border-2 border-white/25 shadow-[0_8px_24px_rgba(0,0,0,0.65),inset_0_2px_6px_rgba(255,255,255,0.18)] flex items-center justify-center cursor-pointer select-none touch-none"
+                >
+                  {/* Inner Concentric Track Ring & Crosshair Guide */}
+                  <div className="w-14 h-14 sm:w-16 sm:h-16 rounded-full border border-white/15 bg-white/[0.03] pointer-events-none" />
 
-                    <button
-                      type="button"
-                      aria-label="Move Right"
-                      {...bindVirtualButton('ArrowRight')}
-                      className={`w-11 h-11 sm:w-13 sm:h-13 rounded-xl border-2 flex items-center justify-center transition-transform cursor-pointer select-none touch-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)] ${
-                        activeVirtualKeys['ArrowRight']
-                          ? 'bg-emerald-400/45 border-white/90 text-white scale-95'
-                          : 'bg-gradient-to-b from-white/25 to-white/10 hover:from-white/30 hover:to-white/15 border-white/35 text-white'
-                      }`}
-                    >
-                      <ChevronRight className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.75]" />
-                    </button>
-                  </div>
+                  {/* Left Zone Indicator (←) */}
+                  <ChevronLeft
+                    className={`absolute left-1.5 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none transition-colors ${
+                      activeVirtualKeys['ArrowLeft']
+                        ? 'text-emerald-300 stroke-[3]'
+                        : 'text-white/45 stroke-[2.25]'
+                    }`}
+                  />
 
-                  {/* Bottom Row: Down (↓ for Ducking/Sitting when Large, Secret Pipes & Super Jump Charge) */}
-                  <button
-                    type="button"
-                    aria-label="Crouch Down"
-                    {...bindVirtualButton('ArrowDown')}
-                    className={`w-14 h-10 sm:w-16 sm:h-11 rounded-xl border-2 flex items-center justify-center transition-transform cursor-pointer select-none touch-none shadow-[inset_0_1px_1px_rgba(255,255,255,0.3)] ${
+                  {/* Right Zone Indicator (→) */}
+                  <ChevronRight
+                    className={`absolute right-1.5 top-1/2 -translate-y-1/2 w-5 h-5 pointer-events-none transition-colors ${
+                      activeVirtualKeys['ArrowRight']
+                        ? 'text-emerald-300 stroke-[3]'
+                        : 'text-white/45 stroke-[2.25]'
+                    }`}
+                  />
+
+                  {/* Down Zone Indicator (↓ for Ducking/Sitting, Pipes & Super Jump) */}
+                  <ChevronDown
+                    className={`absolute bottom-1.5 left-1/2 -translate-x-1/2 w-5 h-5 pointer-events-none transition-colors ${
                       activeVirtualKeys['ArrowDown']
-                        ? 'bg-amber-400/45 border-white/90 text-white scale-95'
-                        : 'bg-gradient-to-b from-white/25 to-white/10 hover:from-white/30 hover:to-white/15 border-white/35 text-white'
+                        ? 'text-amber-300 stroke-[3]'
+                        : 'text-white/45 stroke-[2.25]'
+                    }`}
+                  />
+
+                  {/* Floating Translucent Arcade Thumbstick Puck */}
+                  <div
+                    ref={joystickKnobRef}
+                    className={`w-11 h-11 sm:w-12 sm:h-12 rounded-full border-2 flex items-center justify-center pointer-events-none shadow-[0_4px_12px_rgba(0,0,0,0.55),inset_0_2px_2px_rgba(255,255,255,0.45)] ${
+                      activeVirtualKeys['ArrowLeft'] ||
+                      activeVirtualKeys['ArrowRight'] ||
+                      activeVirtualKeys['ArrowDown']
+                        ? 'bg-gradient-to-b from-emerald-400/55 to-teal-500/35 border-white/95'
+                        : 'bg-gradient-to-b from-white/35 to-white/15 border-white/55'
                     }`}
                   >
-                    <ChevronDown className="w-6 h-6 sm:w-7 sm:h-7 stroke-[2.75]" />
-                  </button>
+                    <div className="w-4 h-4 rounded-full border border-white/40 bg-white/20" />
+                  </div>
                 </div>
               </div>
             )}
