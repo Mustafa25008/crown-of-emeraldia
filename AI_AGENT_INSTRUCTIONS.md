@@ -197,24 +197,41 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
 
 ---
 
-## 4. Controls Architecture (Desktop Keyboard + Overlaid Transparent On-Screen Controller)
+## 4. Controls Architecture (Desktop Keyboard Rule + Mobile Side-Margin Touch Controllers + Dynamic Auto-Orientation)
 
-1. **Desktop Keyboard Controls** (must always remain active):
-   - **Move Left / Right**: `A` / `D` or `ArrowLeft` / `ArrowRight`
-   - **Down / Sit (When Grown) & Charged Super Jump (Hold 1.5s in BIG/FIRE)**: `S` or `ArrowDown`
-   - **Jump / Raccoon Fly / Slow Fall / Enter Secret Pipe or Exit**: `Space`, `W`, or `ArrowUp`
-   - **Sprint / Fireball / Tail Attack**: `Shift`, `X`, or `J`
-   - **Pause**: `Escape` or `P`
-2. **Overlaid On-Screen Controller** (`PlatformerEngine.setVirtualKey(code, pressed)`):
-   - Rendered **directly inside the game canvas container** (bottom-left and bottom-right corners) with a **lightly transparent** style (`bg-white/15`, `border-white/35`) and **icons only (no text labels)**.
-   - **Left Side**: Icon-only directional buttons (`ChevronLeft` mapped to `ArrowLeft`, `ChevronRight` mapped to `ArrowRight`, `ChevronDown` mapped to `ArrowDown` for sitting/crouching and charging Super Jump when grown, and mobile-only `ChevronUp` mapped to `ArrowUp` which performs the exact same jump/fly/slow-fall work as `JUMP`).
-   - **Right Side**: Icon-only circular action buttons (`Flame` mapped to `KeyX` for sprinting, shooting fireballs, and Raccoon tail spin attack; `ArrowUp` mapped to `Space` for jumping, Raccoon flight, and slow falling).
-   - Both desktop keyboard listeners and on-screen touch/pointer buttons feed into the same engine input state simultaneously.
-3. **Mobile Dynamic Auto-Orientation (Portrait Menus / Landscape Gameplay — No Rotation Modal)**:
+1. **Desktop / PC Screen Rule (Permanent Instruction — Strictly Keyboard Only)**:
+   - **Completely hide all on-screen touch controllers on Desktop / PC viewports** (`!isMobileTouch` check in `src/App.tsx` combined with `@media (hover: hover) and (pointer: fine) { .mobile-touch-controls { display: none !important; } }` in `src/index.css`).
+   - No on-screen buttons may ever render on desktop/PC screens. PC players play exclusively using keyboard keys:
+     - **Move Left / Right**: `A` / `D` or `ArrowLeft` / `ArrowRight`
+     - **Down / Duck / Sit (When Grown) & Charged Super Jump (Hold 1.5s in BIG/FIRE)**: `S` or `ArrowDown`
+     - **Jump / Raccoon Fly / Slow Fall / Enter Secret Pipe or Exit**: `Space`, `W`, or `ArrowUp`
+     - **Sprint / Fireball / Tail Attack**: `Shift`, `X`, or `J`
+     - **Pause**: `Escape` or `P`
+
+2. **Mobile Touch Controller Redesign, Geometry, Location & Function (`src/App.tsx`, `PlatformerEngine.setVirtualKey`)**:
+   - **Zero Canvas Overlap Rule**: Never render a bottom-bar controller or any touch buttons inside/overlapping the `<canvas>` container.
+   - **3-Column Mobile Landscape Viewport Geometry**:
+     - When `isMobileTouch && gameState === 'PLAYING'`, the gameplay area renders a 3-column horizontal flex layout:
+       `[Left Empty Side Margin D-Pad]  [Center Header + 800×608 Gameplay Canvas]  [Right Empty Side Margin Action Buttons]`
+     - The center gameplay column enforces `maxWidth: min(calc(100vw - 244px), calc((100dvh - 48px) * (800 / 608)))` and `maxHeight: calc(100dvh - 48px)`. This mathematically guarantees at least `114px–132px` of dedicated empty margin space on both the **left** and **right** sides outside the `<canvas>` across all mobile landscape screen aspect ratios (`16:9`, `18:9`, `19.5:9`, `20:9`), so the touch controls never block or obscure any game elements, characters, or blocks.
+   - **Left Empty Side Margin — Movement D-Pad (`w-[114px] sm:w-[132px]` outside the left edge of the canvas)**:
+     - Anchored at the bottom-left margin in a translucent/glassmorphic retro arcade housing (`bg-slate-900/70 border border-white/20 rounded-2xl p-2 shadow-[0_8px_24px_rgba(0,0,0,0.65),inset_0_1px_1px_rgba(255,255,255,0.2)]`):
+       - **Top Row**: **Left (`←`, `ChevronLeft`)** mapped to `ArrowLeft` (walk/sprint left) and **Right (`→`, `ChevronRight`)** mapped to `ArrowRight` (walk/sprint right).
+       - **Bottom Center Row**: **Down (`↓`, `ChevronDown`)** mapped to `ArrowDown` (ducking/sitting when the character is large in `BIG`/`FIRE`/`RACCOON` form, entering secret warp pipes, and holding 1.5s to charge Super Jump in `BIG`/`FIRE` form).
+   - **Right Empty Side Margin — Separated Action Buttons (`w-[114px] sm:w-[132px]` outside the right edge of the canvas)**:
+     - Anchored at the bottom-right margin in a matching translucent/glassmorphic retro arcade housing:
+       - **Fire (`🔥`, `Flame` icon, lower-left button)**: Mapped to `KeyX` — holds to sprint, launches bouncing fireballs in `FIRE` form, and triggers the 360° spinning tail whip in `RACCOON` form.
+       - **Jump (`↑`, `ArrowUp` icon, upper-right elevated button `-translate-y-2.5`)**: Mapped to `Space` — jumps (variable height based on hold), swims upward in underwater stages, flies/glides and slow-falls in `RACCOON` form, and executes Charged Super Jumps.
+   - **Performance Rule for Touch Buttons**: Style buttons using GPU-friendly translucent gradients and inset specular borders (`bg-gradient-to-b`, `shadow-[inset_0_1px_1px_...]`) without `backdrop-blur` over animated canvas layers so mobile frame rates stay locked at 60 FPS.
+
+3. **Mobile Dynamic Auto-Orientation & 60Hz Fixed-Timestep Performance (`src/App.tsx`, `src/game/engine.ts`, `src/game/renderer.ts`)**:
    - **Never** render a forced `"Landscape Orientation Required / Please Rotate Your Device"` warning modal or overlay.
-   - **Portrait Navigation & Menus**: Keep all navigation, the Title Menu, Settings, Level Select, and the **Select World** screen strictly in **Portrait mode** on mobile devices (`unlockMobileToPortrait()` in `src/App.tsx`, and `"orientation": "portrait"` in `/public/manifest.json`).
-   - **Automatic Landscape on Level Start**: Whenever a mobile user starts or enters any active gameplay level (`startLevel` / `gameState === 'PLAYING'`), programmatically request a landscape orientation lock (`lockMobileLandscape()` using `screen.orientation.lock('landscape')` and fullscreen landscape handling) so the device automatically flips to landscape when playing.
+   - **Portrait Navigation & Menus**: Keep all navigation, the Title Menu, Settings, Level Select, and the **Select World** screen strictly in **Portrait mode** on mobile devices (`unlockMobileToPortrait()` guarded by `isLandscapeLockedRef` in `src/App.tsx`, and `"orientation": "portrait"` in `/public/manifest.json`).
+   - **Automatic Landscape on Level Start**: Whenever a mobile user starts or enters any active gameplay level (`startLevel` / `gameState === 'PLAYING'`), programmatically request a landscape orientation lock (`lockMobileLandscape()` using `screen.orientation.lock('landscape')` and fullscreen landscape handling) so the device automatically flips to landscape and displays the left/right side-margin touch controllers cleanly outside the canvas.
    - **Automatic Portrait on Level Exit**: When the user exits gameplay (clicks `"Level Select"`, `"Home"`, or returns from a level via `navigateToMenu`), automatically release the landscape lock (`screen.orientation.lock('portrait')` / `screen.orientation.unlock()` and `document.exitFullscreen()`) to return the app seamlessly to **Portrait mode**.
+   - **Lag-Free 60Hz Fixed-Timestep Engine & Tile Sprite Cache**:
+     - `PlatformerEngine.start()` must always run a fixed `1 / 60` (`FIXED_DT`) physics accumulator (clamping orientation-rotation frame gaps and stepping up to 4 times per render frame) so gameplay always runs at 100% real-time speed on 30Hz, 60Hz, 90Hz, and 120Hz mobile screens without slow-motion.
+     - `drawTile()` in `src/game/renderer.ts` must cache rendered `32×32` tiles in `tileSpriteCache` and blit via `ctx.drawImage` to maintain smooth 60 FPS rendering on mobile GPUs.
 
 ---
 
@@ -291,5 +308,6 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
      - Ground alignment (`goalY: 6 * 32` for standard/boss flagpoles on row `16` ground; `goalY: 13 * 32` for locked doors with `requiresKey: true`).
      - Minimum 3–4 tiles vertical clearance under/above Question Blocks and power-up randomization rules.
      - Progressive Boss Health Scaling Formula (`getBossMaxHpForWorld(worldNumber)`).
+     - Desktop/PC Keyboard-Only Rule (never show touch controllers on desktop) and Mobile Landscape Side-Margin Touch Controllers (Left D-Pad `←`, `→`, `↓` and Right separated Action Buttons `🔥`, `↑` placed in the left/right empty side margins outside the gameplay canvas).
      - Mobile Dynamic Auto-Orientation (`lockMobileLandscape()` when entering any level, `unlockMobileToPortrait()` when exiting to menus/World Select, with zero forced rotation warning modals).
      - Exact Top Header Bar layout, Level Countdown Timer rules, Pause State Manager, Standardized 3-Line World Select Card Layout, and Unified `StageOutcomeModal` (`SCORE` and `COINS` only, with `<Loader2 />` + `"Loading..."` when `"▶ Watch Ad & Revive"` is clicked).
