@@ -22,6 +22,7 @@ import {
   Feather,
   ArrowUp,
   Loader2,
+  ShoppingBag,
 } from 'lucide-react';
 import { GameState, HudSnapshot, PowerState, SaveProgress } from './game/types';
 import { LEVELS, WORLDS, getLevelById, getWorldById } from './game/levels';
@@ -248,6 +249,28 @@ export default function App() {
   const [runRestartCounter, setRunRestartCounter] = useState<number>(0);
   const [activeVirtualKeys, setActiveVirtualKeys] = useState<Record<string, boolean>>({});
   const [isWatchingAd, setIsWatchingAd] = useState<boolean>(false);
+  const [storeToastVisible, setStoreToastVisible] = useState<boolean>(false);
+  const storeToastTimerRef = useRef<number | null>(null);
+
+  const handleStoreButtonClick = useCallback(() => {
+    soundManager.playCoin();
+    setStoreToastVisible(true);
+    if (storeToastTimerRef.current !== null) {
+      window.clearTimeout(storeToastTimerRef.current);
+    }
+    storeToastTimerRef.current = window.setTimeout(() => {
+      setStoreToastVisible(false);
+      storeToastTimerRef.current = null;
+    }, 2600);
+  }, []);
+
+  useEffect(() => {
+    return () => {
+      if (storeToastTimerRef.current !== null) {
+        window.clearTimeout(storeToastTimerRef.current);
+      }
+    };
+  }, []);
 
   const [hud, setHud] = useState<HudSnapshot>({
     score: 0,
@@ -760,111 +783,145 @@ export default function App() {
     gameState === 'TIME_OUT' ||
     gameState === 'WORLD_VICTORY';
 
+  const isScrollLockedScreen = isGameplayView || gameState === 'TITLE_MENU';
+
   return (
     <div
       className={`${
-        isGameplayView ? 'h-[100dvh] overflow-hidden' : 'min-h-screen'
+        isScrollLockedScreen ? 'h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen'
       } flex flex-col bg-slate-950 text-slate-100 select-none`}
     >
       <main
         className={`flex-1 flex flex-col items-center justify-center ${
           isGameplayView
             ? 'p-1 sm:px-3 sm:py-2 overflow-hidden'
+            : gameState === 'TITLE_MENU'
+            ? 'p-2 sm:px-4 sm:py-6 overflow-hidden'
             : 'p-2 sm:px-4 sm:py-6 landscape:p-1 overflow-x-hidden'
         } max-w-full`}
       >
         {/* 1. CLASSIC GAME HOME SCREEN (Mobile App & Retro Title Screen Feel) */}
         {gameState === 'TITLE_MENU' && (
-          <div className="relative w-full max-w-4xl min-h-[360px] sm:min-h-[520px] rounded-2xl overflow-hidden border-2 border-slate-800 shadow-2xl flex flex-col justify-between bg-gradient-to-b from-sky-400 via-sky-300 to-emerald-200">
-            {/* Pixel Art Scenery Backdrop (Clouds, Sun, Hills, Ground, and Hero Sprite) */}
-            <div className="absolute inset-0 pointer-events-none overflow-hidden">
-              {/* Pixel Sun */}
-              <div className="absolute top-8 right-10 w-16 h-16 bg-amber-300 border-4 border-amber-200 shadow-lg" />
-
-              {/* Pixel Clouds */}
-              <div className="absolute top-10 left-12 w-24 h-8 bg-white/90 shadow-sm" />
-              <div className="absolute top-6 left-16 w-14 h-6 bg-white/90" />
-
-              <div className="absolute top-20 left-1/2 -translate-x-12 w-28 h-8 bg-white/85" />
-              <div className="absolute top-16 left-1/2 -translate-x-6 w-16 h-6 bg-white/85" />
-
-              <div className="absolute top-14 right-36 w-20 h-7 bg-white/90" />
-
-              {/* Distant Pixel Hills */}
-              <div className="absolute bottom-16 -left-10 w-72 h-40 bg-emerald-700 rounded-t-3xl border-t-4 border-emerald-500" />
-              <div className="absolute bottom-16 left-48 w-96 h-52 bg-emerald-600 rounded-t-3xl border-t-4 border-emerald-400" />
-              <div className="absolute bottom-16 right-20 w-80 h-36 bg-emerald-700 rounded-t-3xl border-t-4 border-emerald-500" />
-
-              {/* Classic Question & Brick Blocks Floating */}
-              <div className="hidden sm:flex absolute bottom-44 left-14 items-center">
-                <div className="w-10 h-10 bg-orange-700 border-2 border-amber-950 flex items-center justify-center" />
-                <div className="w-10 h-10 bg-amber-400 border-2 border-amber-900 flex items-center justify-center font-pixel text-xs text-amber-950">
-                  ?
-                </div>
-                <div className="w-10 h-10 bg-orange-700 border-2 border-amber-950 flex items-center justify-center" />
-              </div>
-
-              {/* Classic Green Pipe on Right */}
-              <div className="hidden sm:flex flex-col items-center absolute bottom-16 right-16">
-                <div className="w-16 h-6 bg-emerald-500 border-2 border-emerald-950" />
-                <div className="w-14 h-16 bg-emerald-600 border-x-2 border-emerald-950" />
-              </div>
-
-              {/* Ground Tiles */}
-              <div className="absolute bottom-0 inset-x-0 h-16 bg-amber-900 border-t-8 border-emerald-500" />
-            </div>
-
-            {/* Top Status Strip inside Game Screen */}
-            <div className="relative z-10 flex items-center justify-between px-6 pt-5 text-xs font-mono-num text-slate-900 font-bold">
-              <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-slate-900/15">
-                <Trophy className="w-4 h-4 text-amber-600" />
-                <span>TOP SCORE: {totalBestScore.toLocaleString()}</span>
-              </div>
-              <div className="flex items-center gap-2 bg-white/80 backdrop-blur-sm px-3 py-1.5 rounded-lg border border-slate-900/15">
-                <GoldCoinIcon className="w-4 h-4 shrink-0" />
-                <span>COINS: {saveData.totalCoinsCollected}</span>
-              </div>
-            </div>
-
-            {/* Center Classic wooden/stone Signboard Title & Mobile App Vertical Buttons */}
-            <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-6 text-center">
-              <div className="bg-slate-950/90 border-4 border-amber-400 rounded-2xl px-6 py-6 md:px-10 md:py-7 shadow-2xl max-w-xl w-full">
-                <div className="flex items-center justify-center gap-2 text-amber-400 text-xs font-bold tracking-widest mb-2">
-                  <Crown className="w-4 h-4" />
-                  <span>16-BIT EDITION</span>
-                </div>
-                <h1 className="font-pixel text-2xl sm:text-3xl md:text-4xl text-white leading-snug tracking-tight drop-shadow">
-                  CROWN OF EMERALDIA
-                </h1>
-                <p className="text-xs sm:text-sm text-emerald-300 mt-2 font-medium">
-                  Super Kingdom Platformer Adventure
-                </p>
-              </div>
-
-              {/* Primary Vertical Action Stack: Play Button & Settings Button Below It */}
-              <div className="mt-8 flex flex-col items-center gap-3.5 w-full max-w-xs">
-                <button
-                  onClick={() => navigateToMenu('WORLD_SELECT')}
-                  className="w-full min-h-[54px] py-3.5 px-8 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-slate-950 font-pixel text-base rounded-2xl border-b-4 border-emerald-700 shadow-xl flex items-center justify-center gap-3 transition-all cursor-pointer whitespace-nowrap shrink-0"
+          <div className="w-full h-full max-w-4xl flex flex-col justify-between overflow-hidden">
+            <div className="relative flex-1 w-full sm:min-h-[520px] rounded-2xl overflow-hidden border-2 border-slate-800 shadow-2xl flex flex-col justify-between bg-gradient-to-b from-sky-400 via-sky-300 to-emerald-200">
+              {/* In-Game Toast Notification for Store */}
+              {storeToastVisible && (
+                <div
+                  role="status"
+                  aria-live="polite"
+                  className="absolute top-16 left-1/2 -translate-x-1/2 z-30 bg-slate-950/95 border-2 border-amber-400 text-amber-300 px-4 py-2 rounded-xl shadow-2xl flex items-center gap-2 text-xs font-pixel whitespace-nowrap animate-bounce"
                 >
-                  <Play className="w-5 h-5 fill-current" />
-                  <span>PLAY</span>
-                </button>
+                  <ShoppingBag className="w-4 h-4 text-amber-400 shrink-0" />
+                  <span>Store — Coming Soon!</span>
+                </div>
+              )}
 
-                <button
-                  onClick={() => navigateToMenu('SETTINGS_HUB')}
-                  className="w-full min-h-[50px] py-3 px-8 bg-slate-900/95 hover:bg-slate-800 active:scale-[0.98] text-slate-100 font-pixel text-xs rounded-2xl border-b-4 border-slate-950 shadow-lg flex items-center justify-center gap-2.5 transition-all cursor-pointer whitespace-nowrap shrink-0"
-                >
-                  <Settings className="w-4 h-4 text-amber-400" />
-                  <span>SETTINGS</span>
-                </button>
+              {/* Pixel Art Scenery Backdrop (Clouds, Sun, Hills, Question/Brick Blocks, Pipe, and Ground) */}
+              <div className="absolute inset-0 pointer-events-none overflow-hidden">
+                {/* Pixel Sun */}
+                <div className="absolute top-7 right-6 sm:top-8 sm:right-10 w-12 h-12 sm:w-16 sm:h-16 bg-amber-300 border-4 border-amber-200 shadow-lg" />
+
+                {/* Pixel Clouds */}
+                <div className="absolute top-9 left-6 sm:top-10 sm:left-12 w-20 sm:w-24 h-6 sm:h-8 bg-white/90 shadow-sm" />
+                <div className="absolute top-5 left-10 sm:top-6 sm:left-16 w-12 sm:w-14 h-5 sm:h-6 bg-white/90" />
+
+                <div className="absolute top-16 sm:top-20 left-1/2 -translate-x-12 w-24 sm:w-28 h-6 sm:h-8 bg-white/85" />
+                <div className="absolute top-12 sm:top-16 left-1/2 -translate-x-6 w-14 sm:w-16 h-5 sm:h-6 bg-white/85" />
+
+                <div className="hidden sm:block absolute top-14 right-36 w-20 h-7 bg-white/90" />
+
+                {/* Distant Pixel Hills */}
+                <div className="absolute bottom-12 sm:bottom-16 -left-12 sm:-left-10 w-56 sm:w-72 h-32 sm:h-40 bg-emerald-700 rounded-t-3xl border-t-4 border-emerald-500" />
+                <div className="absolute bottom-12 sm:bottom-16 left-24 sm:left-48 w-72 sm:w-96 h-40 sm:h-52 bg-emerald-600 rounded-t-3xl border-t-4 border-emerald-400" />
+                <div className="absolute bottom-12 sm:bottom-16 -right-8 sm:right-20 w-56 sm:w-80 h-28 sm:h-36 bg-emerald-700 rounded-t-3xl border-t-4 border-emerald-500" />
+
+                {/* Classic Question & Brick Blocks Floating on Left Side (Visible on both Mobile Portrait & Desktop) */}
+                <div className="flex absolute bottom-24 left-3 sm:bottom-44 sm:left-14 items-center shadow-md">
+                  <div className="w-7 h-7 sm:w-10 sm:h-10 bg-orange-700 border-2 border-amber-950 flex items-center justify-center" />
+                  <div className="w-7 h-7 sm:w-10 sm:h-10 bg-amber-400 border-2 border-amber-900 flex items-center justify-center font-pixel text-[10px] sm:text-xs text-amber-950">
+                    ?
+                  </div>
+                  <div className="w-7 h-7 sm:w-10 sm:h-10 bg-orange-700 border-2 border-amber-950 flex items-center justify-center" />
+                </div>
+
+                {/* Classic Green Pipe / Tunnel on Right Side (Visible on both Mobile Portrait & Desktop) */}
+                <div className="flex flex-col items-center absolute bottom-12 right-3.5 sm:bottom-16 sm:right-16">
+                  <div className="w-12 h-4 sm:w-16 sm:h-6 bg-emerald-500 border-2 border-emerald-950" />
+                  <div className="w-10 h-11 sm:w-14 sm:h-16 bg-emerald-600 border-x-2 border-emerald-950" />
+                </div>
+
+                {/* Ground Tiles */}
+                <div className="absolute bottom-0 inset-x-0 h-12 sm:h-16 bg-amber-900 border-t-8 border-emerald-500" />
+              </div>
+
+              {/* Top Status Strip: Top Score on Top-Left, Coins on Top-Right */}
+              <div className="relative z-10 flex items-center justify-between gap-2 px-3.5 pt-3.5 sm:px-6 sm:pt-5 text-[11px] sm:text-xs font-mono-num text-slate-900 font-bold">
+                <div className="flex items-center gap-1.5 sm:gap-2 bg-white/85 backdrop-blur-sm px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg border border-slate-900/15 shadow-sm">
+                  <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0" />
+                  <span>TOP SCORE: {totalBestScore.toLocaleString()}</span>
+                </div>
+                <div className="flex items-center gap-1.5 sm:gap-2 bg-white/85 backdrop-blur-sm px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg border border-slate-900/15 shadow-sm">
+                  <GoldCoinIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                  <span>COINS: {saveData.totalCoinsCollected}</span>
+                </div>
+              </div>
+
+              {/* Center Compact Signboard Title Card & Balanced Action Buttons */}
+              <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-2 sm:py-6 text-center">
+                <div className="bg-slate-950/90 border-4 border-amber-400 rounded-2xl px-4 py-3.5 sm:px-8 sm:py-6 md:px-10 md:py-7 shadow-2xl max-w-[310px] sm:max-w-xl w-full">
+                  <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-amber-400 text-[10px] sm:text-xs font-bold tracking-widest mb-1.5 sm:mb-2">
+                    <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
+                    <span>16-BIT EDITION</span>
+                  </div>
+                  <h1 className="font-pixel text-lg sm:text-3xl md:text-4xl text-white leading-snug tracking-tight drop-shadow">
+                    CROWN OF EMERALDIA
+                  </h1>
+                </div>
+
+                {/* Balanced Vertical Action Stack: Play, Store, and Settings */}
+                <div className="mt-5 sm:mt-7 flex flex-col items-center gap-2.5 sm:gap-3 w-full max-w-[210px] sm:max-w-[260px]">
+                  <button
+                    type="button"
+                    onClick={() => navigateToMenu('WORLD_SELECT')}
+                    className="w-full min-h-[46px] sm:min-h-[52px] py-2.5 sm:py-3 px-6 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-slate-950 font-pixel text-sm sm:text-base rounded-2xl border-b-4 border-emerald-700 shadow-xl flex items-center justify-center gap-2.5 transition-all cursor-pointer whitespace-nowrap shrink-0"
+                  >
+                    <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
+                    <span>PLAY</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={handleStoreButtonClick}
+                    className="w-full min-h-[44px] sm:min-h-[48px] py-2.5 px-6 bg-slate-900/95 hover:bg-slate-800 active:scale-[0.98] text-slate-100 font-pixel text-xs rounded-2xl border-b-4 border-slate-950 shadow-lg flex items-center justify-center gap-2.5 transition-all cursor-pointer whitespace-nowrap shrink-0"
+                  >
+                    <ShoppingBag className="w-4 h-4 text-emerald-400" />
+                    <span>STORE</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    onClick={() => navigateToMenu('SETTINGS_HUB')}
+                    className="w-full min-h-[44px] sm:min-h-[48px] py-2.5 px-6 bg-slate-900/95 hover:bg-slate-800 active:scale-[0.98] text-slate-100 font-pixel text-xs rounded-2xl border-b-4 border-slate-950 shadow-lg flex items-center justify-center gap-2.5 transition-all cursor-pointer whitespace-nowrap shrink-0"
+                  >
+                    <Settings className="w-4 h-4 text-amber-400" />
+                    <span>SETTINGS</span>
+                  </button>
+                </div>
+              </div>
+
+              {/* Bottom Ground Footer Note */}
+              <div className="relative z-10 h-12 sm:h-16 flex items-center justify-center px-4 text-[11px] sm:text-xs font-mono-num text-amber-100/90">
+                <span>
+                  STAGE PROGRESS: {completedStagesCount} / {LEVELS.length} COMPLETED
+                </span>
               </div>
             </div>
 
-            {/* Bottom Ground Footer Note */}
-            <div className="relative z-10 h-16 flex items-center justify-center px-6 text-xs font-mono-num text-amber-100/90">
-              <span>STAGE PROGRESS: {completedStagesCount} / {LEVELS.length} COMPLETED</span>
-            </div>
+            {/* Clean Bottom Space Reserved for Future Mobile Banner Ad */}
+            <div
+              aria-hidden="true"
+              className="w-full h-[52px] sm:h-0 shrink-0"
+            />
           </div>
         )}
 
