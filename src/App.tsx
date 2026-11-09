@@ -57,6 +57,7 @@ type OutcomeModalVariant = 'stage_cleared' | 'game_over' | 'time_out';
 interface StageOutcomeModalProps {
   variant: OutcomeModalVariant;
   isWorldVictory?: boolean;
+  isMobileTouch: boolean;
   currentLevelId: number;
   levelName: string;
   score: number;
@@ -70,6 +71,7 @@ interface StageOutcomeModalProps {
 function StageOutcomeModal({
   variant,
   isWorldVictory = false,
+  isMobileTouch,
   currentLevelId,
   levelName,
   score,
@@ -133,68 +135,117 @@ function StageOutcomeModal({
       : 'WORLD 1: EMERALDIA SAVED!';
 
   return (
-    <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-4 overflow-hidden z-20">
+    <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-[2px] flex items-center justify-center p-2 overflow-hidden z-20">
       <div
-        className={`w-full max-w-sm sm:max-w-md bg-slate-900 border ${borderColorClass} rounded-2xl p-3 sm:p-5 text-center shadow-2xl space-y-2 sm:space-y-3.5 my-auto`}
+        className={`w-full bg-slate-900 border ${borderColorClass} rounded-2xl text-center shadow-2xl my-auto ${
+          isMobileTouch
+            ? 'max-w-[300px] p-2.5 space-y-2'
+            : 'max-w-md p-5 space-y-3.5'
+        }`}
       >
-        {isSuccess && isWorldVictory && (
-          <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center mx-auto">
-            <Crown className="w-4 h-4 sm:w-5 sm:h-5 text-amber-300" />
+        {isSuccess && isWorldVictory && !isMobileTouch && (
+          <div className="w-10 h-10 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center mx-auto">
+            <Crown className="w-5 h-5 text-amber-300" />
           </div>
         )}
 
-        <div>
+        <div className="min-w-0">
           {isSuccess ? (
             <>
               <div
-                className={`text-[10px] sm:text-xs font-bold uppercase tracking-wider ${
-                  isWorldVictory ? 'text-amber-400' : 'text-emerald-400'
-                }`}
+                className={`font-bold uppercase tracking-wider truncate ${
+                  isMobileTouch ? 'text-[10px]' : 'text-xs'
+                } ${isWorldVictory ? 'text-amber-400' : 'text-emerald-400'}`}
               >
+                {isWorldVictory && isMobileTouch && (
+                  <Crown className="w-3 h-3 text-amber-300 inline-block mr-1 -mt-0.5" />
+                )}
                 {isWorldVictory ? bossDefeatedSubtitle : 'STAGE CLEARED!'}
               </div>
-              <h3 className="font-pixel text-xs sm:text-base text-white mt-1">
+              <h3
+                className={`font-pixel text-white truncate ${
+                  isMobileTouch ? 'text-[11px] mt-0.5' : 'text-base mt-1'
+                }`}
+              >
                 {isWorldVictory ? worldConqueredTitle : levelName}
               </h3>
             </>
           ) : isTimeOut ? (
             <>
-              <h3 className="font-pixel text-sm sm:text-base text-amber-400">TIME UP!</h3>
-              <p className="text-[11px] sm:text-xs text-slate-300 mt-1">
-                Time ran out before reaching the goal in {levelName}.
+              <h3
+                className={`font-pixel text-amber-400 ${
+                  isMobileTouch ? 'text-xs' : 'text-base'
+                }`}
+              >
+                TIME UP!
+              </h3>
+              <p
+                className={`text-slate-300 truncate ${
+                  isMobileTouch ? 'text-[10px] mt-0.5' : 'text-xs mt-1'
+                }`}
+              >
+                Time ran out in {levelName}.
               </p>
             </>
           ) : (
             <>
-              <h3 className="font-pixel text-sm sm:text-base text-rose-500">GAME OVER</h3>
-              <p className="text-[11px] sm:text-xs text-slate-300 mt-1">
+              <h3
+                className={`font-pixel text-rose-500 ${
+                  isMobileTouch ? 'text-xs' : 'text-base'
+                }`}
+              >
+                GAME OVER
+              </h3>
+              <p
+                className={`text-slate-300 truncate ${
+                  isMobileTouch ? 'text-[10px] mt-0.5' : 'text-xs mt-1'
+                }`}
+              >
                 Ranger Pip ran out of lives in {levelName}.
               </p>
             </>
           )}
         </div>
 
-        <div className="bg-slate-950 border border-slate-800 rounded-xl p-2 sm:p-3 grid grid-cols-2 gap-2 text-center font-mono-num text-xs">
+        <div
+          className={`bg-slate-950 border border-slate-800 rounded-xl grid grid-cols-2 gap-2 text-center font-mono-num text-xs ${
+            isMobileTouch ? 'p-1.5' : 'p-3'
+          }`}
+        >
           <div className="px-1">
             <div className="text-[10px] text-slate-400 truncate">SCORE</div>
-            <div className="text-xs sm:text-sm font-bold text-amber-400 mt-0.5">
+            <div
+              className={`font-bold text-amber-400 ${
+                isMobileTouch ? 'text-xs mt-0' : 'text-sm mt-0.5'
+              }`}
+            >
               {score.toLocaleString()}
             </div>
           </div>
           <div className="px-1 border-l border-slate-800">
             <div className="text-[10px] text-slate-400 truncate">COINS</div>
-            <div className="text-xs sm:text-sm font-bold text-yellow-300 mt-0.5">{coins}</div>
+            <div
+              className={`font-bold text-yellow-300 ${
+                isMobileTouch ? 'text-xs mt-0' : 'text-sm mt-0.5'
+              }`}
+            >
+              {coins}
+            </div>
           </div>
         </div>
 
         {/* Unified 2-Row Button Layout Structure */}
-        <div className="flex flex-col gap-2">
+        <div className={`flex flex-col ${isMobileTouch ? 'gap-1.5' : 'gap-2'}`}>
           {/* Row 1 (Primary, full-width) */}
           <button
             type="button"
             disabled={isWatchingAd}
             onClick={onPrimaryAction}
-            className={`w-full min-h-[40px] flex items-center justify-center gap-2 py-2.5 px-4 font-bold text-xs rounded-xl shadow transition-all cursor-pointer ${
+            className={`w-full flex items-center justify-center gap-2 font-bold rounded-xl shadow transition-all cursor-pointer ${
+              isMobileTouch
+                ? 'min-h-[34px] py-1.5 px-3 text-[11px]'
+                : 'min-h-[40px] py-2.5 px-4 text-xs'
+            } ${
               isSuccess
                 ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
                 : 'bg-amber-400 hover:bg-amber-300 text-slate-950 disabled:opacity-60'
@@ -213,12 +264,16 @@ function StageOutcomeModal({
           </button>
 
           {/* Row 2 (Secondary Grid - 2 buttons side-by-side) */}
-          <div className="grid grid-cols-2 gap-2">
+          <div className={`grid grid-cols-2 ${isMobileTouch ? 'gap-1.5' : 'gap-2'}`}>
             <button
               type="button"
               disabled={isWatchingAd}
               onClick={onSecondaryRetry}
-              className="min-h-[38px] py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold text-xs rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+              className={`bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold rounded-xl transition-colors cursor-pointer disabled:opacity-50 ${
+                isMobileTouch
+                  ? 'min-h-[32px] py-1.5 px-2.5 text-[11px]'
+                  : 'min-h-[38px] py-2 px-3 text-xs'
+              }`}
             >
               {isSuccess ? 'Replay' : 'Try Again'}
             </button>
@@ -226,7 +281,11 @@ function StageOutcomeModal({
               type="button"
               disabled={isWatchingAd}
               onClick={onLevelSelect}
-              className="min-h-[38px] py-2 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl transition-colors cursor-pointer disabled:opacity-50"
+              className={`bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl transition-colors cursor-pointer disabled:opacity-50 ${
+                isMobileTouch
+                  ? 'min-h-[32px] py-1.5 px-2.5 text-[11px]'
+                  : 'min-h-[38px] py-2 px-3 text-xs'
+              }`}
             >
               Level Select
             </button>
@@ -733,16 +792,14 @@ export default function App() {
     },
   });
 
-  const { totalBestScore, completedStagesCount } = useMemo(() => {
+  const totalBestScore = useMemo(() => {
     let sum = 0;
-    let count = 0;
     for (const score of Object.values(saveData.highScores)) {
       if (score > 0) {
         sum += score;
-        count++;
       }
     }
-    return { totalBestScore: sum, completedStagesCount: count };
+    return sum;
   }, [saveData.highScores]);
 
   const activeWorld = getWorldById(selectedWorldId);
@@ -868,12 +925,8 @@ export default function App() {
 
               {/* Center Compact Signboard Title Card & Balanced Action Buttons */}
               <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-2 sm:py-6 text-center">
-                <div className="bg-slate-950/90 border-4 border-amber-400 rounded-2xl px-4 py-3.5 sm:px-8 sm:py-6 md:px-10 md:py-7 shadow-2xl max-w-[310px] sm:max-w-xl w-full">
-                  <div className="flex items-center justify-center gap-1.5 sm:gap-2 text-amber-400 text-[10px] sm:text-xs font-bold tracking-widest mb-1.5 sm:mb-2">
-                    <Crown className="w-3.5 h-3.5 sm:w-4 sm:h-4" />
-                    <span>16-BIT EDITION</span>
-                  </div>
-                  <h1 className="font-pixel text-lg sm:text-3xl md:text-4xl text-white leading-snug tracking-tight drop-shadow">
+                <div className="bg-slate-950/90 border-4 border-amber-400 rounded-2xl px-4 py-2.5 sm:px-8 sm:py-4 md:px-10 md:py-5 shadow-2xl max-w-[300px] sm:max-w-lg w-full">
+                  <h1 className="font-pixel text-lg sm:text-2xl md:text-3xl text-white leading-snug tracking-tight drop-shadow">
                     CROWN OF EMERALDIA
                   </h1>
                 </div>
@@ -882,7 +935,10 @@ export default function App() {
                 <div className="mt-5 sm:mt-7 flex flex-col items-center gap-2.5 sm:gap-3 w-full max-w-[210px] sm:max-w-[260px]">
                   <button
                     type="button"
-                    onClick={() => navigateToMenu('WORLD_SELECT')}
+                    onClick={() => {
+                      soundManager.playCoin();
+                      navigateToMenu('WORLD_SELECT');
+                    }}
                     className="w-full min-h-[46px] sm:min-h-[52px] py-2.5 sm:py-3 px-6 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-slate-950 font-pixel text-sm sm:text-base rounded-2xl border-b-4 border-emerald-700 shadow-xl flex items-center justify-center gap-2.5 transition-all cursor-pointer whitespace-nowrap shrink-0"
                   >
                     <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
@@ -900,7 +956,10 @@ export default function App() {
 
                   <button
                     type="button"
-                    onClick={() => navigateToMenu('SETTINGS_HUB')}
+                    onClick={() => {
+                      soundManager.playCoin();
+                      navigateToMenu('SETTINGS_HUB');
+                    }}
                     className="w-full min-h-[44px] sm:min-h-[48px] py-2.5 px-6 bg-slate-900/95 hover:bg-slate-800 active:scale-[0.98] text-slate-100 font-pixel text-xs rounded-2xl border-b-4 border-slate-950 shadow-lg flex items-center justify-center gap-2.5 transition-all cursor-pointer whitespace-nowrap shrink-0"
                   >
                     <Settings className="w-4 h-4 text-amber-400" />
@@ -909,12 +968,8 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Bottom Ground Footer Note */}
-              <div className="relative z-10 h-12 sm:h-16 flex items-center justify-center px-4 text-[11px] sm:text-xs font-mono-num text-amber-100/90">
-                <span>
-                  STAGE PROGRESS: {completedStagesCount} / {LEVELS.length} COMPLETED
-                </span>
-              </div>
+              {/* Bottom Ground Spacer (No Stage Progress Text) */}
+              <div className="relative z-10 h-12 sm:h-16 shrink-0" />
             </div>
 
             {/* Clean Bottom Space Reserved for Future Mobile Banner Ad */}
@@ -1466,10 +1521,9 @@ export default function App() {
             <div
               className="flex flex-col items-center w-full max-w-[920px] max-h-full min-w-0"
               style={{
-                maxWidth:
-                  isMobileTouch && gameState === 'PLAYING'
-                    ? 'min(calc(100vw - 264px), calc((100dvh - 46px) * (896 / 608)))'
-                    : 'calc((100dvh - 52px) * (896 / 608))',
+                maxWidth: isMobileTouch
+                  ? 'min(calc(100vw - 264px), calc((100dvh - 46px) * (896 / 608)))'
+                  : 'calc((100dvh - 52px) * (896 / 608))',
               }}
             >
               {/* Top Retro HUD Bar - strictly hidden whenever any modal (Pause, Success, Failure, Timeout) is active */}
@@ -1650,18 +1704,32 @@ export default function App() {
 
                 {/* PAUSE MODAL OVERLAY (Freezes timer, pauses audio, hides main header) */}
                 {gameState === 'PAUSED' && (
-                  <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-4 overflow-hidden z-20">
-                    <div className="w-full max-w-xs sm:max-w-sm bg-slate-900 border border-slate-700 rounded-2xl p-3 sm:p-5 text-center shadow-2xl space-y-2.5 sm:space-y-3.5 my-auto">
-                      <div>
-                        <h3 className="font-pixel text-sm sm:text-base text-amber-400">
+                  <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-[2px] flex items-center justify-center p-2 overflow-hidden z-20">
+                    <div
+                      className={`w-full bg-slate-900 border border-slate-700 rounded-2xl text-center shadow-2xl my-auto ${
+                        isMobileTouch
+                          ? 'max-w-[280px] p-2.5 space-y-2'
+                          : 'max-w-sm p-5 space-y-3.5'
+                      }`}
+                    >
+                      <div className="min-w-0">
+                        <h3
+                          className={`font-pixel text-amber-400 ${
+                            isMobileTouch ? 'text-xs' : 'text-base'
+                          }`}
+                        >
                           GAME PAUSED
                         </h3>
-                        <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5">
+                        <p
+                          className={`text-slate-300 truncate ${
+                            isMobileTouch ? 'text-[10px] mt-0.5' : 'text-xs mt-1'
+                          }`}
+                        >
                           {hud.levelName}
                         </p>
                       </div>
 
-                      <div className="flex flex-col gap-2">
+                      <div className={`flex flex-col ${isMobileTouch ? 'gap-1.5' : 'gap-2'}`}>
                         <button
                           type="button"
                           onClick={() => {
@@ -1671,23 +1739,35 @@ export default function App() {
                             soundManager.resumeAudio();
                             setGameState('PLAYING');
                           }}
-                          className="w-full min-h-[38px] py-2 px-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
+                          className={`w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl shadow transition-colors cursor-pointer ${
+                            isMobileTouch
+                              ? 'min-h-[34px] py-1.5 px-3 text-[11px]'
+                              : 'min-h-[38px] py-2 px-4 text-xs'
+                          }`}
                         >
                           Resume Game
                         </button>
 
-                        <div className="grid grid-cols-2 gap-2">
+                        <div className={`grid grid-cols-2 ${isMobileTouch ? 'gap-1.5' : 'gap-2'}`}>
                           <button
                             type="button"
                             onClick={() => startLevel(currentLevelId, false)}
-                            className="min-h-[36px] py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+                            className={`bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold rounded-xl transition-colors cursor-pointer ${
+                              isMobileTouch
+                                ? 'min-h-[32px] py-1.5 px-2.5 text-[11px]'
+                                : 'min-h-[36px] py-1.5 px-3 text-xs'
+                            }`}
                           >
                             Restart
                           </button>
                           <button
                             type="button"
                             onClick={() => navigateToMenu('LEVEL_SELECT')}
-                            className="min-h-[36px] py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+                            className={`bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl transition-colors cursor-pointer ${
+                              isMobileTouch
+                                ? 'min-h-[32px] py-1.5 px-2.5 text-[11px]'
+                                : 'min-h-[36px] py-1.5 px-3 text-xs'
+                            }`}
                           >
                             Level Select
                           </button>
@@ -1696,7 +1776,11 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => navigateToMenu('TITLE_MENU')}
-                          className="w-full min-h-[32px] py-1 px-3 bg-slate-800/50 hover:bg-slate-800 text-slate-400 font-medium text-[11px] rounded-lg transition-colors cursor-pointer"
+                          className={`w-full bg-slate-800/50 hover:bg-slate-800 text-slate-400 font-medium rounded-lg transition-colors cursor-pointer ${
+                            isMobileTouch
+                              ? 'min-h-[28px] py-1 px-2.5 text-[10px]'
+                              : 'min-h-[32px] py-1 px-3 text-[11px]'
+                          }`}
                         >
                           Home Screen
                         </button>
@@ -1719,6 +1803,7 @@ export default function App() {
                         : 'game_over'
                     }
                     isWorldVictory={gameState === 'WORLD_VICTORY'}
+                    isMobileTouch={isMobileTouch}
                     currentLevelId={currentLevelId}
                     levelName={hud.levelName}
                     score={carriedScore}

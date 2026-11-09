@@ -273,8 +273,12 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
    - **Automatic Reset**: The timer automatically resets to full stage time whenever a level starts, restarts, progresses to a new level, respawns, or revives via rewarded ad.
    - **Timeout Handling**: If `timeRemaining` reaches `0` before reaching the goal, gameplay immediately stops (`isPaused = true`), stage music stops, the timeout chime plays, and `onTimeOut` transitions `gameState` to `'TIME_OUT'` (`"TIME UP!"` header).
 
-3. **Unified Reusable Modal System (`StageOutcomeModal` in `src/App.tsx`)**:
-   - **Single Reusable Component**: All stage completion and failure states (`'stage_cleared'`, `'game_over'`, and `'time_out'`) must render through the single `StageOutcomeModal` component.
+3. **Unified Reusable Modal System (`StageOutcomeModal` in `src/App.tsx`) — Consistent Mobile Fit Across All 50 Levels**:
+   - **Single Reusable Component**: All stage completion and failure states (`'stage_cleared'`, `'game_over'`, and `'time_out'`) across all 10 worlds (50 levels, including normal stages and `WORLD_VICTORY` boss stages) must render through the single `StageOutcomeModal` component.
+   - **Consistent Mobile Landscape Sizing (`isMobileTouch` Prop)**:
+     - Because mobile landscape viewports have widths `>= 640px`, never rely on Tailwind `sm:` breakpoints alone for modal card sizing (which would enlarge the modal to desktop dimensions in mobile landscape).
+     - Instead, branch explicitly on `isMobileTouch` (`max-w-[300px] p-2.5 space-y-2` on mobile vs `max-w-md p-5 space-y-3.5` on desktop), use `overflow-hidden` on the modal overlay, render an inline `<Crown />` icon on mobile `isWorldVictory` modals, and apply `truncate` to stage/world titles and subtitles so every level across Worlds 1–10 fits the mobile screen with zero scrolling and identical compact dimensions.
+     - Keep the center gameplay column's `maxWidth` (`isMobileTouch ? 'min(calc(100vw - 264px), calc((100dvh - 46px) * (896 / 608)))' : 'calc((100dvh - 52px) * (896 / 608))'`) consistent across `PLAYING`, `PAUSED`, and all outcome modal states so the canvas container never jumps in size when a modal opens.
    - **Stats Summary Box (Strictly Score & Coins Only)**:
      - The modal stats card must display **only 2 columns: `SCORE` and `COINS`**.
      - Do **not** display `TIME LEFT` on success or `STATUS` (`0s LEFT` / `0 LIVES`) on failure/timeout inside the modal.
@@ -291,11 +295,28 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
      - Immediately freeze the level countdown timer (`engineRef.current.setPaused(true)`).
      - Automatically suspend/mute all active Web Audio sound effects and background chiptune music (`soundManager.pauseAllAudio()`).
      - Hide the main game header bar while showing the Pause modal.
-     - Render only the clean navigation buttons (`Resume Game`, `Restart`, `Level Select`, `Home Screen`) inside the Pause modal with `overflow-hidden` (no Audio/Music/SFX buttons in the Pause modal and no vertical scrollbar on mobile).
+     - Render only the clean navigation buttons (`Resume Game`, `Restart`, `Level Select`, `Home Screen`) inside the Pause modal using `isMobileTouch`-aware compact sizing (`max-w-[280px] p-2.5 space-y-2` on mobile, `max-w-sm p-5 space-y-3.5` on desktop) and `overflow-hidden` (no Audio/Music/SFX buttons in the Pause modal and no vertical scrollbar on mobile).
      - Do **not** display the countdown timer inside the Pause modal.
    - When resuming (`gameState === 'PLAYING'`), unfreeze the engine (`setPaused(false)`) and resume audio (`soundManager.resumeAudio()`).
 
-5. **Select World Screen Standardized 3-Line Card Layout (`src/App.tsx` & `src/game/world_<W>/index.ts`)**:
+5. **Home Screen (`TITLE_MENU` in `src/App.tsx`) — Portrait Scroll Lock, Retro Scenery, Title Card & Store Button**:
+   - **Viewport & Scroll Lock + Reserved Banner Ad Space**:
+     - Enforce `h-[100dvh] max-h-[100dvh] overflow-hidden` on the root container when `gameState === 'TITLE_MENU'` (or during active gameplay/modals) so mobile portrait has zero vertical scrolling and no dead space.
+     - Reserve a clean bottom strip (`h-[52px] sm:h-0 shrink-0`) below the Home Screen card on mobile portrait for a future banner ad.
+   - **Desktop-Style Retro Scenery on Mobile & Desktop**:
+     - Keep `"TOP SCORE"` on the top-left corner and `"COINS"` on the top-right corner opposite each other.
+     - Render the floating **Question Block & Bricks** on the left side (`flex absolute bottom-24 left-3 sm:bottom-44 sm:left-14`) and the **Green Pipe / Tunnel** on the right side (`flex flex-col items-center absolute bottom-12 right-3.5 sm:bottom-16 sm:right-16`) scaled for both Mobile Portrait and Desktop without overlapping central UI elements.
+   - **Clean, Compact Title Card & Ground Bar (Removed Text Lines)**:
+     - The central signboard title card (`px-4 py-2.5 sm:px-8 sm:py-4 md:px-10 md:py-5 max-w-[300px] sm:max-w-lg`) must display **only** the main title `"CROWN OF EMERALDIA"`.
+     - Do **not** render the `"16-BIT EDITION"` line or `<Crown />` icon inside the title card (on either mobile or desktop).
+     - Do **not** render the `"Super Kingdom Platformer Adventure"` subtitle inside the title card.
+     - Do **not** render the `"STAGE PROGRESS: X / 50 COMPLETED"` text line in the bottom ground bar on either mobile or desktop.
+   - **Balanced Home Screen Action Stack (`PLAY`, `STORE`, `SETTINGS`) & Button Sound Feedback**:
+     - Render the 3 balanced vertical buttons (`w-full max-w-[210px] sm:max-w-[260px]`): **PLAY**, **STORE** (`<ShoppingBag />`), and **SETTINGS** (`<Settings />`).
+     - All three buttons (**PLAY**, **STORE**, and **SETTINGS**) must trigger `soundManager.playCoin()` when clicked on both mobile and desktop.
+     - Clicking **STORE** triggers an in-game Toast notification at the top of the Home Screen displaying **"Store — Coming Soon!"**.
+
+6. **Select World Screen Standardized 3-Line Card Layout (`src/App.tsx` & `src/game/world_<W>/index.ts`)**:
    - Every `WORLD_<W>` definition must set `name` strictly to the clean `[Kingdom / Region Name]` (e.g., `'Emeraldia Kingdom'`, `'Sapphire Ocean'`, `'Sunscorch Desert'`, `'Shadowveil Kingdom'`) without any `'WORLD X'` duplicate or `'World X:'` prefix.
    - Never render long thematic subtitle descriptions on World Select cards.
    - Every world card on the `WORLD_SELECT` screen must strictly follow this exact 3-line layout hierarchy:
@@ -303,7 +324,7 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
      - **Line 2**: `[Kingdom / Region Name]` (clean title without prefixes).
      - **Line 3**: `X/5 STAGES` & `World Score: ...`.
 
-6. **Boss Health Scaling Formula (`getBossMaxHpForWorld` in `src/game/engine.ts`)**:
+7. **Boss Health Scaling Formula (`getBossMaxHpForWorld` in `src/game/engine.ts`)**:
    - All boss stages (`hasBoss: true`) must dynamically compute boss hit points (`hp` and `maxHp`) from the active `worldNumber` using the progressive stepping formula:
      $$\text{maxHp} = 3 + \left\lfloor \frac{\text{worldNumber} - 1}{2} \right\rfloor \times 2$$
    - **Mandatory Hit Progression Table**:
@@ -315,12 +336,12 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
      - **Future Worlds > 10**: Continue adding `+2` hits after every 2 worlds (e.g., World 11–12 = `13` hits, World 13–14 = `15` hits).
    - Multi-phase boss escalation thresholds (`bossEnraged` at $\le 65\%$ HP, `bossOverdrive` at $\le 35\%$ HP) and the Boss Health Bar UI (`HP: hp/maxHp`) must always scale dynamically from `boss.maxHp`.
 
-7. **Adding Future Worlds & Levels**:
+8. **Adding Future Worlds & Levels**:
    - Whenever new worlds (`world_11/`, `world_12/`, etc.) or levels are added in the future, strictly preserve all rules in this file:
      - Modular `src/game/world_<W>/level_<L>.ts` structure, clean `name` (no `"World X:"` prefix), and registration in `src/game/levels.ts`.
      - Ground alignment (`goalY: 6 * 32` for standard/boss flagpoles on row `16` ground; `goalY: 13 * 32` for locked doors with `requiresKey: true`).
      - Minimum 3–4 tiles vertical clearance under/above Question Blocks and power-up randomization rules.
      - Progressive Boss Health Scaling Formula (`getBossMaxHpForWorld(worldNumber)`).
-     - Desktop/PC Keyboard-Only Rule (never show touch controllers on desktop) and Mobile Landscape Side-Margin Touch Controllers (Left Unified Virtual Joystick / Touchpad with Left/Right/Down zones and Right separated Action Buttons `🔥`, `↑` placed in the left/right empty side margins outside the gameplay canvas).
+     - Desktop/PC Keyboard-Only Rule (never show touch controllers on desktop) and Mobile Landscape Side-Margin Touch Controllers (Left two-part Virtual Joystick / Thumbstick and Right separated Action Buttons `🔥`, `↑` in a 100% transparent container placed in the left/right empty side margins outside the gameplay canvas).
      - Mobile Dynamic Auto-Orientation (`lockMobileLandscape()` when entering any level, `unlockMobileToPortrait()` when exiting to menus/World Select, with zero forced rotation warning modals).
-     - Exact Top Header Bar layout, Level Countdown Timer rules, Pause State Manager, Standardized 3-Line World Select Card Layout, and Unified `StageOutcomeModal` (`SCORE` and `COINS` only, with `<Loader2 />` + `"Loading..."` when `"▶ Watch Ad & Revive"` is clicked).
+     - Exact Top Header Bar layout, Home Screen (`TITLE_MENU`) layout and button sound rules, Level Countdown Timer rules, Pause State Manager, Standardized 3-Line World Select Card Layout, and Unified `StageOutcomeModal` (`isMobileTouch` compact sizing across all levels, `SCORE` and `COINS` only, with `<Loader2 />` + `"Loading..."` when `"▶ Watch Ad & Revive"` is clicked).
