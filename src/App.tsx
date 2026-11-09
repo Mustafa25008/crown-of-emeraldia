@@ -3,7 +3,6 @@ import {
   Play,
   Pause,
   Volume2,
-  VolumeX,
   Trophy,
   Heart,
   Coins,
@@ -133,9 +132,9 @@ function StageOutcomeModal({
       : 'WORLD 1: EMERALDIA SAVED!';
 
   return (
-    <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-4 overflow-y-auto z-20">
+    <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-4 overflow-hidden z-20">
       <div
-        className={`w-full max-w-sm sm:max-w-md bg-slate-900 border ${borderColorClass} rounded-2xl p-3.5 sm:p-5 text-center shadow-2xl space-y-2.5 sm:space-y-3.5 my-auto`}
+        className={`w-full max-w-sm sm:max-w-md bg-slate-900 border ${borderColorClass} rounded-2xl p-3 sm:p-5 text-center shadow-2xl space-y-2 sm:space-y-3.5 my-auto`}
       >
         {isSuccess && isWorldVictory && (
           <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center mx-auto">
@@ -603,19 +602,6 @@ export default function App() {
     });
   };
 
-  const toggleAllAudio = () => {
-    setSaveData((prev) => {
-      const isCurrentlyOn = prev.musicEnabled || prev.soundEnabled;
-      const updated = {
-        ...prev,
-        musicEnabled: !isCurrentlyOn,
-        soundEnabled: !isCurrentlyOn,
-      };
-      saveProgress(updated);
-      return updated;
-    });
-  };
-
   const handleVolumeChange = (val: number) => {
     setSaveData((prev) => {
       const updated = { ...prev, volume: val };
@@ -766,9 +752,27 @@ export default function App() {
     return false;
   };
 
+  const isGameplayView =
+    gameState === 'PLAYING' ||
+    gameState === 'PAUSED' ||
+    gameState === 'LEVEL_COMPLETE' ||
+    gameState === 'GAME_OVER' ||
+    gameState === 'TIME_OUT' ||
+    gameState === 'WORLD_VICTORY';
+
   return (
-    <div className="min-h-screen flex flex-col bg-slate-950 text-slate-100 select-none">
-      <main className="flex-1 flex flex-col items-center justify-center p-2 sm:px-4 sm:py-6 landscape:p-1 max-w-full overflow-x-hidden">
+    <div
+      className={`${
+        isGameplayView ? 'h-[100dvh] overflow-hidden' : 'min-h-screen'
+      } flex flex-col bg-slate-950 text-slate-100 select-none`}
+    >
+      <main
+        className={`flex-1 flex flex-col items-center justify-center ${
+          isGameplayView
+            ? 'p-1 sm:px-3 sm:py-2 overflow-hidden'
+            : 'p-2 sm:px-4 sm:py-6 landscape:p-1 overflow-x-hidden'
+        } max-w-full`}
+      >
         {/* 1. CLASSIC GAME HOME SCREEN (Mobile App & Retro Title Screen Feel) */}
         {gameState === 'TITLE_MENU' && (
           <div className="relative w-full max-w-4xl min-h-[360px] sm:min-h-[520px] rounded-2xl overflow-hidden border-2 border-slate-800 shadow-2xl flex flex-col justify-between bg-gradient-to-b from-sky-400 via-sky-300 to-emerald-200">
@@ -1507,9 +1511,7 @@ export default function App() {
                         isMobileTouch ? 'text-[11px] sm:text-xs' : 'text-xs sm:text-sm'
                       } whitespace-nowrap`}
                     >
-                      {isMobileTouch
-                        ? `W ${activeWorldNum}-${activeStageNum}`
-                        : `World ${activeWorldNum}-${activeStageNum}`}
+                      World {activeWorldNum}-{activeStageNum}
                     </div>
 
                     <div className="flex items-center shrink-0">
@@ -1589,9 +1591,9 @@ export default function App() {
                   className="w-full h-full block pixelated"
                 />
 
-                {/* PAUSE MODAL OVERLAY (Freezes timer, pauses audio, hides main header, includes relocated Audio Mute/Unmute control) */}
+                {/* PAUSE MODAL OVERLAY (Freezes timer, pauses audio, hides main header) */}
                 {gameState === 'PAUSED' && (
-                  <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-4 overflow-y-auto z-20">
+                  <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-4 overflow-hidden z-20">
                     <div className="w-full max-w-xs sm:max-w-sm bg-slate-900 border border-slate-700 rounded-2xl p-3 sm:p-5 text-center shadow-2xl space-y-2.5 sm:space-y-3.5 my-auto">
                       <div>
                         <h3 className="font-pixel text-sm sm:text-base text-amber-400">
@@ -1616,52 +1618,6 @@ export default function App() {
                         >
                           Resume Game
                         </button>
-
-                        {/* Relocated Audio Mute / Unmute Controls inside Pause Menu */}
-                        <div className="grid grid-cols-3 gap-1.5 bg-slate-950 border border-slate-800 rounded-xl p-1.5">
-                          <button
-                            type="button"
-                            onClick={toggleAllAudio}
-                            className={`min-h-[34px] py-1.5 px-2 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
-                              saveData.musicEnabled || saveData.soundEnabled
-                                ? 'bg-slate-800 hover:bg-slate-700 text-emerald-400'
-                                : 'bg-slate-900 hover:bg-slate-800 text-slate-400'
-                            }`}
-                          >
-                            {saveData.musicEnabled || saveData.soundEnabled ? (
-                              <Volume2 className="w-3.5 h-3.5 shrink-0" />
-                            ) : (
-                              <VolumeX className="w-3.5 h-3.5 shrink-0" />
-                            )}
-                            <span>
-                              {saveData.musicEnabled || saveData.soundEnabled ? 'Audio ON' : 'Muted'}
-                            </span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={toggleMusic}
-                            className={`min-h-[34px] py-1.5 px-2 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer ${
-                              saveData.musicEnabled
-                                ? 'bg-slate-800 hover:bg-slate-700 text-slate-100'
-                                : 'bg-slate-900 hover:bg-slate-800 text-slate-500'
-                            }`}
-                          >
-                            <span>Music: {saveData.musicEnabled ? 'ON' : 'OFF'}</span>
-                          </button>
-
-                          <button
-                            type="button"
-                            onClick={toggleSound}
-                            className={`min-h-[34px] py-1.5 px-2 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer ${
-                              saveData.soundEnabled
-                                ? 'bg-slate-800 hover:bg-slate-700 text-slate-100'
-                                : 'bg-slate-900 hover:bg-slate-800 text-slate-500'
-                            }`}
-                          >
-                            <span>SFX: {saveData.soundEnabled ? 'ON' : 'OFF'}</span>
-                          </button>
-                        </div>
 
                         <div className="grid grid-cols-2 gap-2">
                           <button

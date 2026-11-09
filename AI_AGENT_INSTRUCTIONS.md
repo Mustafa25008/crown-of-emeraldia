@@ -255,14 +255,12 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
         - **Desktop / PC (`!isMobileTouch`)**: Rendered as multiple individual `<Heart />` icons (up to 5 hearts, plus `×{hud.lives}` if `> 5`).
         - **Mobile Landscape Only (`isMobileTouch`)**: Replaced with a single heart icon and count (`♥ x3`, i.e., `<Heart />` + `x{hud.lives}`).
    - **Right-Side Controls**:
-     1. **Level Indicator**:
-        - **Desktop / PC (`!isMobileTouch`)**: Formatted as `"World x-y"` (e.g., `World 1-1`).
-        - **Mobile Landscape Only (`isMobileTouch`)**: Shortened to `"W x-y"` (e.g., `W 1-1`) to save horizontal space.
+     1. **Level Indicator**: Formatted as `"World x-y"` (e.g., `World 1-1`) on both Desktop/PC and Mobile Landscape.
      2. **Action Button (Pause Only — No Audio Button in Header)**:
         - **Desktop / PC (`!isMobileTouch`)**: `<Pause />` icon + `"Pause"` label.
         - **Mobile Landscape Only (`isMobileTouch`)**: Minimal `<Pause />` icon button only (no `"Pause"` text).
    - **Removed / Forbidden Header Elements**:
-     - Do **not** render an Audio/Sound toggle button in the Top Header Bar on either Mobile or Desktop/PC (Audio Mute/Unmute controls live inside the **Pause Menu** and **Settings Menu**).
+     - Do **not** render an Audio/Sound toggle button in the Top Header Bar on either Mobile or Desktop/PC (Audio controls live exclusively in the **Settings Menu**).
      - Do **not** display raw power status text (such as `"POWER: SMALL"` or `"POWER: BIG"`) in the header.
      - Do **not** include a standalone Restart button in the header (Restart is available inside the Pause menu modal).
      - Do **not** place the countdown timer on the right side of the header.
@@ -288,12 +286,12 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
      - **Row 2 (Secondary Grid - 2 buttons side-by-side)**:
        - `"Replay"` (for `'stage_cleared'`) or `"Try Again"` (for `'game_over'` / `'time_out'`) | `"Level Select"`.
 
-4. **Pause State Manager & Relocated Audio Controls (`src/App.tsx` & `src/game/audio.ts`)**:
+4. **Pause State Manager (`src/App.tsx` & `src/game/audio.ts`)**:
    - When the game is paused (`gameState === 'PAUSED'`):
      - Immediately freeze the level countdown timer (`engineRef.current.setPaused(true)`).
      - Automatically suspend/mute all active Web Audio sound effects and background chiptune music (`soundManager.pauseAllAudio()`).
      - Hide the main game header bar while showing the Pause modal.
-     - Include the relocated **Audio Mute / Unmute** controls (`toggleAllAudio`, `toggleMusic`, `toggleSound`) directly inside the Pause modal (as well as in the `SETTINGS` screen) so players can mute/unmute sound and music while paused.
+     - Render only the clean navigation buttons (`Resume Game`, `Restart`, `Level Select`, `Home Screen`) inside the Pause modal with `overflow-hidden` (no Audio/Music/SFX buttons in the Pause modal and no vertical scrollbar on mobile).
      - Do **not** display the countdown timer inside the Pause modal.
    - When resuming (`gameState === 'PLAYING'`), unfreeze the engine (`setPaused(false)`) and resume audio (`soundManager.resumeAudio()`).
 
