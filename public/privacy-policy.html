@@ -1,0 +1,282 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Privacy Policy — Crown of Emeraldia</title>
+  <meta name="description" content="Privacy Policy for Crown of Emeraldia, covering local game progress storage, device information, and Google AdMob advertising." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep: #020617;
+      --bg-card: #0f172a;
+      --bg-inner: #090f20;
+      --border-slate: #1e293b;
+      --accent-emerald: #10b981;
+      --accent-amber: #fbbf24;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-deep);
+      background-image: radial-gradient(circle at 50% 0%, rgba(16, 185, 129, 0.12), transparent 60%);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      line-height: 1.65;
+      padding: 24px 16px 48px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+    }
+
+    .header-card {
+      background: var(--bg-card);
+      border: 2px solid var(--accent-amber);
+      border-radius: 16px;
+      padding: 28px 24px;
+      text-align: center;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65);
+      margin-bottom: 24px;
+    }
+
+    .badge {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent-emerald);
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      padding: 4px 10px;
+      border-radius: 8px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(16px, 3.5vw, 24px);
+      color: #ffffff;
+      line-height: 1.45;
+      margin-bottom: 10px;
+    }
+
+    .updated-date {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .content-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-slate);
+      border-radius: 16px;
+      padding: 28px 24px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    section + section {
+      margin-top: 28px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-slate);
+    }
+
+    h2 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 13px;
+      color: var(--accent-amber);
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    p {
+      color: #cbd5e1;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    p:last-child {
+      margin-bottom: 0;
+    }
+
+    ul {
+      list-style: none;
+      margin: 10px 0;
+      padding: 0;
+    }
+
+    li {
+      position: relative;
+      padding-left: 20px;
+      color: #cbd5e1;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    li::before {
+      content: '▸';
+      position: absolute;
+      left: 2px;
+      color: var(--accent-emerald);
+      font-weight: bold;
+    }
+
+    strong {
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    .highlight-box {
+      background: var(--bg-inner);
+      border: 1px solid var(--border-slate);
+      border-left: 3px solid var(--accent-emerald);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .footer-nav {
+      margin-top: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .btn-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-card);
+      color: var(--accent-emerald);
+      border: 1px solid var(--border-slate);
+      padding: 10px 16px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 13px;
+      transition: border-color 0.15s ease, background-color 0.15s ease;
+    }
+
+    .btn-link:hover {
+      border-color: var(--accent-emerald);
+      background: #131c31;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 16px 12px 36px;
+      }
+      .header-card,
+      .content-card {
+        padding: 20px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header-card">
+      <div class="badge">CROWN OF EMERALDIA</div>
+      <h1>PRIVACY POLICY</h1>
+      <div class="updated-date">Last Updated: November 2026</div>
+    </header>
+
+    <main class="content-card">
+      <section>
+        <h2>1. OVERVIEW</h2>
+        <p>
+          Welcome to <strong>Crown of Emeraldia</strong> ("the Game"). We respect your privacy and are committed to being transparent about how information is handled when you play our game on mobile devices or web browsers.
+        </p>
+        <p>
+          Crown of Emeraldia is an offline-capable retro platformer game. We do not require you to register an account, nor do we directly collect your name, email address, phone number, or precise GPS location.
+        </p>
+      </section>
+
+      <section>
+        <h2>2. LOCAL GAME DATA STORAGE</h2>
+        <p>
+          To save your adventure progress seamlessly across sessions, the Game stores gameplay data locally on your device using browser/device <strong>Local Storage (<code>localStorage</code>)</strong>:
+        </p>
+        <ul>
+          <li><strong>Stage Progress &amp; Unlocked Worlds:</strong> Which worlds and stages (1-1 through 10-5) you have unlocked.</li>
+          <li><strong>High Scores &amp; Collected Coins:</strong> Your best stage scores and total gold coins collected.</li>
+          <li><strong>Audio Preferences:</strong> Your Sound Effects (SFX), 16-bit Chiptune Music, and Master Volume settings.</li>
+        </ul>
+        <div class="highlight-box">
+          You have full control over this local data at all times. You can clear all saved progress and high scores directly inside the Game's <strong>Settings &rarr; Audio &rarr; Reset Save Data</strong> menu or by clearing your browser/app storage.
+        </div>
+      </section>
+
+      <section>
+        <h2>3. DEVICE &amp; TECHNICAL INFORMATION</h2>
+        <p>
+          The Game checks basic, non-identifying device capabilities locally on your screen (such as viewport dimensions, touch-screen support, and screen orientation APIs) solely to provide automatic portrait/landscape switching and responsive touch controls. This technical state remains on your device and is not transmitted to external servers by the Game.
+        </p>
+      </section>
+
+      <section>
+        <h2>4. THIRD-PARTY ADVERTISING (GOOGLE ADMOB)</h2>
+        <p>
+          Our mobile and web builds may display banner advertisements and optional rewarded video advertisements (such as the <strong>"Watch Ad &amp; Revive"</strong> feature) provided by <strong>Google AdMob</strong> or partner ad networks.
+        </p>
+        <p>
+          Third-party ad networks may automatically collect certain non-personal or device-level information to serve relevant ads, cap ad frequency, and detect fraud, including:
+        </p>
+        <ul>
+          <li><strong>Advertising Identifiers:</strong> Such as Google Advertising ID (GAID) on Android or Identifier for Advertisers (IDFA) on iOS.</li>
+          <li><strong>Coarse Location &amp; Network Info:</strong> IP address, country/region language settings, and network connection type.</li>
+          <li><strong>Ad Interaction Metrics:</strong> Whether an ad was viewed, completed (to grant in-game revive rewards), or clicked.</li>
+        </ul>
+        <p>
+          You can opt out of personalized advertising at any time through your mobile device settings (<em>Settings &rarr; Google &rarr; Ads</em> on Android, or <em>Settings &rarr; Privacy &amp; Security &rarr; Tracking</em> on iOS). For more information on how Google uses data from partner apps and sites, please visit <a href="https://policies.google.com/technologies/partner-sites" target="_blank" rel="noopener noreferrer" style="color: var(--accent-emerald);">Google's Privacy &amp; Terms</a>.
+        </p>
+      </section>
+
+      <section>
+        <h2>5. CHILDREN'S PRIVACY</h2>
+        <p>
+          Crown of Emeraldia is designed as a family-friendly arcade platformer. We do not knowingly collect personal information from children under the age of 13. Where advertisements are displayed via Google AdMob, ad requests can be configured for family-safe / non-personalized treatment in accordance with applicable children's privacy regulations (such as COPPA and GDPR-K).
+        </p>
+      </section>
+
+      <section>
+        <h2>6. CHANGES TO THIS PRIVACY POLICY</h2>
+        <p>
+          We may update this Privacy Policy periodically to reflect new game features, store updates, or regulatory requirements. Any updates will be posted on this page with an updated revision date.
+        </p>
+      </section>
+
+      <section>
+        <h2>7. CONTACT US</h2>
+        <p>
+          If you have any questions or concerns regarding this Privacy Policy or the Game's data practices, please contact the developer through the official app store listing or support channel.
+        </p>
+      </section>
+    </main>
+
+    <footer class="footer-nav">
+      <a href="/" class="btn-link">&larr; Back to Game</a>
+      <a href="/terms.html" class="btn-link">Terms of Service &rarr;</a>
+    </footer>
+  </div>
+</body>
+</html>

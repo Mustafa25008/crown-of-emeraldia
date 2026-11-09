@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Terms of Service — Crown of Emeraldia</title>
+  <meta name="description" content="Terms of Service and Conditions of Use for Crown of Emeraldia." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link href="https://fonts.googleapis.com/css2?family=JetBrains+Mono:wght@500;700&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Press+Start+2P&display=swap" rel="stylesheet" />
+  <style>
+    :root {
+      --bg-deep: #020617;
+      --bg-card: #0f172a;
+      --bg-inner: #090f20;
+      --border-slate: #1e293b;
+      --accent-emerald: #10b981;
+      --accent-amber: #fbbf24;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-color: var(--bg-deep);
+      background-image: radial-gradient(circle at 50% 0%, rgba(251, 191, 36, 0.1), transparent 60%);
+      color: var(--text-main);
+      font-family: 'Plus Jakarta Sans', system-ui, -apple-system, sans-serif;
+      line-height: 1.65;
+      padding: 24px 16px 48px;
+      min-height: 100vh;
+    }
+
+    .container {
+      max-width: 780px;
+      margin: 0 auto;
+    }
+
+    .header-card {
+      background: var(--bg-card);
+      border: 2px solid var(--accent-amber);
+      border-radius: 16px;
+      padding: 28px 24px;
+      text-align: center;
+      box-shadow: 0 16px 40px rgba(0, 0, 0, 0.65);
+      margin-bottom: 24px;
+    }
+
+    .badge {
+      display: inline-block;
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 11px;
+      font-weight: 700;
+      color: var(--accent-emerald);
+      background: rgba(16, 185, 129, 0.12);
+      border: 1px solid rgba(16, 185, 129, 0.35);
+      padding: 4px 10px;
+      border-radius: 8px;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+      margin-bottom: 12px;
+    }
+
+    h1 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: clamp(16px, 3.5vw, 24px);
+      color: #ffffff;
+      line-height: 1.45;
+      margin-bottom: 10px;
+    }
+
+    .updated-date {
+      font-family: 'JetBrains Mono', monospace;
+      font-size: 12px;
+      color: var(--text-muted);
+    }
+
+    .content-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border-slate);
+      border-radius: 16px;
+      padding: 28px 24px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.5);
+    }
+
+    section + section {
+      margin-top: 28px;
+      padding-top: 24px;
+      border-top: 1px solid var(--border-slate);
+    }
+
+    h2 {
+      font-family: 'Press Start 2P', monospace;
+      font-size: 13px;
+      color: var(--accent-amber);
+      line-height: 1.5;
+      margin-bottom: 12px;
+    }
+
+    p {
+      color: #cbd5e1;
+      font-size: 14px;
+      margin-bottom: 12px;
+    }
+
+    p:last-child {
+      margin-bottom: 0;
+    }
+
+    ul {
+      list-style: none;
+      margin: 10px 0;
+      padding: 0;
+    }
+
+    li {
+      position: relative;
+      padding-left: 20px;
+      color: #cbd5e1;
+      font-size: 14px;
+      margin-bottom: 8px;
+    }
+
+    li::before {
+      content: '▸';
+      position: absolute;
+      left: 2px;
+      color: var(--accent-emerald);
+      font-weight: bold;
+    }
+
+    strong {
+      color: #ffffff;
+      font-weight: 600;
+    }
+
+    .highlight-box {
+      background: var(--bg-inner);
+      border: 1px solid var(--border-slate);
+      border-left: 3px solid var(--accent-amber);
+      border-radius: 10px;
+      padding: 14px 16px;
+      margin-top: 12px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .footer-nav {
+      margin-top: 24px;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+      font-size: 13px;
+      color: var(--text-muted);
+    }
+
+    .btn-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: var(--bg-card);
+      color: var(--accent-emerald);
+      border: 1px solid var(--border-slate);
+      padding: 10px 16px;
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 13px;
+      transition: border-color 0.15s ease, background-color 0.15s ease;
+    }
+
+    .btn-link:hover {
+      border-color: var(--accent-emerald);
+      background: #131c31;
+    }
+
+    @media (max-width: 600px) {
+      body {
+        padding: 16px 12px 36px;
+      }
+      .header-card,
+      .content-card {
+        padding: 20px 16px;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <header class="header-card">
+      <div class="badge">CROWN OF EMERALDIA</div>
+      <h1>TERMS OF SERVICE</h1>
+      <div class="updated-date">Last Updated: November 2026</div>
+    </header>
+
+    <main class="content-card">
+      <section>
+        <h2>1. ACCEPTANCE OF TERMS</h2>
+        <p>
+          By accessing, downloading, or playing <strong>Crown of Emeraldia</strong> ("the Game"), you agree to be bound by these Terms of Service ("Terms"). If you do not agree to these Terms, please discontinue use of the Game immediately.
+        </p>
+      </section>
+
+      <section>
+        <h2>2. LICENSE TO PLAY</h2>
+        <p>
+          Subject to your compliance with these Terms, we grant you a personal, revocable, non-exclusive, non-transferable license to access and play Crown of Emeraldia strictly for your own personal, non-commercial entertainment.
+        </p>
+        <ul>
+          <li>You may not copy, redistribute, decompile, reverse-engineer, or modify the Game's source code, level designs, pixel art sprites, or synthesized audio assets without prior written permission.</li>
+          <li>You may not use automated scripts, bots, or unauthorized third-party exploits to manipulate gameplay or ad-reward mechanics.</li>
+        </ul>
+      </section>
+
+      <section>
+        <h2>3. VIRTUAL ITEMS, COINS &amp; LOCAL PROGRESS</h2>
+        <p>
+          During gameplay, you may collect virtual gold coins, scores, power-ups (such as Growth Mushrooms, Solar Fire Flowers, Raccoon Feathers, and Invincibility Stars), and unlock stages across Worlds 1 through 10.
+        </p>
+        <div class="highlight-box">
+          All in-game coins, scores, and virtual items exist solely for entertainment within the Game. They have no real-world monetary value, cannot be redeemed for cash or external goods, and are stored locally on your device. We are not liable for lost progress resulting from clearing browser/device cache or uninstalling the Game.
+        </div>
+      </section>
+
+      <section>
+        <h2>4. ADVERTISEMENTS &amp; REWARDED VIDEO ADS</h2>
+        <p>
+          The Game may include third-party banner advertisements and optional rewarded video advertisements (such as the <strong>"Watch Ad &amp; Revive"</strong> feature via Google AdMob). Choosing to watch a rewarded ad grants an in-game continuation (refilling lives and stage time) for that session. Availability of rewarded ads depends on network connectivity and ad provider inventory.
+        </p>
+      </section>
+
+      <section>
+        <h2>5. INTELLECTUAL PROPERTY</h2>
+        <p>
+          All titles, pixel art graphics, stage layouts, boss designs, synthesized chiptune music, user interface elements, and code comprising <strong>Crown of Emeraldia</strong> are owned by the developer and protected by applicable copyright and intellectual property laws.
+        </p>
+      </section>
+
+      <section>
+        <h2>6. DISCLAIMER OF WARRANTIES</h2>
+        <p>
+          The Game is provided on an <strong>"AS IS"</strong> and <strong>"AS AVAILABLE"</strong> basis without warranties of any kind, either express or implied. We do not guarantee that the Game will be uninterrupted, error-free, or compatible with every hardware or browser configuration.
+        </p>
+      </section>
+
+      <section>
+        <h2>7. LIMITATION OF LIABILITY</h2>
+        <p>
+          To the fullest extent permitted by applicable law, the developer of Crown of Emeraldia shall not be liable for any indirect, incidental, consequential, or special damages arising out of or related to your use of, or inability to use, the Game.
+        </p>
+      </section>
+
+      <section>
+        <h2>8. UPDATES TO THESE TERMS</h2>
+        <p>
+          We reserve the right to modify or update these Terms at any time. Continued use of the Game following any changes constitutes your acceptance of the revised Terms.
+        </p>
+      </section>
+    </main>
+
+    <footer class="footer-nav">
+      <a href="/" class="btn-link">&larr; Back to Game</a>
+      <a href="/privacy-policy.html" class="btn-link">Privacy Policy &rarr;</a>
+    </footer>
+  </div>
+</body>
+</html>

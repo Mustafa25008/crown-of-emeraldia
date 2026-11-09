@@ -968,8 +968,29 @@ export default function App() {
                 </div>
               </div>
 
-              {/* Bottom Ground Spacer (No Stage Progress Text) */}
-              <div className="relative z-10 h-12 sm:h-16 shrink-0" />
+              {/* Bottom Ground Footer Legal Links (100% Transparent Background, Right Above Reserved Banner Ad Space) */}
+              <div
+                style={{ backgroundColor: 'transparent', border: 'none', boxShadow: 'none' }}
+                className="relative z-10 h-12 sm:h-16 bg-transparent border-0 shadow-none flex items-center justify-center gap-3 sm:gap-4 px-4 text-[10px] sm:text-xs font-mono-num shrink-0"
+              >
+                <a
+                  href="#"
+                  onClick={(e) => e.preventDefault()}
+                  style={{ backgroundColor: 'transparent' }}
+                  className="bg-transparent text-amber-100/85 hover:text-amber-300 underline-offset-4 hover:underline transition-colors cursor-pointer"
+                >
+                  Privacy Policy
+                </a>
+                <span className="text-amber-200/40 select-none">•</span>
+                <a
+                  href="#"
+                  onClick={(e) => e.preventDefault()}
+                  style={{ backgroundColor: 'transparent' }}
+                  className="bg-transparent text-amber-100/85 hover:text-amber-300 underline-offset-4 hover:underline transition-colors cursor-pointer"
+                >
+                  Terms of Service
+                </a>
+              </div>
             </div>
 
             {/* Clean Bottom Space Reserved for Future Mobile Banner Ad */}
