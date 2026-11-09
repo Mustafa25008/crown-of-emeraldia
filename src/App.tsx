@@ -603,6 +603,19 @@ export default function App() {
     });
   };
 
+  const toggleAllAudio = () => {
+    setSaveData((prev) => {
+      const isCurrentlyOn = prev.musicEnabled || prev.soundEnabled;
+      const updated = {
+        ...prev,
+        musicEnabled: !isCurrentlyOn,
+        soundEnabled: !isCurrentlyOn,
+      };
+      saveProgress(updated);
+      return updated;
+    });
+  };
+
   const handleVolumeChange = (val: number) => {
     setSaveData((prev) => {
       const updated = { ...prev, volume: val };
@@ -1400,18 +1413,30 @@ export default function App() {
             >
               {/* Top Retro HUD Bar - strictly hidden whenever any modal (Pause, Success, Failure, Timeout) is active */}
               {gameState === 'PLAYING' && (
-                <div className="relative z-30 pointer-events-auto w-full bg-slate-900 border border-slate-800 rounded-t-xl px-2.5 py-1.5 sm:px-4 sm:py-2 flex items-center justify-between gap-2 sm:gap-4 text-xs shrink-0">
-                  <div className="flex items-center gap-2 sm:gap-4 font-mono-num min-w-0">
+                <div className="relative z-30 pointer-events-auto w-full bg-slate-900 border border-slate-800 rounded-t-xl px-2.5 py-1.5 sm:px-4 sm:py-2 flex items-center justify-between gap-2 sm:gap-4 text-xs whitespace-nowrap overflow-hidden shrink-0">
+                  <div
+                    className={`flex items-center ${
+                      isMobileTouch ? 'gap-2 sm:gap-3' : 'gap-4'
+                    } font-mono-num min-w-0 whitespace-nowrap`}
+                  >
                     <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                       <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-400 shrink-0" />
-                      <span className="font-bold text-white text-xs sm:text-sm">
+                      <span
+                        className={`font-bold text-white ${
+                          isMobileTouch ? 'text-[11px] sm:text-xs' : 'text-xs sm:text-sm'
+                        }`}
+                      >
                         {hud.score.toString().padStart(6, '0')}
                       </span>
                     </div>
 
                     <div className="flex items-center gap-1 sm:gap-1.5 shrink-0">
                       <GoldCoinIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                      <span className="font-bold text-yellow-300 text-xs sm:text-sm">
+                      <span
+                        className={`font-bold text-yellow-300 ${
+                          isMobileTouch ? 'text-[11px] sm:text-xs' : 'text-xs sm:text-sm'
+                        }`}
+                      >
                         ×{hud.coins.toString().padStart(2, '0')}
                       </span>
                     </div>
@@ -1423,54 +1448,71 @@ export default function App() {
                       title="Remaining Stage Time"
                     >
                       <Coins className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                      <span className="font-bold text-xs sm:text-sm">
+                      <span
+                        className={`font-bold ${
+                          isMobileTouch ? 'text-[11px] sm:text-xs' : 'text-xs sm:text-sm'
+                        }`}
+                      >
                         {Math.floor(hud.timeRemaining / 60)}:
                         {(hud.timeRemaining % 60).toString().padStart(2, '0')}
                       </span>
                     </div>
 
-                    <div className="flex items-center gap-0.5 sm:gap-1 shrink-0" aria-label={`Health: ${hud.lives}`}>
-                      {Array.from({ length: Math.max(3, Math.min(5, hud.lives)) }).map((_, idx) => {
-                        const isFilled = idx < hud.lives;
-                        return (
-                          <Heart
-                            key={idx}
-                            className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${
-                              isFilled
-                                ? 'text-rose-500 fill-rose-500'
-                                : 'text-slate-600 fill-slate-800'
-                            }`}
-                          />
-                        );
-                      })}
-                      {hud.lives > 5 && (
-                        <span className="font-bold text-white text-xs sm:text-sm ml-0.5">
-                          ×{hud.lives}
+                    {isMobileTouch ? (
+                      <div
+                        className="flex items-center gap-1 shrink-0"
+                        aria-label={`Health: ${hud.lives}`}
+                      >
+                        <Heart className="w-3.5 h-3.5 text-rose-500 fill-rose-500 shrink-0" />
+                        <span className="font-bold text-white text-[11px] sm:text-xs">
+                          x{hud.lives}
                         </span>
-                      )}
-                    </div>
+                      </div>
+                    ) : (
+                      <div
+                        className="flex items-center gap-0.5 sm:gap-1 shrink-0"
+                        aria-label={`Health: ${hud.lives}`}
+                      >
+                        {Array.from({ length: Math.max(3, Math.min(5, hud.lives)) }).map(
+                          (_, idx) => {
+                            const isFilled = idx < hud.lives;
+                            return (
+                              <Heart
+                                key={idx}
+                                className={`w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0 ${
+                                  isFilled
+                                    ? 'text-rose-500 fill-rose-500'
+                                    : 'text-slate-600 fill-slate-800'
+                                }`}
+                              />
+                            );
+                          }
+                        )}
+                        {hud.lives > 5 && (
+                          <span className="font-bold text-white text-xs sm:text-sm ml-0.5">
+                            ×{hud.lives}
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
 
-                  <div className="flex items-center gap-2 sm:gap-3.5 shrink-0">
-                    <div className="text-slate-200 font-bold font-mono-num text-xs sm:text-sm whitespace-nowrap">
-                      World {activeWorldNum}-{activeStageNum}
+                  <div
+                    className={`flex items-center ${
+                      isMobileTouch ? 'gap-2' : 'gap-3.5'
+                    } shrink-0 whitespace-nowrap`}
+                  >
+                    <div
+                      className={`text-slate-200 font-bold font-mono-num ${
+                        isMobileTouch ? 'text-[11px] sm:text-xs' : 'text-xs sm:text-sm'
+                      } whitespace-nowrap`}
+                    >
+                      {isMobileTouch
+                        ? `W ${activeWorldNum}-${activeStageNum}`
+                        : `World ${activeWorldNum}-${activeStageNum}`}
                     </div>
 
-                    <div className="flex items-center gap-1.5 shrink-0">
-                      <button
-                        type="button"
-                        onPointerDown={(e) => e.stopPropagation()}
-                        onClick={toggleMusic}
-                        title="Toggle Sound"
-                        aria-label="Toggle Sound"
-                        className="pointer-events-auto touch-manipulation p-1.5 sm:p-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-200 transition-all cursor-pointer shrink-0"
-                      >
-                        {saveData.musicEnabled ? (
-                          <Volume2 className="w-4 h-4 text-emerald-400" />
-                        ) : (
-                          <VolumeX className="w-4 h-4 text-slate-400" />
-                        )}
-                      </button>
+                    <div className="flex items-center shrink-0">
                       <button
                         type="button"
                         onPointerDown={(e) => e.stopPropagation()}
@@ -1481,10 +1523,16 @@ export default function App() {
                           soundManager.pauseAllAudio();
                           setGameState('PAUSED');
                         }}
-                        className="pointer-events-auto touch-manipulation flex items-center gap-1 px-2.5 py-1.5 sm:px-3 sm:py-2 rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-100 font-medium transition-all whitespace-nowrap shrink-0 cursor-pointer text-xs"
+                        title="Pause Game"
+                        aria-label="Pause Game"
+                        className={`pointer-events-auto touch-manipulation flex items-center justify-center rounded-lg bg-slate-800 hover:bg-slate-700 active:scale-95 text-slate-100 font-medium transition-all whitespace-nowrap shrink-0 cursor-pointer text-xs ${
+                          isMobileTouch
+                            ? 'p-1.5 sm:p-2'
+                            : 'gap-1 px-2.5 py-1.5 sm:px-3 sm:py-2'
+                        }`}
                       >
-                        <Pause className="w-3.5 h-3.5" />
-                        <span>Pause</span>
+                        <Pause className="w-3.5 h-3.5 fill-current" />
+                        {!isMobileTouch && <span>Pause</span>}
                       </button>
                     </div>
                   </div>
@@ -1541,105 +1589,165 @@ export default function App() {
                   className="w-full h-full block pixelated"
                 />
 
-                {/* PAUSE MODAL OVERLAY (Freezes timer, pauses audio, hides main header) */}
-              {gameState === 'PAUSED' && (
-                <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-4 overflow-y-auto z-20">
-                  <div className="w-full max-w-xs sm:max-w-sm bg-slate-900 border border-slate-700 rounded-2xl p-3 sm:p-5 text-center shadow-2xl space-y-2.5 sm:space-y-4 my-auto">
-                    <div>
-                      <h3 className="font-pixel text-sm sm:text-base text-amber-400">GAME PAUSED</h3>
-                      <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5">{hud.levelName}</p>
-                    </div>
-
-                    <div className="flex flex-col gap-2">
-                      <button
-                        onClick={() => {
-                          if (engineRef.current) {
-                            engineRef.current.setPaused(false);
-                          }
-                          soundManager.resumeAudio();
-                          setGameState('PLAYING');
-                        }}
-                        className="w-full min-h-[38px] py-2 px-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
-                      >
-                        Resume Game
-                      </button>
-
-                      <div className="grid grid-cols-2 gap-2">
-                        <button
-                          onClick={() => startLevel(currentLevelId, false)}
-                          className="min-h-[36px] py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
-                        >
-                          Restart
-                        </button>
-                        <button
-                          onClick={() => navigateToMenu('LEVEL_SELECT')}
-                          className="min-h-[36px] py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
-                        >
-                          Level Select
-                        </button>
+                {/* PAUSE MODAL OVERLAY (Freezes timer, pauses audio, hides main header, includes relocated Audio Mute/Unmute control) */}
+                {gameState === 'PAUSED' && (
+                  <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-[2px] flex items-center justify-center p-2 sm:p-4 overflow-y-auto z-20">
+                    <div className="w-full max-w-xs sm:max-w-sm bg-slate-900 border border-slate-700 rounded-2xl p-3 sm:p-5 text-center shadow-2xl space-y-2.5 sm:space-y-3.5 my-auto">
+                      <div>
+                        <h3 className="font-pixel text-sm sm:text-base text-amber-400">
+                          GAME PAUSED
+                        </h3>
+                        <p className="text-[11px] sm:text-xs text-slate-300 mt-0.5">
+                          {hud.levelName}
+                        </p>
                       </div>
 
-                      <button
-                        onClick={() => navigateToMenu('TITLE_MENU')}
-                        className="w-full min-h-[32px] py-1 px-3 bg-slate-800/50 hover:bg-slate-800 text-slate-400 font-medium text-[11px] rounded-lg transition-colors cursor-pointer"
-                      >
-                        Home Screen
-                      </button>
+                      <div className="flex flex-col gap-2">
+                        <button
+                          type="button"
+                          onClick={() => {
+                            if (engineRef.current) {
+                              engineRef.current.setPaused(false);
+                            }
+                            soundManager.resumeAudio();
+                            setGameState('PLAYING');
+                          }}
+                          className="w-full min-h-[38px] py-2 px-4 bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold text-xs rounded-xl shadow transition-colors cursor-pointer"
+                        >
+                          Resume Game
+                        </button>
+
+                        {/* Relocated Audio Mute / Unmute Controls inside Pause Menu */}
+                        <div className="grid grid-cols-3 gap-1.5 bg-slate-950 border border-slate-800 rounded-xl p-1.5">
+                          <button
+                            type="button"
+                            onClick={toggleAllAudio}
+                            className={`min-h-[34px] py-1.5 px-2 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1.5 transition-colors cursor-pointer ${
+                              saveData.musicEnabled || saveData.soundEnabled
+                                ? 'bg-slate-800 hover:bg-slate-700 text-emerald-400'
+                                : 'bg-slate-900 hover:bg-slate-800 text-slate-400'
+                            }`}
+                          >
+                            {saveData.musicEnabled || saveData.soundEnabled ? (
+                              <Volume2 className="w-3.5 h-3.5 shrink-0" />
+                            ) : (
+                              <VolumeX className="w-3.5 h-3.5 shrink-0" />
+                            )}
+                            <span>
+                              {saveData.musicEnabled || saveData.soundEnabled ? 'Audio ON' : 'Muted'}
+                            </span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={toggleMusic}
+                            className={`min-h-[34px] py-1.5 px-2 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer ${
+                              saveData.musicEnabled
+                                ? 'bg-slate-800 hover:bg-slate-700 text-slate-100'
+                                : 'bg-slate-900 hover:bg-slate-800 text-slate-500'
+                            }`}
+                          >
+                            <span>Music: {saveData.musicEnabled ? 'ON' : 'OFF'}</span>
+                          </button>
+
+                          <button
+                            type="button"
+                            onClick={toggleSound}
+                            className={`min-h-[34px] py-1.5 px-2 rounded-lg text-[11px] font-semibold flex items-center justify-center gap-1 transition-colors cursor-pointer ${
+                              saveData.soundEnabled
+                                ? 'bg-slate-800 hover:bg-slate-700 text-slate-100'
+                                : 'bg-slate-900 hover:bg-slate-800 text-slate-500'
+                            }`}
+                          >
+                            <span>SFX: {saveData.soundEnabled ? 'ON' : 'OFF'}</span>
+                          </button>
+                        </div>
+
+                        <div className="grid grid-cols-2 gap-2">
+                          <button
+                            type="button"
+                            onClick={() => startLevel(currentLevelId, false)}
+                            className="min-h-[36px] py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+                          >
+                            Restart
+                          </button>
+                          <button
+                            type="button"
+                            onClick={() => navigateToMenu('LEVEL_SELECT')}
+                            className="min-h-[36px] py-1.5 px-3 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold text-xs rounded-xl transition-colors cursor-pointer"
+                          >
+                            Level Select
+                          </button>
+                        </div>
+
+                        <button
+                          type="button"
+                          onClick={() => navigateToMenu('TITLE_MENU')}
+                          className="w-full min-h-[32px] py-1 px-3 bg-slate-800/50 hover:bg-slate-800 text-slate-400 font-medium text-[11px] rounded-lg transition-colors cursor-pointer"
+                        >
+                          Home Screen
+                        </button>
+                      </div>
                     </div>
                   </div>
-                </div>
-              )}
+                )}
 
-              {/* UNIFIED REUSABLE STAGE OUTCOME MODAL ('stage_cleared', 'game_over', 'time_out') */}
-              {(gameState === 'LEVEL_COMPLETE' ||
-                gameState === 'WORLD_VICTORY' ||
-                gameState === 'GAME_OVER' ||
-                gameState === 'TIME_OUT') && (
-                <StageOutcomeModal
-                  variant={
-                    gameState === 'LEVEL_COMPLETE' || gameState === 'WORLD_VICTORY'
-                      ? 'stage_cleared'
-                      : gameState === 'TIME_OUT'
-                      ? 'time_out'
-                      : 'game_over'
-                  }
-                  isWorldVictory={gameState === 'WORLD_VICTORY'}
-                  currentLevelId={currentLevelId}
-                  levelName={hud.levelName}
-                  score={carriedScore}
-                  coins={carriedCoins}
-                  isWatchingAd={isWatchingAd}
-                  onPrimaryAction={() => {
-                    if (gameState === 'LEVEL_COMPLETE' || gameState === 'WORLD_VICTORY') {
-                      const nextId = currentLevelId >= 50 ? 1 : currentLevelId + 1;
-                      startLevel(nextId, false);
-                    } else {
-                      handleWatchAdAndRevive();
+                {/* UNIFIED REUSABLE STAGE OUTCOME MODAL ('stage_cleared', 'game_over', 'time_out') */}
+                {(gameState === 'LEVEL_COMPLETE' ||
+                  gameState === 'WORLD_VICTORY' ||
+                  gameState === 'GAME_OVER' ||
+                  gameState === 'TIME_OUT') && (
+                  <StageOutcomeModal
+                    variant={
+                      gameState === 'LEVEL_COMPLETE' || gameState === 'WORLD_VICTORY'
+                        ? 'stage_cleared'
+                        : gameState === 'TIME_OUT'
+                        ? 'time_out'
+                        : 'game_over'
                     }
-                  }}
-                  onSecondaryRetry={() => {
-                    if (gameState === 'LEVEL_COMPLETE' || gameState === 'WORLD_VICTORY') {
-                      startLevel(currentLevelId, false);
-                    } else {
-                      startLevel(currentLevelId, true);
-                    }
-                  }}
-                  onLevelSelect={() => navigateToMenu('LEVEL_SELECT')}
-                />
-              )}
+                    isWorldVictory={gameState === 'WORLD_VICTORY'}
+                    currentLevelId={currentLevelId}
+                    levelName={hud.levelName}
+                    score={carriedScore}
+                    coins={carriedCoins}
+                    isWatchingAd={isWatchingAd}
+                    onPrimaryAction={() => {
+                      if (gameState === 'LEVEL_COMPLETE' || gameState === 'WORLD_VICTORY') {
+                        const nextId = currentLevelId >= 50 ? 1 : currentLevelId + 1;
+                        startLevel(nextId, false);
+                      } else {
+                        handleWatchAdAndRevive();
+                      }
+                    }}
+                    onSecondaryRetry={() => {
+                      if (gameState === 'LEVEL_COMPLETE' || gameState === 'WORLD_VICTORY') {
+                        startLevel(currentLevelId, false);
+                      } else {
+                        startLevel(currentLevelId, true);
+                      }
+                    }}
+                    onLevelSelect={() => navigateToMenu('LEVEL_SELECT')}
+                  />
+                )}
               </div>
             </div>
 
             {/* RIGHT EMPTY SIDE MARGIN: Separated Mobile Action Buttons (Fire 🔥 & Jump ↑ in 100% Transparent Container) — Strictly Hidden on Desktop/PC */}
             {isMobileTouch && gameState === 'PLAYING' && (
-              <div className="mobile-touch-controls w-[126px] sm:w-[144px] shrink-0 self-end flex flex-col items-center justify-end pb-3 sm:pb-5 select-none touch-none pointer-events-none z-10">
-                <div className="bg-transparent flex items-end justify-center gap-3 sm:gap-3.5">
+              <div
+                style={{ backgroundColor: 'transparent', border: 'none', boxShadow: 'none' }}
+                className="mobile-touch-controls w-[126px] sm:w-[144px] shrink-0 self-end flex flex-col items-center justify-end pb-3 sm:pb-5 bg-transparent border-0 shadow-none select-none touch-none pointer-events-none z-10"
+              >
+                <div
+                  style={{ backgroundColor: 'transparent', border: 'none', boxShadow: 'none' }}
+                  className="bg-transparent border-0 shadow-none p-0 flex items-end justify-center gap-3 sm:gap-3.5"
+                >
                   {/* Fire / Spin Attack / Sprint Button (🔥 — Lower / Backward) */}
                   <button
                     type="button"
                     aria-label="Fire and Sprint"
                     {...bindVirtualButton('KeyX')}
-                    className={`pointer-events-auto w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 flex items-center justify-center transition-transform duration-75 cursor-pointer select-none touch-none shadow-[0_4px_12px_rgba(0,0,0,0.55),inset_0_1px_2px_rgba(255,255,255,0.35)] ${
+                    className={`pointer-events-auto touch-manipulation w-14 h-14 sm:w-16 sm:h-16 rounded-full border-2 flex items-center justify-center transition-transform duration-75 cursor-pointer select-none touch-none shadow-[0_4px_12px_rgba(0,0,0,0.55),inset_0_1px_2px_rgba(255,255,255,0.35)] ${
                       activeVirtualKeys['KeyX']
                         ? 'bg-orange-400/60 border-white/95 text-white scale-95'
                         : 'bg-gradient-to-b from-orange-500/35 to-orange-600/15 hover:from-orange-500/45 hover:to-orange-600/25 border-white/40 text-orange-100'
@@ -1653,7 +1761,7 @@ export default function App() {
                     type="button"
                     aria-label="Jump"
                     {...bindVirtualButton('Space')}
-                    className={`pointer-events-auto w-15 h-15 sm:w-[68px] sm:h-[68px] -translate-y-3.5 rounded-full border-2 flex items-center justify-center transition-transform duration-75 cursor-pointer select-none touch-none shadow-[0_4px_12px_rgba(0,0,0,0.55),inset_0_1px_2px_rgba(255,255,255,0.35)] ${
+                    className={`pointer-events-auto touch-manipulation w-15 h-15 sm:w-[68px] sm:h-[68px] -translate-y-3.5 rounded-full border-2 flex items-center justify-center transition-transform duration-75 cursor-pointer select-none touch-none shadow-[0_4px_12px_rgba(0,0,0,0.55),inset_0_1px_2px_rgba(255,255,255,0.35)] ${
                       activeVirtualKeys['Space']
                         ? 'bg-emerald-400/60 border-white/95 text-white scale-95'
                         : 'bg-gradient-to-b from-emerald-500/35 to-emerald-600/15 hover:from-emerald-500/45 hover:to-emerald-600/25 border-white/40 text-emerald-100'
