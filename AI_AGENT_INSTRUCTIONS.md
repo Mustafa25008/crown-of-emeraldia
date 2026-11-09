@@ -299,10 +299,13 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
      - Do **not** display the countdown timer inside the Pause modal.
    - When resuming (`gameState === 'PLAYING'`), unfreeze the engine (`setPaused(false)`) and resume audio (`soundManager.resumeAudio()`).
 
-5. **Home Screen (`TITLE_MENU` in `src/App.tsx`) — Portrait Scroll Lock, Retro Scenery, Title Card & Store Button**:
-   - **Viewport & Scroll Lock + Reserved Banner Ad Space**:
+5. **Home Screen (`TITLE_MENU` in `src/App.tsx`) — Portrait Scroll Lock, Retro Scenery, Title Card, Store Button & Ad Banner Placeholder**:
+   - **Viewport & Scroll Lock + Mobile Portrait Bottom Ad Banner Placeholder (`#mobile-home-ad-banner-slot`)**:
      - Enforce `h-[100dvh] max-h-[100dvh] overflow-hidden` on the root container when `gameState === 'TITLE_MENU'` (or during active gameplay/modals) so mobile portrait has zero vertical scrolling and no dead space.
-     - Reserve a clean bottom strip (`h-[52px] sm:h-0 shrink-0`) below the Home Screen card on mobile portrait for a future banner ad.
+     - Directly below the Home Screen card on mobile portrait (`sm:hidden`), render the sleek **Ad Banner Placeholder** container:
+       - **DOM Hook / Selector**: `id="mobile-home-ad-banner-slot"` and `data-ad-slot="HOME_BOTTOM_BANNER"`.
+       - **Visual Styling**: `mt-1.5 w-full h-[50px] sm:hidden shrink-0 rounded-xl bg-slate-900/75 border border-slate-800/90 flex items-center justify-center px-3 shadow-inner` containing the minimal centered retro label `"Ad Banner Space"`.
+       - **Instructions for Replacing Placeholder with Real Ads (AdMob / AdSense ID)**: When integrating live ads, locate `#mobile-home-ad-banner-slot` (`data-ad-slot="HOME_BOTTOM_BANNER"`) in `src/App.tsx` (inside the `gameState === 'TITLE_MENU'` block) and either mount the web `<ins className="adsbygoogle" data-ad-client="ca-pub-..." data-ad-slot="..." />` tag inside this `50px` container or invoke the native mobile AdMob bridge (`window.AdMob?.showBannerAd?.({ adUnitId: 'ca-app-pub-.../...', position: 'BOTTOM_CENTER' })`) while keeping the `h-[50px] shrink-0` layout footprint intact so it never causes scrolling or overlaps the footer legal links.
    - **Desktop-Style Retro Scenery on Mobile & Desktop**:
      - Keep `"TOP SCORE"` on the top-left corner and `"COINS"` on the top-right corner opposite each other.
      - Render the floating **Question Block & Bricks** on the left side (`flex absolute bottom-24 left-3 sm:bottom-44 sm:left-14`) and the **Green Pipe / Tunnel** on the right side (`flex flex-col items-center absolute bottom-12 right-3.5 sm:bottom-16 sm:right-16`) scaled for both Mobile Portrait and Desktop without overlapping central UI elements.
@@ -317,7 +320,7 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
      - Clicking **STORE** triggers an in-game Toast notification at the top of the Home Screen displaying **"Store — Coming Soon!"**.
    - **Static Legal Pages (`/public/privacy-policy.html` & `/public/terms.html`) & Home Screen Footer Legal Links**:
      - Maintain the two responsive, dark-retro static HTML legal pages in `/public/privacy-policy.html` (Privacy Policy covering `localStorage` score/coins/progress, device info, and Google AdMob ads) and `/public/terms.html` (Terms of Service).
-     - In the bottom ground strip of the Home Screen (`TITLE_MENU`), right above the reserved bottom banner ad space, render a **100% transparent** footer container (`bg-transparent border-0 shadow-none`, `style={{ backgroundColor: 'transparent' }}`) with clickable `"Privacy Policy"` and `"Terms of Service"` links (`href="#"`, styled in `font-mono-num` to match the retro UI without cluttering the screen).
+     - In the bottom ground strip of the Home Screen (`TITLE_MENU`), right above the `#mobile-home-ad-banner-slot` placeholder, render a **100% transparent** footer container (`bg-transparent border-0 shadow-none`, `style={{ backgroundColor: 'transparent' }}`) with clickable `"Privacy Policy"` and `"Terms of Service"` links (`href="#"`, styled in `font-mono-num` to match the retro UI without cluttering the screen).
 
 6. **Select World Screen Standardized 3-Line Card Layout (`src/App.tsx` & `src/game/world_<W>/index.ts`)**:
    - Every `WORLD_<W>` definition must set `name` strictly to the clean `[Kingdom / Region Name]` (e.g., `'Emeraldia Kingdom'`, `'Sapphire Ocean'`, `'Sunscorch Desert'`, `'Shadowveil Kingdom'`) without any `'WORLD X'` duplicate or `'World X:'` prefix.

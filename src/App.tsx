@@ -993,11 +993,18 @@ export default function App() {
               </div>
             </div>
 
-            {/* Clean Bottom Space Reserved for Future Mobile Banner Ad */}
+            {/* Mobile Portrait Bottom Ad Banner Placeholder (Replace with real AdMob / Ad Unit ID in production) */}
             <div
-              aria-hidden="true"
-              className="w-full h-[52px] sm:h-0 shrink-0"
-            />
+              id="mobile-home-ad-banner-slot"
+              data-ad-slot="HOME_BOTTOM_BANNER"
+              role="region"
+              aria-label="Advertisement Banner Placeholder"
+              className="mt-1.5 w-full h-[50px] sm:hidden shrink-0 rounded-xl bg-slate-900/75 border border-slate-800/90 flex items-center justify-center px-3 shadow-inner"
+            >
+              <span className="font-mono-num text-[10px] font-semibold tracking-widest uppercase text-slate-400/90 select-none">
+                Ad Banner Space
+              </span>
+            </div>
           </div>
         )}
 
