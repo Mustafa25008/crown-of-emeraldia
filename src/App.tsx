@@ -24,7 +24,7 @@ import {
   Loader2,
   ShoppingBag,
 } from 'lucide-react';
-import { GameState, HudSnapshot, PowerState, SaveProgress } from './game/types';
+import { GameState, HudSnapshot, PowerState, SaveProgress, TileType } from './game/types';
 import { LEVELS, WORLDS, getLevelById, getWorldById } from './game/levels';
 import {
   loadProgress,
@@ -35,6 +35,7 @@ import {
 } from './game/storage';
 import { soundManager } from './game/audio';
 import { PlatformerEngine, CANVAS_WIDTH, CANVAS_HEIGHT } from './game/engine';
+import { drawParallaxBackground, drawTile } from './game/renderer';
 
 function GoldCoinIcon({ className = 'w-4 h-4' }: { className?: string }) {
   return (
@@ -49,6 +50,90 @@ function GoldCoinIcon({ className = 'w-4 h-4' }: { className?: string }) {
       <circle cx="8" cy="8" r="5" stroke="#FEF08A" strokeWidth="1" strokeOpacity="0.85" />
       <rect x="7" y="4.5" width="2" height="7" rx="1" fill="#FEF08A" />
     </svg>
+  );
+}
+
+/**
+ * Renders the exact active gameplay environment (Stage 1-1 'HILLS' parallax sky, pixel clouds,
+ * stepped 16-bit hills, bushes, 32x32 ground tiles, floating [BRICK, QUESTION_COIN, BRICK] formation,
+ * and 2x2 green warp pipe) using the identical renderer functions used during active gameplay.
+ */
+function GameplayEnvironmentBackdrop() {
+  const canvasRef = useRef<HTMLCanvasElement | null>(null);
+
+  useEffect(() => {
+    const canvas = canvasRef.current;
+    if (!canvas) return;
+
+    const renderBackdrop = () => {
+      const rect = canvas.getBoundingClientRect();
+      const TILE = 32;
+      const rows = 19; // Exact 19-row height of active gameplay levels (608px)
+      const canvasH = rows * TILE;
+      const aspect = rect.width > 0 && rect.height > 0 ? rect.width / rect.height : CANVAS_WIDTH / CANVAS_HEIGHT;
+      const cols = Math.max(11, Math.round((canvasH * aspect) / TILE));
+      const canvasW = cols * TILE;
+
+      if (canvas.width !== canvasW || canvas.height !== canvasH) {
+        canvas.width = canvasW;
+        canvas.height = canvasH;
+      }
+
+      const ctx = canvas.getContext('2d');
+      if (!ctx) return;
+      ctx.imageSmoothingEnabled = false;
+
+      // 1. Exact gameplay parallax background (sky gradient, pixel clouds, stepped hills, and bushes)
+      drawParallaxBackground(ctx, 'HILLS', 0, canvasW, canvasH, 0);
+
+      // 2. Exact gameplay ground tiles (row 16 top grass + rows 17-18 deep soil)
+      const groundTopRow = rows - 3;
+      for (let c = 0; c < cols; c++) {
+        drawTile(ctx, TileType.GROUND_TOP, c * TILE, groundTopRow * TILE, 'HILLS', 0);
+        drawTile(ctx, TileType.GROUND_DEEP, c * TILE, (groundTopRow + 1) * TILE, 'HILLS', 0);
+        drawTile(ctx, TileType.GROUND_DEEP, c * TILE, (groundTopRow + 2) * TILE, 'HILLS', 0);
+      }
+
+      // 3. Exact gameplay floating Question Block & Brick formation on the left side
+      const blockStartCol = cols >= 20 ? 2 : 1;
+      const blockRow = groundTopRow - 4; // 4 tiles above ground
+      drawTile(ctx, TileType.BRICK, blockStartCol * TILE, blockRow * TILE, 'HILLS', 0);
+      drawTile(ctx, TileType.QUESTION_COIN, (blockStartCol + 1) * TILE, blockRow * TILE, 'HILLS', 0);
+      drawTile(ctx, TileType.BRICK, (blockStartCol + 2) * TILE, blockRow * TILE, 'HILLS', 0);
+
+      // 4. Exact gameplay Green Warp Pipe on the right side sitting flush on row 16 ground
+      const pipeLeftCol = cols >= 20 ? cols - 4 : Math.max(5, cols - 3);
+      drawTile(ctx, TileType.PIPE_TOP_L, pipeLeftCol * TILE, (groundTopRow - 2) * TILE, 'HILLS', 0);
+      drawTile(ctx, TileType.PIPE_TOP_R, (pipeLeftCol + 1) * TILE, (groundTopRow - 2) * TILE, 'HILLS', 0);
+      drawTile(ctx, TileType.PIPE_BODY_L, pipeLeftCol * TILE, (groundTopRow - 1) * TILE, 'HILLS', 0);
+      drawTile(ctx, TileType.PIPE_BODY_R, (pipeLeftCol + 1) * TILE, (groundTopRow - 1) * TILE, 'HILLS', 0);
+    };
+
+    renderBackdrop();
+
+    let resizeObserver: ResizeObserver | null = null;
+    if (typeof ResizeObserver !== 'undefined') {
+      resizeObserver = new ResizeObserver(() => {
+        renderBackdrop();
+      });
+      resizeObserver.observe(canvas);
+    }
+    window.addEventListener('resize', renderBackdrop);
+
+    return () => {
+      if (resizeObserver) {
+        resizeObserver.disconnect();
+      }
+      window.removeEventListener('resize', renderBackdrop);
+    };
+  }, []);
+
+  return (
+    <canvas
+      ref={canvasRef}
+      aria-hidden="true"
+      className="absolute inset-0 w-full h-full block pixelated pointer-events-none z-0"
+    />
   );
 }
 
@@ -860,7 +945,10 @@ export default function App() {
         {/* 1. CLASSIC GAME HOME SCREEN (Mobile App & Retro Title Screen Feel) */}
         {gameState === 'TITLE_MENU' && (
           <div className="w-full h-full max-w-4xl flex flex-col justify-between overflow-hidden">
-            <div className="relative flex-1 w-full sm:min-h-[520px] rounded-2xl overflow-hidden border-2 border-slate-800 shadow-2xl flex flex-col justify-between bg-gradient-to-b from-sky-400 via-sky-300 to-emerald-200">
+            <div className="relative flex-1 w-full sm:min-h-[520px] rounded-2xl overflow-hidden border-2 border-slate-800 shadow-2xl flex flex-col justify-between bg-[#38bdf8]">
+              {/* Exact Gameplay Environment Background (Identical to Active Level 1-1 Gameplay) */}
+              <GameplayEnvironmentBackdrop />
+
               {/* In-Game Toast Notification for Store */}
               {storeToastVisible && (
                 <div
@@ -872,44 +960,6 @@ export default function App() {
                   <span>Store — Coming Soon!</span>
                 </div>
               )}
-
-              {/* Pixel Art Scenery Backdrop (Clouds, Sun, Hills, Question/Brick Blocks, Pipe, and Ground) */}
-              <div className="absolute inset-0 pointer-events-none overflow-hidden">
-                {/* Pixel Sun */}
-                <div className="absolute top-7 right-6 sm:top-8 sm:right-10 w-12 h-12 sm:w-16 sm:h-16 bg-amber-300 border-4 border-amber-200 shadow-lg" />
-
-                {/* Pixel Clouds */}
-                <div className="absolute top-9 left-6 sm:top-10 sm:left-12 w-20 sm:w-24 h-6 sm:h-8 bg-white/90 shadow-sm" />
-                <div className="absolute top-5 left-10 sm:top-6 sm:left-16 w-12 sm:w-14 h-5 sm:h-6 bg-white/90" />
-
-                <div className="absolute top-16 sm:top-20 left-1/2 -translate-x-12 w-24 sm:w-28 h-6 sm:h-8 bg-white/85" />
-                <div className="absolute top-12 sm:top-16 left-1/2 -translate-x-6 w-14 sm:w-16 h-5 sm:h-6 bg-white/85" />
-
-                <div className="hidden sm:block absolute top-14 right-36 w-20 h-7 bg-white/90" />
-
-                {/* Distant Pixel Hills */}
-                <div className="absolute bottom-12 sm:bottom-16 -left-12 sm:-left-10 w-56 sm:w-72 h-32 sm:h-40 bg-emerald-700 rounded-t-3xl border-t-4 border-emerald-500" />
-                <div className="absolute bottom-12 sm:bottom-16 left-24 sm:left-48 w-72 sm:w-96 h-40 sm:h-52 bg-emerald-600 rounded-t-3xl border-t-4 border-emerald-400" />
-                <div className="absolute bottom-12 sm:bottom-16 -right-8 sm:right-20 w-56 sm:w-80 h-28 sm:h-36 bg-emerald-700 rounded-t-3xl border-t-4 border-emerald-500" />
-
-                {/* Classic Question & Brick Blocks Floating on Left Side (Visible on both Mobile Portrait & Desktop) */}
-                <div className="flex absolute bottom-24 left-3 sm:bottom-44 sm:left-14 items-center shadow-md">
-                  <div className="w-7 h-7 sm:w-10 sm:h-10 bg-orange-700 border-2 border-amber-950 flex items-center justify-center" />
-                  <div className="w-7 h-7 sm:w-10 sm:h-10 bg-amber-400 border-2 border-amber-900 flex items-center justify-center font-pixel text-[10px] sm:text-xs text-amber-950">
-                    ?
-                  </div>
-                  <div className="w-7 h-7 sm:w-10 sm:h-10 bg-orange-700 border-2 border-amber-950 flex items-center justify-center" />
-                </div>
-
-                {/* Classic Green Pipe / Tunnel on Right Side (Visible on both Mobile Portrait & Desktop) */}
-                <div className="flex flex-col items-center absolute bottom-12 right-3.5 sm:bottom-16 sm:right-16">
-                  <div className="w-12 h-4 sm:w-16 sm:h-6 bg-emerald-500 border-2 border-emerald-950" />
-                  <div className="w-10 h-11 sm:w-14 sm:h-16 bg-emerald-600 border-x-2 border-emerald-950" />
-                </div>
-
-                {/* Ground Tiles */}
-                <div className="absolute bottom-0 inset-x-0 h-12 sm:h-16 bg-amber-900 border-t-8 border-emerald-500" />
-              </div>
 
               {/* Top Status Strip: Top Score on Top-Left, Coins on Top-Right */}
               <div className="relative z-10 flex items-center justify-between gap-2 px-3.5 pt-3.5 sm:px-6 sm:pt-5 text-[11px] sm:text-xs font-mono-num text-slate-900 font-bold">
@@ -977,16 +1027,16 @@ export default function App() {
                   href="#"
                   onClick={(e) => e.preventDefault()}
                   style={{ backgroundColor: 'transparent' }}
-                  className="bg-transparent text-amber-100/85 hover:text-amber-300 underline-offset-4 hover:underline transition-colors cursor-pointer"
+                  className="bg-transparent text-amber-100 hover:text-amber-300 font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] underline-offset-4 hover:underline transition-colors cursor-pointer"
                 >
                   Privacy Policy
                 </a>
-                <span className="text-amber-200/40 select-none">•</span>
+                <span className="text-amber-200/70 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] select-none">•</span>
                 <a
                   href="#"
                   onClick={(e) => e.preventDefault()}
                   style={{ backgroundColor: 'transparent' }}
-                  className="bg-transparent text-amber-100/85 hover:text-amber-300 underline-offset-4 hover:underline transition-colors cursor-pointer"
+                  className="bg-transparent text-amber-100 hover:text-amber-300 font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] underline-offset-4 hover:underline transition-colors cursor-pointer"
                 >
                   Terms of Service
                 </a>
@@ -1010,22 +1060,29 @@ export default function App() {
 
         {/* 2. COMPACT WORLD SELECT SCREEN */}
         {gameState === 'WORLD_SELECT' && (
-          <div className="w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-2xl p-6 space-y-6 shadow-2xl">
-            <div className="flex items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div className="relative w-full max-w-5xl bg-[#38bdf8] border-2 border-slate-800 rounded-2xl p-6 space-y-6 shadow-2xl overflow-clip">
+            {/* Exact Gameplay Environment Background (Identical to Active Level 1-1 Gameplay) */}
+            <div className="absolute inset-0 pointer-events-none z-0">
+              <div className="sticky top-0 w-full h-[calc(100dvh-1rem)] sm:h-full max-h-full">
+                <GameplayEnvironmentBackdrop />
+              </div>
+            </div>
+
+            <div className="relative z-10 flex items-center justify-between gap-4 border-b border-slate-900/20 pb-4">
               <button
                 onClick={() => navigateToMenu('TITLE_MENU')}
-                className="min-h-[44px] px-3.5 py-2 text-xs font-semibold text-slate-200 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                className="min-h-[44px] px-3.5 py-2 text-xs font-semibold text-slate-100 bg-slate-900/95 hover:bg-slate-800 border border-slate-700 rounded-xl flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-md"
               >
                 <ArrowLeft className="w-4 h-4" />
                 <span>Home</span>
               </button>
-              <h2 className="font-pixel text-sm sm:text-base text-white text-center">
+              <h2 className="font-pixel text-sm sm:text-base text-white text-center bg-slate-950/90 border-2 border-amber-400 px-4 py-2 rounded-xl shadow-lg">
                 SELECT WORLD
               </h2>
               <div className="w-16 hidden sm:block" />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
               {WORLDS.map((world) => {
                 const worldCompletedCount = world.levels.filter(
                   (l) => (saveData.highScores[l.id] || 0) > 0 || (saveData.bestCoins[l.id] || 0) > 0
