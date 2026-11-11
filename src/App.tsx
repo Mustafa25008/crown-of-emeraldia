@@ -71,7 +71,7 @@ function GameplayEnvironmentBackdrop() {
       const rows = 19; // Exact 19-row height of active gameplay levels (608px)
       const canvasH = rows * TILE;
       const aspect = rect.width > 0 && rect.height > 0 ? rect.width / rect.height : CANVAS_WIDTH / CANVAS_HEIGHT;
-      const cols = Math.max(11, Math.round((canvasH * aspect) / TILE));
+      const cols = Math.max(11, Math.ceil((canvasH * aspect) / TILE));
       const canvasW = cols * TILE;
 
       if (canvas.width !== canvasW || canvas.height !== canvasH) {
@@ -83,12 +83,15 @@ function GameplayEnvironmentBackdrop() {
       if (!ctx) return;
       ctx.imageSmoothingEnabled = false;
 
-      // 1. Exact gameplay parallax background (sky gradient, pixel clouds, stepped hills, and bushes)
-      drawParallaxBackground(ctx, 'HILLS', 0, canvasW, canvasH, 0);
+      // 1. Exact gameplay parallax background (pass Math.max(CANVAS_WIDTH, canvasW) so clouds/hills never wrap/repeat awkwardly on narrower viewports)
+      const parallaxSpanWidth = Math.max(CANVAS_WIDTH, canvasW);
+      drawParallaxBackground(ctx, 'HILLS', 0, parallaxSpanWidth, canvasH, 0);
 
-      // 2. Exact gameplay ground tiles (row 16 top grass + rows 17-18 deep soil)
+      // 2. Seal bottom 3 rows with deep earth base and draw exact gameplay ground tiles (row 16 top grass + rows 17-18 deep soil) flush to the very bottom
       const groundTopRow = rows - 3;
-      for (let c = 0; c < cols; c++) {
+      ctx.fillStyle = '#78350f';
+      ctx.fillRect(0, groundTopRow * TILE, canvasW, canvasH - groundTopRow * TILE);
+      for (let c = 0; c <= cols; c++) {
         drawTile(ctx, TileType.GROUND_TOP, c * TILE, groundTopRow * TILE, 'HILLS', 0);
         drawTile(ctx, TileType.GROUND_DEEP, c * TILE, (groundTopRow + 1) * TILE, 'HILLS', 0);
         drawTile(ctx, TileType.GROUND_DEEP, c * TILE, (groundTopRow + 2) * TILE, 'HILLS', 0);
@@ -132,7 +135,7 @@ function GameplayEnvironmentBackdrop() {
     <canvas
       ref={canvasRef}
       aria-hidden="true"
-      className="absolute inset-0 w-full h-full block pixelated pointer-events-none z-0"
+      className="absolute inset-0 w-full h-full block pixelated pointer-events-none select-none z-0"
     />
   );
 }
@@ -925,7 +928,12 @@ export default function App() {
     gameState === 'TIME_OUT' ||
     gameState === 'WORLD_VICTORY';
 
-  const isScrollLockedScreen = isGameplayView || gameState === 'TITLE_MENU';
+  const isPrimaryMenuScreen =
+    gameState === 'TITLE_MENU' ||
+    gameState === 'WORLD_SELECT' ||
+    gameState === 'LEVEL_SELECT';
+
+  const isScrollLockedScreen = isGameplayView || isPrimaryMenuScreen;
 
   return (
     <div
@@ -934,116 +942,330 @@ export default function App() {
       } flex flex-col bg-slate-950 text-slate-100 select-none`}
     >
       <main
-        className={`flex-1 flex flex-col items-center justify-center ${
+        className={`flex-1 min-h-0 w-full flex flex-col items-center justify-center ${
           isGameplayView
             ? 'p-1 sm:px-3 sm:py-2 overflow-hidden'
-            : gameState === 'TITLE_MENU'
+            : isPrimaryMenuScreen
             ? 'p-2 sm:px-4 sm:py-6 overflow-hidden'
             : 'p-2 sm:px-4 sm:py-6 landscape:p-1 overflow-x-hidden'
         } max-w-full`}
       >
-        {/* 1. CLASSIC GAME HOME SCREEN (Mobile App & Retro Title Screen Feel) */}
-        {gameState === 'TITLE_MENU' && (
-          <div className="w-full h-full max-w-4xl flex flex-col justify-between overflow-hidden">
-            <div className="relative flex-1 w-full sm:min-h-[520px] rounded-2xl overflow-hidden border-2 border-slate-800 shadow-2xl flex flex-col justify-between bg-[#38bdf8]">
-              {/* Exact Gameplay Environment Background (Identical to Active Level 1-1 Gameplay) */}
+        {/* UNIFIED LOCKED PRIMARY SCREEN SHELL (Home Screen, World Select Screen, and Level Select Screen) */}
+        {isPrimaryMenuScreen && (
+          <div className="w-full h-full max-w-4xl sm:max-h-[640px] flex flex-col justify-between overflow-hidden">
+            <div className="relative flex-1 min-h-0 w-full rounded-2xl overflow-hidden border-2 border-slate-800 shadow-2xl flex flex-col justify-between bg-slate-950">
+              {/* Persistent Exact Gameplay Environment Background (Locked to viewport container: sky on top, ground floor sealed at the very bottom) */}
               <GameplayEnvironmentBackdrop />
 
-              {/* In-Game Toast Notification for Store */}
-              {storeToastVisible && (
-                <div
-                  role="status"
-                  aria-live="polite"
-                  className="absolute top-16 left-1/2 -translate-x-1/2 z-30 bg-slate-950/95 border-2 border-amber-400 text-amber-300 px-4 py-2 rounded-xl shadow-2xl flex items-center gap-2 text-xs font-pixel whitespace-nowrap animate-bounce"
-                >
-                  <ShoppingBag className="w-4 h-4 text-amber-400 shrink-0" />
-                  <span>Store — Coming Soon!</span>
+              {/* 1. CLASSIC GAME HOME SCREEN */}
+              {gameState === 'TITLE_MENU' && (
+                <>
+                  {/* In-Game Toast Notification for Store */}
+                  {storeToastVisible && (
+                    <div
+                      role="status"
+                      aria-live="polite"
+                      className="absolute top-16 left-1/2 -translate-x-1/2 z-30 bg-slate-950/95 border-2 border-amber-400 text-amber-300 px-4 py-2 rounded-xl shadow-2xl flex items-center gap-2 text-xs font-pixel whitespace-nowrap animate-bounce"
+                    >
+                      <ShoppingBag className="w-4 h-4 text-amber-400 shrink-0" />
+                      <span>Store — Coming Soon!</span>
+                    </div>
+                  )}
+
+                  {/* Top Status Strip: Top Score on Top-Left, Coins on Top-Right */}
+                  <div className="relative z-10 flex items-center justify-between gap-2 px-3.5 pt-3.5 sm:px-6 sm:pt-5 text-[11px] sm:text-xs font-mono-num text-slate-900 font-bold shrink-0">
+                    <div className="flex items-center gap-1.5 sm:gap-2 bg-white/85 backdrop-blur-sm px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg border border-slate-900/15 shadow-sm">
+                      <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0" />
+                      <span>TOP SCORE: {totalBestScore.toLocaleString()}</span>
+                    </div>
+                    <div className="flex items-center gap-1.5 sm:gap-2 bg-white/85 backdrop-blur-sm px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg border border-slate-900/15 shadow-sm">
+                      <GoldCoinIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
+                      <span>COINS: {saveData.totalCoinsCollected}</span>
+                    </div>
+                  </div>
+
+                  {/* Center Compact Signboard Title Card & Balanced Action Buttons */}
+                  <div className="relative z-10 flex-1 min-h-0 flex flex-col items-center justify-center px-4 py-2 sm:py-6 text-center">
+                    <div className="bg-slate-950/90 border-4 border-amber-400 rounded-2xl px-4 py-2.5 sm:px-8 sm:py-4 md:px-10 md:py-5 shadow-2xl max-w-[300px] sm:max-w-lg w-full">
+                      <h1 className="font-pixel text-lg sm:text-2xl md:text-3xl text-white leading-snug tracking-tight drop-shadow">
+                        CROWN OF EMERALDIA
+                      </h1>
+                    </div>
+
+                    {/* Balanced Vertical Action Stack: Play, Store, and Settings */}
+                    <div className="mt-5 sm:mt-7 flex flex-col items-center gap-2.5 sm:gap-3 w-full max-w-[210px] sm:max-w-[260px]">
+                      <button
+                        type="button"
+                        onClick={() => {
+                          soundManager.playCoin();
+                          navigateToMenu('WORLD_SELECT');
+                        }}
+                        className="w-full min-h-[46px] sm:min-h-[52px] py-2.5 sm:py-3 px-6 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-slate-950 font-pixel text-sm sm:text-base rounded-2xl border-b-4 border-emerald-700 shadow-xl flex items-center justify-center gap-2.5 transition-all cursor-pointer whitespace-nowrap shrink-0"
+                      >
+                        <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
+                        <span>PLAY</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={handleStoreButtonClick}
+                        className="w-full min-h-[44px] sm:min-h-[48px] py-2.5 px-6 bg-slate-900/95 hover:bg-slate-800 active:scale-[0.98] text-slate-100 font-pixel text-xs rounded-2xl border-b-4 border-slate-950 shadow-lg flex items-center justify-center gap-2.5 transition-all cursor-pointer whitespace-nowrap shrink-0"
+                      >
+                        <ShoppingBag className="w-4 h-4 text-emerald-400" />
+                        <span>STORE</span>
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => {
+                          soundManager.playCoin();
+                          navigateToMenu('SETTINGS_HUB');
+                        }}
+                        className="w-full min-h-[44px] sm:min-h-[48px] py-2.5 px-6 bg-slate-900/95 hover:bg-slate-800 active:scale-[0.98] text-slate-100 font-pixel text-xs rounded-2xl border-b-4 border-slate-950 shadow-lg flex items-center justify-center gap-2.5 transition-all cursor-pointer whitespace-nowrap shrink-0"
+                      >
+                        <Settings className="w-4 h-4 text-amber-400" />
+                        <span>SETTINGS</span>
+                      </button>
+                    </div>
+                  </div>
+
+                  {/* Bottom Ground Footer Legal Links (100% Transparent Background, Right Above Reserved Banner Ad Space) */}
+                  <div
+                    style={{ backgroundColor: 'transparent', border: 'none', boxShadow: 'none' }}
+                    className="relative z-10 h-12 sm:h-16 bg-transparent border-0 shadow-none flex items-center justify-center gap-3 sm:gap-4 px-4 text-[10px] sm:text-xs font-mono-num shrink-0"
+                  >
+                    <a
+                      href="#"
+                      onClick={(e) => e.preventDefault()}
+                      style={{ backgroundColor: 'transparent' }}
+                      className="bg-transparent text-amber-100 hover:text-amber-300 font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] underline-offset-4 hover:underline transition-colors cursor-pointer"
+                    >
+                      Privacy Policy
+                    </a>
+                    <span className="text-amber-200/70 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] select-none">•</span>
+                    <a
+                      href="#"
+                      onClick={(e) => e.preventDefault()}
+                      style={{ backgroundColor: 'transparent' }}
+                      className="bg-transparent text-amber-100 hover:text-amber-300 font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] underline-offset-4 hover:underline transition-colors cursor-pointer"
+                    >
+                      Terms of Service
+                    </a>
+                  </div>
+                </>
+              )}
+
+              {/* 2. COMPACT WORLD SELECT SCREEN */}
+              {gameState === 'WORLD_SELECT' && (
+                <div className="relative z-10 flex-1 min-h-0 w-full flex flex-col p-3.5 sm:p-5 overflow-hidden">
+                  <div className="shrink-0 flex items-center justify-between gap-4 border-b border-slate-900/20 pb-2.5 sm:pb-3">
+                    <button
+                      onClick={() => navigateToMenu('TITLE_MENU')}
+                      className="min-h-[38px] sm:min-h-[42px] px-3.5 py-1.5 text-xs font-semibold text-slate-100 bg-slate-900/95 hover:bg-slate-800 border border-slate-700 rounded-xl flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      <span>Home</span>
+                    </button>
+                    <h2 className="font-pixel text-xs sm:text-sm text-white text-center bg-slate-950/90 border-2 border-amber-400 px-3.5 py-1.5 rounded-xl shadow-lg">
+                      SELECT WORLD
+                    </h2>
+                    <div className="w-16 hidden sm:block" />
+                  </div>
+
+                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain mt-2.5 sm:mt-3 pr-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 content-start">
+                    {WORLDS.map((world) => {
+                      const worldCompletedCount = world.levels.filter(
+                        (l) => (saveData.highScores[l.id] || 0) > 0 || (saveData.bestCoins[l.id] || 0) > 0
+                      ).length;
+                      const worldScore = world.levels.reduce(
+                        (sum, l) => sum + (saveData.highScores[l.id] || 0),
+                        0
+                      );
+                      const isOceanWorld = world.id === 2;
+                      const isDesertWorld = world.id === 3;
+                      const isFrostWorld = world.id === 4;
+                      const isInfernoWorld = world.id === 5;
+                      const isCelestiaWorld = world.id === 6;
+                      const isChronosWorld = world.id === 7;
+                      const isShadowveilWorld = world.id === 8;
+                      const isCrystalWorld = world.id === 9;
+                      const isRuinsWorld = world.id === 10;
+
+                      const themeBorderClass = isRuinsWorld
+                        ? 'border-lime-500/75 hover:border-lime-400'
+                        : isCrystalWorld
+                        ? 'border-fuchsia-400/75 hover:border-fuchsia-300'
+                        : isShadowveilWorld
+                        ? 'border-purple-500/75 hover:border-purple-400'
+                        : isChronosWorld
+                        ? 'border-yellow-500/75 hover:border-yellow-400'
+                        : isCelestiaWorld
+                        ? 'border-indigo-400/75 hover:border-indigo-300'
+                        : isInfernoWorld
+                        ? 'border-orange-500/75 hover:border-orange-400'
+                        : isFrostWorld
+                        ? 'border-sky-400/70 hover:border-sky-300'
+                        : isDesertWorld
+                        ? 'border-amber-500/70 hover:border-amber-400'
+                        : isOceanWorld
+                        ? 'border-cyan-500/70 hover:border-cyan-400'
+                        : 'border-emerald-500/70 hover:border-emerald-400';
+
+                      const themeColorClass = isRuinsWorld
+                        ? 'text-lime-300'
+                        : isCrystalWorld
+                        ? 'text-fuchsia-300'
+                        : isShadowveilWorld
+                        ? 'text-purple-300'
+                        : isChronosWorld
+                        ? 'text-yellow-300'
+                        : isCelestiaWorld
+                        ? 'text-indigo-300'
+                        : isInfernoWorld
+                        ? 'text-orange-400'
+                        : isFrostWorld
+                        ? 'text-sky-300'
+                        : isDesertWorld
+                        ? 'text-amber-400'
+                        : isOceanWorld
+                        ? 'text-cyan-400'
+                        : 'text-emerald-400';
+
+                      const cleanWorldName = world.name.replace(/^World\s+\d+\s*:\s*/i, '').trim();
+
+                      return (
+                        <button
+                          key={world.id}
+                          onClick={() => {
+                            setSelectedWorldId(world.id);
+                            navigateToMenu('LEVEL_SELECT');
+                          }}
+                          className={`w-full bg-slate-950/95 border-2 ${themeBorderClass} active:scale-[0.98] rounded-xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-center space-y-1.5 transition-all cursor-pointer shadow-lg`}
+                        >
+                          {/* Line 1: WORLD X (Matching world theme color) */}
+                          <div className={`font-pixel text-xs sm:text-sm ${themeColorClass}`}>
+                            WORLD {world.id}
+                          </div>
+
+                          {/* Line 2: [Kingdom / Region Name] */}
+                          <div className="text-xs sm:text-sm font-semibold text-white truncate">
+                            {cleanWorldName}
+                          </div>
+
+                          {/* Line 3: X/5 STAGES & World Score */}
+                          <div className="pt-1.5 border-t border-slate-800/80 flex items-center justify-between gap-2 text-[11px] sm:text-xs font-mono-num">
+                            <span className={`font-semibold ${themeColorClass}`}>
+                              {worldCompletedCount}/{world.levels.length} STAGES
+                            </span>
+                            <span className="text-slate-300">
+                              World Score: {worldScore.toLocaleString()}
+                            </span>
+                          </div>
+                        </button>
+                      );
+                    })}
+                  </div>
                 </div>
               )}
 
-              {/* Top Status Strip: Top Score on Top-Left, Coins on Top-Right */}
-              <div className="relative z-10 flex items-center justify-between gap-2 px-3.5 pt-3.5 sm:px-6 sm:pt-5 text-[11px] sm:text-xs font-mono-num text-slate-900 font-bold">
-                <div className="flex items-center gap-1.5 sm:gap-2 bg-white/85 backdrop-blur-sm px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg border border-slate-900/15 shadow-sm">
-                  <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0" />
-                  <span>TOP SCORE: {totalBestScore.toLocaleString()}</span>
+              {/* 3. LEVEL SELECTION SCREEN */}
+              {gameState === 'LEVEL_SELECT' && (
+                <div className="relative z-10 flex-1 min-h-0 w-full flex flex-col p-3.5 sm:p-5 overflow-hidden">
+                  <div className="shrink-0 flex flex-wrap items-center justify-between gap-2.5 sm:gap-4 border-b border-slate-900/20 pb-2.5 sm:pb-3">
+                    <div className="flex items-center gap-2 sm:gap-3">
+                      <button
+                        onClick={() => navigateToMenu('WORLD_SELECT')}
+                        className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 text-xs font-semibold text-slate-100 bg-slate-900/95 hover:bg-slate-800 border border-slate-700 rounded-xl flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                      >
+                        <ArrowLeft className="w-4 h-4" />
+                        <span>Worlds</span>
+                      </button>
+                      <h2 className="font-pixel text-[11px] sm:text-sm md:text-base text-white bg-slate-950/90 border-2 border-amber-400 px-3 py-1.5 rounded-xl shadow-lg">
+                        WORLD {activeWorld.id}: {activeWorld.name.replace(/^World\s+\d+\s*:\s*/i, '').toUpperCase()}
+                      </h2>
+                    </div>
+                    <button
+                      onClick={() => navigateToMenu('TITLE_MENU')}
+                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-4 py-1.5 text-xs font-semibold text-slate-100 bg-slate-900/95 hover:bg-slate-800 border border-slate-700 rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                    >
+                      Home Screen
+                    </button>
+                  </div>
+
+                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain mt-2.5 sm:mt-3 pr-1 flex flex-col">
+                    <div className="my-auto grid grid-cols-1 md:grid-cols-5 gap-3 sm:gap-3.5">
+                      {activeWorld.levels.map((lvl, idx) => {
+                        const stageNum = lvl.stageNumber || idx + 1;
+                        const worldNum = lvl.worldId || activeWorld.id;
+                        const isUnlocked = isStageUnlocked(lvl.id);
+                        const highScore = saveData.highScores[lvl.id] || 0;
+                        const bestCoins = saveData.bestCoins[lvl.id] || 0;
+                        const isCompleted = highScore > 0 || bestCoins > 0;
+
+                        const buttonLabel = !isUnlocked
+                          ? 'Locked'
+                          : isCompleted
+                          ? 'Play Again'
+                          : 'Play Now';
+
+                        const cleanTitle = lvl.name
+                          .replace(`Level ${lvl.id}: `, '')
+                          .replace(`Stage ${worldNum}-${stageNum}: `, '');
+
+                        return (
+                          <div
+                            key={lvl.id}
+                            className={`flex flex-col justify-between rounded-xl border p-3.5 sm:p-4 transition-all ${
+                              isUnlocked
+                                ? 'bg-slate-950 border-slate-800 hover:border-emerald-500/60 shadow-lg'
+                                : 'bg-slate-950/85 border-slate-800/80 opacity-85 shadow-md'
+                            }`}
+                          >
+                            <div className="space-y-2.5">
+                              <div className="flex items-center justify-between text-xs text-slate-400 font-mono-num">
+                                <span>
+                                  STAGE {worldNum}-{stageNum}
+                                </span>
+                                {isUnlocked ? (
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                ) : (
+                                  <Lock className="w-4 h-4 text-slate-500" />
+                                )}
+                              </div>
+
+                              <h3 className="font-bold text-sm sm:text-base text-white">{cleanTitle}</h3>
+                              <p className="text-xs text-slate-400 leading-relaxed">{lvl.subtitle}</p>
+                            </div>
+
+                            <div className="pt-3 mt-3 border-t border-slate-800/80 space-y-2.5">
+                              <div className="text-xs text-slate-400 font-mono-num flex items-center justify-between">
+                                <span>High: {highScore.toLocaleString()}</span>
+                                <span>·</span>
+                                <span>Coins: {bestCoins}</span>
+                              </div>
+
+                              <button
+                                disabled={!isUnlocked}
+                                onClick={() => startLevel(lvl.id, true)}
+                                className={`w-full min-h-[42px] sm:min-h-[44px] py-2 px-3 rounded-xl text-xs font-semibold transition-colors whitespace-nowrap shrink-0 ${
+                                  isUnlocked
+                                    ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 cursor-pointer'
+                                    : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                                }`}
+                              >
+                                {buttonLabel}
+                              </button>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1.5 sm:gap-2 bg-white/85 backdrop-blur-sm px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg border border-slate-900/15 shadow-sm">
-                  <GoldCoinIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                  <span>COINS: {saveData.totalCoinsCollected}</span>
-                </div>
-              </div>
-
-              {/* Center Compact Signboard Title Card & Balanced Action Buttons */}
-              <div className="relative z-10 flex-1 flex flex-col items-center justify-center px-4 py-2 sm:py-6 text-center">
-                <div className="bg-slate-950/90 border-4 border-amber-400 rounded-2xl px-4 py-2.5 sm:px-8 sm:py-4 md:px-10 md:py-5 shadow-2xl max-w-[300px] sm:max-w-lg w-full">
-                  <h1 className="font-pixel text-lg sm:text-2xl md:text-3xl text-white leading-snug tracking-tight drop-shadow">
-                    CROWN OF EMERALDIA
-                  </h1>
-                </div>
-
-                {/* Balanced Vertical Action Stack: Play, Store, and Settings */}
-                <div className="mt-5 sm:mt-7 flex flex-col items-center gap-2.5 sm:gap-3 w-full max-w-[210px] sm:max-w-[260px]">
-                  <button
-                    type="button"
-                    onClick={() => {
-                      soundManager.playCoin();
-                      navigateToMenu('WORLD_SELECT');
-                    }}
-                    className="w-full min-h-[46px] sm:min-h-[52px] py-2.5 sm:py-3 px-6 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-slate-950 font-pixel text-sm sm:text-base rounded-2xl border-b-4 border-emerald-700 shadow-xl flex items-center justify-center gap-2.5 transition-all cursor-pointer whitespace-nowrap shrink-0"
-                  >
-                    <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
-                    <span>PLAY</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={handleStoreButtonClick}
-                    className="w-full min-h-[44px] sm:min-h-[48px] py-2.5 px-6 bg-slate-900/95 hover:bg-slate-800 active:scale-[0.98] text-slate-100 font-pixel text-xs rounded-2xl border-b-4 border-slate-950 shadow-lg flex items-center justify-center gap-2.5 transition-all cursor-pointer whitespace-nowrap shrink-0"
-                  >
-                    <ShoppingBag className="w-4 h-4 text-emerald-400" />
-                    <span>STORE</span>
-                  </button>
-
-                  <button
-                    type="button"
-                    onClick={() => {
-                      soundManager.playCoin();
-                      navigateToMenu('SETTINGS_HUB');
-                    }}
-                    className="w-full min-h-[44px] sm:min-h-[48px] py-2.5 px-6 bg-slate-900/95 hover:bg-slate-800 active:scale-[0.98] text-slate-100 font-pixel text-xs rounded-2xl border-b-4 border-slate-950 shadow-lg flex items-center justify-center gap-2.5 transition-all cursor-pointer whitespace-nowrap shrink-0"
-                  >
-                    <Settings className="w-4 h-4 text-amber-400" />
-                    <span>SETTINGS</span>
-                  </button>
-                </div>
-              </div>
-
-              {/* Bottom Ground Footer Legal Links (100% Transparent Background, Right Above Reserved Banner Ad Space) */}
-              <div
-                style={{ backgroundColor: 'transparent', border: 'none', boxShadow: 'none' }}
-                className="relative z-10 h-12 sm:h-16 bg-transparent border-0 shadow-none flex items-center justify-center gap-3 sm:gap-4 px-4 text-[10px] sm:text-xs font-mono-num shrink-0"
-              >
-                <a
-                  href="#"
-                  onClick={(e) => e.preventDefault()}
-                  style={{ backgroundColor: 'transparent' }}
-                  className="bg-transparent text-amber-100 hover:text-amber-300 font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] underline-offset-4 hover:underline transition-colors cursor-pointer"
-                >
-                  Privacy Policy
-                </a>
-                <span className="text-amber-200/70 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] select-none">•</span>
-                <a
-                  href="#"
-                  onClick={(e) => e.preventDefault()}
-                  style={{ backgroundColor: 'transparent' }}
-                  className="bg-transparent text-amber-100 hover:text-amber-300 font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] underline-offset-4 hover:underline transition-colors cursor-pointer"
-                >
-                  Terms of Service
-                </a>
-              </div>
+              )}
             </div>
 
-            {/* Mobile Portrait Bottom Ad Banner Placeholder (Replace with real AdMob / Ad Unit ID in production) */}
+            {/* Mobile Portrait Bottom Ad Banner Placeholder (Consistent 50px footprint across Home, World Select, and Level Select so the main frame never shifts or resizes) */}
             <div
               id="mobile-home-ad-banner-slot"
               data-ad-slot="HOME_BOTTOM_BANNER"
@@ -1054,227 +1276,6 @@ export default function App() {
               <span className="font-mono-num text-[10px] font-semibold tracking-widest uppercase text-slate-400/90 select-none">
                 Ad Banner Space
               </span>
-            </div>
-          </div>
-        )}
-
-        {/* 2. COMPACT WORLD SELECT SCREEN */}
-        {gameState === 'WORLD_SELECT' && (
-          <div className="relative w-full max-w-5xl bg-[#38bdf8] border-2 border-slate-800 rounded-2xl p-6 space-y-6 shadow-2xl overflow-clip">
-            {/* Exact Gameplay Environment Background (Identical to Active Level 1-1 Gameplay) */}
-            <div className="absolute inset-0 pointer-events-none z-0">
-              <div className="sticky top-0 w-full h-[calc(100dvh-1rem)] sm:h-full max-h-full">
-                <GameplayEnvironmentBackdrop />
-              </div>
-            </div>
-
-            <div className="relative z-10 flex items-center justify-between gap-4 border-b border-slate-900/20 pb-4">
-              <button
-                onClick={() => navigateToMenu('TITLE_MENU')}
-                className="min-h-[44px] px-3.5 py-2 text-xs font-semibold text-slate-100 bg-slate-900/95 hover:bg-slate-800 border border-slate-700 rounded-xl flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-md"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Home</span>
-              </button>
-              <h2 className="font-pixel text-sm sm:text-base text-white text-center bg-slate-950/90 border-2 border-amber-400 px-4 py-2 rounded-xl shadow-lg">
-                SELECT WORLD
-              </h2>
-              <div className="w-16 hidden sm:block" />
-            </div>
-
-            <div className="relative z-10 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {WORLDS.map((world) => {
-                const worldCompletedCount = world.levels.filter(
-                  (l) => (saveData.highScores[l.id] || 0) > 0 || (saveData.bestCoins[l.id] || 0) > 0
-                ).length;
-                const worldScore = world.levels.reduce(
-                  (sum, l) => sum + (saveData.highScores[l.id] || 0),
-                  0
-                );
-                const isOceanWorld = world.id === 2;
-                const isDesertWorld = world.id === 3;
-                const isFrostWorld = world.id === 4;
-                const isInfernoWorld = world.id === 5;
-                const isCelestiaWorld = world.id === 6;
-                const isChronosWorld = world.id === 7;
-                const isShadowveilWorld = world.id === 8;
-                const isCrystalWorld = world.id === 9;
-                const isRuinsWorld = world.id === 10;
-
-                const themeBorderClass = isRuinsWorld
-                  ? 'border-lime-500/75 hover:border-lime-400'
-                  : isCrystalWorld
-                  ? 'border-fuchsia-400/75 hover:border-fuchsia-300'
-                  : isShadowveilWorld
-                  ? 'border-purple-500/75 hover:border-purple-400'
-                  : isChronosWorld
-                  ? 'border-yellow-500/75 hover:border-yellow-400'
-                  : isCelestiaWorld
-                  ? 'border-indigo-400/75 hover:border-indigo-300'
-                  : isInfernoWorld
-                  ? 'border-orange-500/75 hover:border-orange-400'
-                  : isFrostWorld
-                  ? 'border-sky-400/70 hover:border-sky-300'
-                  : isDesertWorld
-                  ? 'border-amber-500/70 hover:border-amber-400'
-                  : isOceanWorld
-                  ? 'border-cyan-500/70 hover:border-cyan-400'
-                  : 'border-emerald-500/70 hover:border-emerald-400';
-
-                const themeColorClass = isRuinsWorld
-                  ? 'text-lime-300'
-                  : isCrystalWorld
-                  ? 'text-fuchsia-300'
-                  : isShadowveilWorld
-                  ? 'text-purple-300'
-                  : isChronosWorld
-                  ? 'text-yellow-300'
-                  : isCelestiaWorld
-                  ? 'text-indigo-300'
-                  : isInfernoWorld
-                  ? 'text-orange-400'
-                  : isFrostWorld
-                  ? 'text-sky-300'
-                  : isDesertWorld
-                  ? 'text-amber-400'
-                  : isOceanWorld
-                  ? 'text-cyan-400'
-                  : 'text-emerald-400';
-
-                const cleanWorldName = world.name.replace(/^World\s+\d+\s*:\s*/i, '').trim();
-
-                return (
-                  <button
-                    key={world.id}
-                    onClick={() => {
-                      setSelectedWorldId(world.id);
-                      navigateToMenu('LEVEL_SELECT');
-                    }}
-                    className={`w-full bg-slate-950 border-2 ${themeBorderClass} active:scale-[0.98] rounded-xl p-5 text-center space-y-2.5 transition-all cursor-pointer shadow-lg`}
-                  >
-                    {/* Line 1: WORLD X (Matching world theme color) */}
-                    <div className={`font-pixel text-base ${themeColorClass}`}>
-                      WORLD {world.id}
-                    </div>
-
-                    {/* Line 2: [Kingdom / Region Name] */}
-                    <div className="text-sm font-semibold text-white">
-                      {cleanWorldName}
-                    </div>
-
-                    {/* Line 3: X/5 STAGES & World Score */}
-                    <div className="pt-2.5 border-t border-slate-800/80 flex items-center justify-between gap-2 text-xs font-mono-num">
-                      <span className={`font-semibold ${themeColorClass}`}>
-                        {worldCompletedCount}/{world.levels.length} STAGES
-                      </span>
-                      <span className="text-slate-300">
-                        World Score: {worldScore.toLocaleString()}
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
-          </div>
-        )}
-
-        {/* 3. LEVEL SELECTION SCREEN */}
-        {gameState === 'LEVEL_SELECT' && (
-          <div className="relative w-full max-w-5xl bg-[#38bdf8] border-2 border-slate-800 rounded-2xl p-6 md:p-8 space-y-6 shadow-2xl overflow-clip">
-            {/* Exact Gameplay Environment Background (Identical to Active Level 1-1 Gameplay) */}
-            <div className="absolute inset-0 pointer-events-none z-0">
-              <div className="sticky top-0 w-full h-[calc(100dvh-1rem)] sm:h-full max-h-full">
-                <GameplayEnvironmentBackdrop />
-              </div>
-            </div>
-
-            <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 border-b border-slate-900/20 pb-4">
-              <div className="flex items-center gap-3">
-                <button
-                  onClick={() => navigateToMenu('WORLD_SELECT')}
-                  className="min-h-[44px] px-3.5 py-2 text-xs font-semibold text-slate-100 bg-slate-900/95 hover:bg-slate-800 border border-slate-700 rounded-xl flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-md"
-                >
-                  <ArrowLeft className="w-4 h-4" />
-                  <span>Worlds</span>
-                </button>
-                <h2 className="font-pixel text-xs sm:text-base md:text-xl text-white bg-slate-950/90 border-2 border-amber-400 px-3.5 py-2 rounded-xl shadow-lg">
-                  WORLD {activeWorld.id}: {activeWorld.name.replace(/^World\s+\d+\s*:\s*/i, '').toUpperCase()}
-                </h2>
-              </div>
-              <button
-                onClick={() => navigateToMenu('TITLE_MENU')}
-                className="min-h-[44px] px-4 py-2 text-xs font-semibold text-slate-100 bg-slate-900/95 hover:bg-slate-800 border border-slate-700 rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-md"
-              >
-                Home Screen
-              </button>
-            </div>
-
-            <div className="relative z-10 grid grid-cols-1 md:grid-cols-5 gap-4">
-              {activeWorld.levels.map((lvl, idx) => {
-                const stageNum = lvl.stageNumber || idx + 1;
-                const worldNum = lvl.worldId || activeWorld.id;
-                const isUnlocked = isStageUnlocked(lvl.id);
-                const highScore = saveData.highScores[lvl.id] || 0;
-                const bestCoins = saveData.bestCoins[lvl.id] || 0;
-                const isCompleted = highScore > 0 || bestCoins > 0;
-
-                const buttonLabel = !isUnlocked
-                  ? 'Locked'
-                  : isCompleted
-                  ? 'Play Again'
-                  : 'Play Now';
-
-                const cleanTitle = lvl.name
-                  .replace(`Level ${lvl.id}: `, '')
-                  .replace(`Stage ${worldNum}-${stageNum}: `, '');
-
-                return (
-                  <div
-                    key={lvl.id}
-                    className={`flex flex-col justify-between rounded-xl border p-4 transition-all ${
-                      isUnlocked
-                        ? 'bg-slate-950 border-slate-800 hover:border-emerald-500/60 shadow-lg'
-                        : 'bg-slate-950/85 border-slate-800/80 opacity-85 shadow-md'
-                    }`}
-                  >
-                    <div className="space-y-3">
-                      <div className="flex items-center justify-between text-xs text-slate-400 font-mono-num">
-                        <span>
-                          STAGE {worldNum}-{stageNum}
-                        </span>
-                        {isUnlocked ? (
-                          <CheckCircle2 className="w-4 h-4 text-emerald-400" />
-                        ) : (
-                          <Lock className="w-4 h-4 text-slate-500" />
-                        )}
-                      </div>
-
-                      <h3 className="font-bold text-base text-white">{cleanTitle}</h3>
-                      <p className="text-xs text-slate-400 leading-relaxed">{lvl.subtitle}</p>
-                    </div>
-
-                    <div className="pt-4 mt-4 border-t border-slate-800/80 space-y-3">
-                      <div className="text-xs text-slate-400 font-mono-num flex items-center justify-between">
-                        <span>High: {highScore.toLocaleString()}</span>
-                        <span>·</span>
-                        <span>Coins: {bestCoins}</span>
-                      </div>
-
-                      <button
-                        disabled={!isUnlocked}
-                        onClick={() => startLevel(lvl.id, true)}
-                        className={`w-full min-h-[44px] py-2.5 px-3 rounded-xl text-xs font-semibold transition-colors whitespace-nowrap shrink-0 ${
-                          isUnlocked
-                            ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 cursor-pointer'
-                            : 'bg-slate-800 text-slate-500 cursor-not-allowed'
-                        }`}
-                      >
-                        {buttonLabel}
-                      </button>
-                    </div>
-                  </div>
-                );
-              })}
             </div>
           </div>
         )}
