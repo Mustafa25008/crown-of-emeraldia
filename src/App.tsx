@@ -1180,29 +1180,36 @@ export default function App() {
 
         {/* 3. LEVEL SELECTION SCREEN */}
         {gameState === 'LEVEL_SELECT' && (
-          <div className="w-full max-w-5xl bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8 space-y-6 shadow-2xl">
-            <div className="flex flex-wrap items-center justify-between gap-4 border-b border-slate-800 pb-4">
+          <div className="relative w-full max-w-5xl bg-[#38bdf8] border-2 border-slate-800 rounded-2xl p-6 md:p-8 space-y-6 shadow-2xl overflow-clip">
+            {/* Exact Gameplay Environment Background (Identical to Active Level 1-1 Gameplay) */}
+            <div className="absolute inset-0 pointer-events-none z-0">
+              <div className="sticky top-0 w-full h-[calc(100dvh-1rem)] sm:h-full max-h-full">
+                <GameplayEnvironmentBackdrop />
+              </div>
+            </div>
+
+            <div className="relative z-10 flex flex-wrap items-center justify-between gap-4 border-b border-slate-900/20 pb-4">
               <div className="flex items-center gap-3">
                 <button
                   onClick={() => navigateToMenu('WORLD_SELECT')}
-                  className="min-h-[44px] px-3.5 py-2 text-xs font-semibold text-slate-200 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                  className="min-h-[44px] px-3.5 py-2 text-xs font-semibold text-slate-100 bg-slate-900/95 hover:bg-slate-800 border border-slate-700 rounded-xl flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-md"
                 >
                   <ArrowLeft className="w-4 h-4" />
                   <span>Worlds</span>
                 </button>
-                <h2 className="font-pixel text-base md:text-xl text-white">
+                <h2 className="font-pixel text-xs sm:text-base md:text-xl text-white bg-slate-950/90 border-2 border-amber-400 px-3.5 py-2 rounded-xl shadow-lg">
                   WORLD {activeWorld.id}: {activeWorld.name.replace(/^World\s+\d+\s*:\s*/i, '').toUpperCase()}
                 </h2>
               </div>
               <button
                 onClick={() => navigateToMenu('TITLE_MENU')}
-                className="min-h-[44px] px-4 py-2 text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                className="min-h-[44px] px-4 py-2 text-xs font-semibold text-slate-100 bg-slate-900/95 hover:bg-slate-800 border border-slate-700 rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-md"
               >
                 Home Screen
               </button>
             </div>
 
-            <div className="grid grid-cols-1 md:grid-cols-5 gap-4">
+            <div className="relative z-10 grid grid-cols-1 md:grid-cols-5 gap-4">
               {activeWorld.levels.map((lvl, idx) => {
                 const stageNum = lvl.stageNumber || idx + 1;
                 const worldNum = lvl.worldId || activeWorld.id;
@@ -1226,8 +1233,8 @@ export default function App() {
                     key={lvl.id}
                     className={`flex flex-col justify-between rounded-xl border p-4 transition-all ${
                       isUnlocked
-                        ? 'bg-slate-950 border-slate-800 hover:border-emerald-500/60'
-                        : 'bg-slate-950/40 border-slate-800/50 opacity-60'
+                        ? 'bg-slate-950 border-slate-800 hover:border-emerald-500/60 shadow-lg'
+                        : 'bg-slate-950/85 border-slate-800/80 opacity-85 shadow-md'
                     }`}
                   >
                     <div className="space-y-3">
