@@ -436,6 +436,17 @@ export default function App() {
   const canvasRef = useRef<HTMLCanvasElement | null>(null);
   const engineRef = useRef<PlatformerEngine | null>(null);
   const isLandscapeLockedRef = useRef<boolean>(false);
+  const worldCarouselDragRef = useRef<{
+    isDown: boolean;
+    startX: number;
+    scrollLeft: number;
+    hasDragged: boolean;
+  }>({
+    isDown: false,
+    startX: 0,
+    scrollLeft: 0,
+    hasDragged: false,
+  });
 
   // Sync audio settings with SoundManager
   useEffect(() => {
@@ -1058,24 +1069,70 @@ export default function App() {
                 </>
               )}
 
-              {/* 2. COMPACT WORLD SELECT SCREEN */}
+              {/* 2. SELECT WORLD SCREEN (Glassmorphic Header, Repositioned Title, Horizontal Scrollbar-Free Carousel, Vertical Card Stack & 16-Bit Pixel Font) */}
               {gameState === 'WORLD_SELECT' && (
                 <div className="relative z-10 flex-1 min-h-0 w-full flex flex-col p-3.5 sm:p-5 overflow-hidden">
-                  <div className="shrink-0 flex items-center justify-between gap-4 border-b border-slate-900/20 pb-2.5 sm:pb-3">
+                  {/* Top Glassmorphic Navigation Header */}
+                  <div className="shrink-0 flex items-center justify-between gap-3 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl bg-slate-950/45 backdrop-blur-md border border-white/25 shadow-lg">
                     <button
-                      onClick={() => navigateToMenu('TITLE_MENU')}
-                      className="min-h-[38px] sm:min-h-[42px] px-3.5 py-1.5 text-xs font-semibold text-slate-100 bg-slate-900/95 hover:bg-slate-800 border border-slate-700 rounded-xl flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                      type="button"
+                      onClick={() => {
+                        soundManager.playCoin();
+                        navigateToMenu('TITLE_MENU');
+                      }}
+                      className="min-h-[38px] sm:min-h-[42px] px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-white/15 hover:bg-white/25 active:scale-[0.98] backdrop-blur-md border border-white/30 rounded-xl flex items-center gap-2 transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
                     >
-                      <ArrowLeft className="w-4 h-4" />
-                      <span>Home</span>
+                      <ArrowLeft className="w-4 h-4 shrink-0" />
+                      <span>HOME</span>
                     </button>
-                    <h2 className="font-pixel text-xs sm:text-sm text-white text-center bg-slate-950/90 border-2 border-amber-400 px-3.5 py-1.5 rounded-xl shadow-lg">
-                      SELECT WORLD
-                    </h2>
-                    <div className="w-16 hidden sm:block" />
+
+                    <div className="flex items-center gap-2 bg-white/15 backdrop-blur-md border border-white/25 px-3 py-1.5 rounded-xl font-pixel text-[9px] sm:text-[10px] text-amber-200 shadow-sm">
+                      <Trophy className="w-3.5 h-3.5 text-amber-300 shrink-0" />
+                      <span>{totalBestScore.toLocaleString()}</span>
+                    </div>
                   </div>
 
-                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain mt-2.5 sm:mt-3 pr-1 grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-2.5 sm:gap-3 content-start">
+                  {/* Repositioned Prominent Section Title Right Below Header & Above Horizontal World Cards Stack */}
+                  <div className="shrink-0 mt-3 sm:mt-4 mb-1 sm:mb-2 flex items-center justify-center">
+                    <div className="px-5 py-2 sm:px-7 sm:py-2.5 rounded-2xl bg-slate-950/55 backdrop-blur-md border-2 border-amber-400/85 shadow-xl">
+                      <h2 className="font-pixel text-xs sm:text-base md:text-lg text-white text-center tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                        SELECT WORLD
+                      </h2>
+                    </div>
+                  </div>
+
+                  {/* Horizontal Scrolling World Cards Carousel (Zero Visible Scrollbars, Touch Swipe + Mouse Wheel + Drag Support) */}
+                  <div
+                    onWheel={(e) => {
+                      if (Math.abs(e.deltaY) > Math.abs(e.deltaX)) {
+                        e.currentTarget.scrollLeft += e.deltaY;
+                      }
+                    }}
+                    onPointerDown={(e) => {
+                      if (e.pointerType === 'touch') return;
+                      worldCarouselDragRef.current = {
+                        isDown: true,
+                        startX: e.clientX,
+                        scrollLeft: e.currentTarget.scrollLeft,
+                        hasDragged: false,
+                      };
+                    }}
+                    onPointerMove={(e) => {
+                      if (!worldCarouselDragRef.current.isDown) return;
+                      const dx = e.clientX - worldCarouselDragRef.current.startX;
+                      if (Math.abs(dx) > 6) {
+                        worldCarouselDragRef.current.hasDragged = true;
+                      }
+                      e.currentTarget.scrollLeft = worldCarouselDragRef.current.scrollLeft - dx;
+                    }}
+                    onPointerUp={() => {
+                      worldCarouselDragRef.current.isDown = false;
+                    }}
+                    onPointerLeave={() => {
+                      worldCarouselDragRef.current.isDown = false;
+                    }}
+                    className="flex-1 min-h-0 w-full flex flex-row items-center gap-4 sm:gap-5 overflow-x-auto overflow-y-hidden no-scrollbar snap-x snap-mandatory px-2 sm:px-4 py-2 select-none touch-pan-x cursor-grab active:cursor-grabbing"
+                  >
                     {WORLDS.map((world) => {
                       const worldCompletedCount = world.levels.filter(
                         (l) => (saveData.highScores[l.id] || 0) > 0 || (saveData.bestCoins[l.id] || 0) > 0
@@ -1095,24 +1152,24 @@ export default function App() {
                       const isRuinsWorld = world.id === 10;
 
                       const themeBorderClass = isRuinsWorld
-                        ? 'border-lime-500/75 hover:border-lime-400'
+                        ? 'border-lime-400/60 hover:border-lime-300'
                         : isCrystalWorld
-                        ? 'border-fuchsia-400/75 hover:border-fuchsia-300'
+                        ? 'border-fuchsia-400/60 hover:border-fuchsia-300'
                         : isShadowveilWorld
-                        ? 'border-purple-500/75 hover:border-purple-400'
+                        ? 'border-purple-400/60 hover:border-purple-300'
                         : isChronosWorld
-                        ? 'border-yellow-500/75 hover:border-yellow-400'
+                        ? 'border-yellow-400/60 hover:border-yellow-300'
                         : isCelestiaWorld
-                        ? 'border-indigo-400/75 hover:border-indigo-300'
+                        ? 'border-indigo-400/60 hover:border-indigo-300'
                         : isInfernoWorld
-                        ? 'border-orange-500/75 hover:border-orange-400'
+                        ? 'border-orange-400/60 hover:border-orange-300'
                         : isFrostWorld
-                        ? 'border-sky-400/70 hover:border-sky-300'
+                        ? 'border-sky-400/60 hover:border-sky-300'
                         : isDesertWorld
-                        ? 'border-amber-500/70 hover:border-amber-400'
+                        ? 'border-amber-400/60 hover:border-amber-300'
                         : isOceanWorld
-                        ? 'border-cyan-500/70 hover:border-cyan-400'
-                        : 'border-emerald-500/70 hover:border-emerald-400';
+                        ? 'border-cyan-400/60 hover:border-cyan-300'
+                        : 'border-emerald-400/60 hover:border-emerald-300';
 
                       const themeColorClass = isRuinsWorld
                         ? 'text-lime-300'
@@ -1125,44 +1182,50 @@ export default function App() {
                         : isCelestiaWorld
                         ? 'text-indigo-300'
                         : isInfernoWorld
-                        ? 'text-orange-400'
+                        ? 'text-orange-300'
                         : isFrostWorld
                         ? 'text-sky-300'
                         : isDesertWorld
-                        ? 'text-amber-400'
+                        ? 'text-amber-300'
                         : isOceanWorld
-                        ? 'text-cyan-400'
-                        : 'text-emerald-400';
+                        ? 'text-cyan-300'
+                        : 'text-emerald-300';
 
                       const cleanWorldName = world.name.replace(/^World\s+\d+\s*:\s*/i, '').trim();
 
                       return (
                         <button
+                          type="button"
                           key={world.id}
                           onClick={() => {
+                            if (worldCarouselDragRef.current.hasDragged) {
+                              worldCarouselDragRef.current.hasDragged = false;
+                              return;
+                            }
+                            soundManager.playCoin();
                             setSelectedWorldId(world.id);
                             navigateToMenu('LEVEL_SELECT');
                           }}
-                          className={`w-full bg-slate-950/95 border-2 ${themeBorderClass} active:scale-[0.98] rounded-xl px-3.5 py-2.5 sm:px-4 sm:py-3 text-center space-y-1.5 transition-all cursor-pointer shadow-lg`}
+                          className={`shrink-0 w-[210px] sm:w-[236px] min-h-[205px] sm:min-h-[230px] snap-center bg-slate-950/55 hover:bg-slate-900/65 backdrop-blur-md border-2 ${themeBorderClass} active:scale-[0.98] rounded-2xl p-4 sm:p-5 flex flex-col items-center justify-between text-center transition-all cursor-pointer shadow-2xl`}
                         >
-                          {/* Line 1: WORLD X (Matching world theme color) */}
-                          <div className={`font-pixel text-xs sm:text-sm ${themeColorClass}`}>
+                          {/* 1. Number: WORLD X */}
+                          <div className={`font-pixel text-sm sm:text-base ${themeColorClass} drop-shadow-[0_2px_3px_rgba(0,0,0,0.9)]`}>
                             WORLD {world.id}
                           </div>
 
-                          {/* Line 2: [Kingdom / Region Name] */}
-                          <div className="text-xs sm:text-sm font-semibold text-white truncate">
-                            {cleanWorldName}
+                          {/* 2. Name: [Kingdom / Region Name] */}
+                          <div className="font-pixel text-[10px] sm:text-xs text-white leading-relaxed line-clamp-2 drop-shadow-[0_2px_3px_rgba(0,0,0,0.9)] my-2">
+                            {cleanWorldName.toUpperCase()}
                           </div>
 
-                          {/* Line 3: X/5 STAGES & World Score */}
-                          <div className="pt-1.5 border-t border-slate-800/80 flex items-center justify-between gap-2 text-[11px] sm:text-xs font-mono-num">
-                            <span className={`font-semibold ${themeColorClass}`}>
+                          {/* 3. Stages & 4. Score (Vertical Stack) */}
+                          <div className="w-full pt-3 border-t border-white/20 flex flex-col items-center gap-2">
+                            <div className={`font-pixel text-[9px] sm:text-[10px] ${themeColorClass} drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]`}>
                               {worldCompletedCount}/{world.levels.length} STAGES
-                            </span>
-                            <span className="text-slate-300">
-                              World Score: {worldScore.toLocaleString()}
-                            </span>
+                            </div>
+                            <div className="font-pixel text-[9px] sm:text-[10px] text-amber-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                              SCORE: {worldScore.toLocaleString()}
+                            </div>
                           </div>
                         </button>
                       );
@@ -1171,31 +1234,44 @@ export default function App() {
                 </div>
               )}
 
-              {/* 3. LEVEL SELECTION SCREEN */}
+              {/* 3. LEVEL SELECTION SCREEN (Consistent Glassmorphic Header, Repositioned Title, Scrollbar-Free Carousel/Grid & 16-Bit Pixel Font) */}
               {gameState === 'LEVEL_SELECT' && (
                 <div className="relative z-10 flex-1 min-h-0 w-full flex flex-col p-3.5 sm:p-5 overflow-hidden">
-                  <div className="shrink-0 flex flex-wrap items-center justify-between gap-2.5 sm:gap-4 border-b border-slate-900/20 pb-2.5 sm:pb-3">
-                    <div className="flex items-center gap-2 sm:gap-3">
-                      <button
-                        onClick={() => navigateToMenu('WORLD_SELECT')}
-                        className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 text-xs font-semibold text-slate-100 bg-slate-900/95 hover:bg-slate-800 border border-slate-700 rounded-xl flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-md"
-                      >
-                        <ArrowLeft className="w-4 h-4" />
-                        <span>Worlds</span>
-                      </button>
-                      <h2 className="font-pixel text-[11px] sm:text-sm md:text-base text-white bg-slate-950/90 border-2 border-amber-400 px-3 py-1.5 rounded-xl shadow-lg">
-                        WORLD {activeWorld.id}: {activeWorld.name.replace(/^World\s+\d+\s*:\s*/i, '').toUpperCase()}
-                      </h2>
-                    </div>
+                  {/* Top Glassmorphic Navigation Header */}
+                  <div className="shrink-0 flex items-center justify-between gap-3 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl bg-slate-950/45 backdrop-blur-md border border-white/25 shadow-lg">
                     <button
-                      onClick={() => navigateToMenu('TITLE_MENU')}
-                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-4 py-1.5 text-xs font-semibold text-slate-100 bg-slate-900/95 hover:bg-slate-800 border border-slate-700 rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                      type="button"
+                      onClick={() => {
+                        soundManager.playCoin();
+                        navigateToMenu('WORLD_SELECT');
+                      }}
+                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-white/15 hover:bg-white/25 active:scale-[0.98] backdrop-blur-md border border-white/30 rounded-xl flex items-center gap-1.5 transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
                     >
-                      Home Screen
+                      <ArrowLeft className="w-4 h-4 shrink-0" />
+                      <span>WORLDS</span>
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => {
+                        soundManager.playCoin();
+                        navigateToMenu('TITLE_MENU');
+                      }}
+                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-white/15 hover:bg-white/25 active:scale-[0.98] backdrop-blur-md border border-white/30 rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                    >
+                      HOME
                     </button>
                   </div>
 
-                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain mt-2.5 sm:mt-3 pr-1 flex flex-col">
+                  {/* Repositioned Prominent Section Title Right Below Header */}
+                  <div className="shrink-0 mt-3 sm:mt-4 mb-1 sm:mb-2 flex items-center justify-center">
+                    <div className="px-4 py-2 sm:px-6 sm:py-2.5 rounded-2xl bg-slate-950/55 backdrop-blur-md border-2 border-amber-400/85 shadow-xl max-w-full">
+                      <h2 className="font-pixel text-[10px] sm:text-sm md:text-base text-white text-center tracking-wide truncate drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                        WORLD {activeWorld.id}: {activeWorld.name.replace(/^World\s+\d+\s*:\s*/i, '').toUpperCase()}
+                      </h2>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar overscroll-contain mt-2 pr-0.5 flex flex-col">
                     <div className="my-auto grid grid-cols-1 md:grid-cols-5 gap-3 sm:gap-3.5">
                       {activeWorld.levels.map((lvl, idx) => {
                         const stageNum = lvl.stageNumber || idx + 1;
@@ -1206,10 +1282,10 @@ export default function App() {
                         const isCompleted = highScore > 0 || bestCoins > 0;
 
                         const buttonLabel = !isUnlocked
-                          ? 'Locked'
+                          ? 'LOCKED'
                           : isCompleted
-                          ? 'Play Again'
-                          : 'Play Now';
+                          ? 'REPLAY'
+                          : 'PLAY';
 
                         const cleanTitle = lvl.name
                           .replace(`Level ${lvl.id}: `, '')
@@ -1218,42 +1294,47 @@ export default function App() {
                         return (
                           <div
                             key={lvl.id}
-                            className={`flex flex-col justify-between rounded-xl border p-3.5 sm:p-4 transition-all ${
+                            className={`flex flex-col justify-between rounded-2xl backdrop-blur-md border-2 p-3.5 sm:p-4 transition-all ${
                               isUnlocked
-                                ? 'bg-slate-950 border-slate-800 hover:border-emerald-500/60 shadow-lg'
-                                : 'bg-slate-950/85 border-slate-800/80 opacity-85 shadow-md'
+                                ? 'bg-slate-950/55 border-white/25 hover:border-emerald-400/80 shadow-xl'
+                                : 'bg-slate-950/40 border-white/15 opacity-75 shadow-md'
                             }`}
                           >
                             <div className="space-y-2.5">
-                              <div className="flex items-center justify-between text-xs text-slate-400 font-mono-num">
+                              <div className="flex items-center justify-between font-pixel text-[9px] sm:text-[10px] text-amber-300">
                                 <span>
                                   STAGE {worldNum}-{stageNum}
                                 </span>
                                 {isUnlocked ? (
-                                  <CheckCircle2 className="w-4 h-4 text-emerald-400" />
+                                  <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
                                 ) : (
-                                  <Lock className="w-4 h-4 text-slate-500" />
+                                  <Lock className="w-4 h-4 text-slate-400 shrink-0" />
                                 )}
                               </div>
 
-                              <h3 className="font-bold text-sm sm:text-base text-white">{cleanTitle}</h3>
-                              <p className="text-xs text-slate-400 leading-relaxed">{lvl.subtitle}</p>
+                              <h3 className="font-pixel text-[10px] sm:text-xs text-white leading-relaxed drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                                {cleanTitle.toUpperCase()}
+                              </h3>
+                              <p className="text-[11px] text-slate-200/90 leading-relaxed">{lvl.subtitle}</p>
                             </div>
 
-                            <div className="pt-3 mt-3 border-t border-slate-800/80 space-y-2.5">
-                              <div className="text-xs text-slate-400 font-mono-num flex items-center justify-between">
-                                <span>High: {highScore.toLocaleString()}</span>
-                                <span>·</span>
-                                <span>Coins: {bestCoins}</span>
+                            <div className="pt-3 mt-3 border-t border-white/20 space-y-2.5">
+                              <div className="font-pixel text-[8px] sm:text-[9px] text-amber-200 flex items-center justify-between gap-1">
+                                <span>TOP: {highScore.toLocaleString()}</span>
+                                <span>COINS: {bestCoins}</span>
                               </div>
 
                               <button
+                                type="button"
                                 disabled={!isUnlocked}
-                                onClick={() => startLevel(lvl.id, true)}
-                                className={`w-full min-h-[42px] sm:min-h-[44px] py-2 px-3 rounded-xl text-xs font-semibold transition-colors whitespace-nowrap shrink-0 ${
+                                onClick={() => {
+                                  soundManager.playCoin();
+                                  startLevel(lvl.id, true);
+                                }}
+                                className={`w-full min-h-[40px] sm:min-h-[42px] py-2 px-3 rounded-xl font-pixel text-[10px] transition-all whitespace-nowrap shrink-0 ${
                                   isUnlocked
-                                    ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 cursor-pointer'
-                                    : 'bg-slate-800 text-slate-500 cursor-not-allowed'
+                                    ? 'bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-slate-950 border-b-4 border-emerald-700 cursor-pointer shadow-lg'
+                                    : 'bg-slate-800/80 text-slate-400 border border-white/10 cursor-not-allowed'
                                 }`}
                               >
                                 {buttonLabel}
@@ -1267,71 +1348,88 @@ export default function App() {
                 </div>
               )}
 
-              {/* 4. SETTINGS HUB PAGE (Audio Card & Help Card inside the Unified Locked Frame) */}
+              {/* 4. SETTINGS HUB PAGE (Glassmorphic Header, Repositioned Title & Frosted Cards) */}
               {gameState === 'SETTINGS_HUB' && (
                 <div className="relative z-10 flex-1 min-h-0 w-full flex flex-col p-3.5 sm:p-5 overflow-hidden">
-                  <div className="shrink-0 flex items-center justify-between gap-4 border-b border-slate-900/20 pb-2.5 sm:pb-3">
+                  <div className="shrink-0 flex items-center justify-between gap-3 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl bg-slate-950/45 backdrop-blur-md border border-white/25 shadow-lg">
                     <button
-                      onClick={() => navigateToMenu('TITLE_MENU')}
-                      className="min-h-[38px] sm:min-h-[42px] px-3.5 py-1.5 text-xs font-semibold text-slate-100 bg-slate-900/95 hover:bg-slate-800 border border-slate-700 rounded-xl flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                      type="button"
+                      onClick={() => {
+                        soundManager.playCoin();
+                        navigateToMenu('TITLE_MENU');
+                      }}
+                      className="min-h-[38px] sm:min-h-[42px] px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-white/15 hover:bg-white/25 active:scale-[0.98] backdrop-blur-md border border-white/30 rounded-xl flex items-center gap-2 transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
                     >
-                      <ArrowLeft className="w-4 h-4" />
-                      <span>Home</span>
+                      <ArrowLeft className="w-4 h-4 shrink-0" />
+                      <span>HOME</span>
                     </button>
-                    <h2 className="font-pixel text-xs sm:text-sm text-white text-center bg-slate-950/90 border-2 border-amber-400 px-3.5 py-1.5 rounded-xl shadow-lg">
-                      SETTINGS
-                    </h2>
-                    <div className="w-16 hidden sm:block" />
+                    <div className="w-10" />
                   </div>
 
-                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain mt-2.5 sm:mt-3 pr-1 flex flex-col">
+                  <div className="shrink-0 mt-3 sm:mt-4 mb-1 sm:mb-2 flex items-center justify-center">
+                    <div className="px-5 py-2 sm:px-7 sm:py-2.5 rounded-2xl bg-slate-950/55 backdrop-blur-md border-2 border-amber-400/85 shadow-xl">
+                      <h2 className="font-pixel text-xs sm:text-base md:text-lg text-white text-center tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                        SETTINGS
+                      </h2>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar overscroll-contain mt-2 pr-0.5 flex flex-col">
                     <div className="my-auto w-full max-w-3xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
                       {/* AUDIO CARD -> Opens the Audio & Save Settings Page */}
                       <button
-                        onClick={() => navigateToMenu('SETTINGS')}
-                        className="group text-left bg-slate-950/95 border-2 border-slate-800 hover:border-emerald-500/70 rounded-2xl p-5 sm:p-6 flex flex-col justify-between gap-5 transition-all cursor-pointer shadow-xl"
+                        type="button"
+                        onClick={() => {
+                          soundManager.playCoin();
+                          navigateToMenu('SETTINGS');
+                        }}
+                        className="group text-left bg-slate-950/55 hover:bg-slate-900/65 backdrop-blur-md border-2 border-white/25 hover:border-emerald-400/80 rounded-2xl p-5 sm:p-6 flex flex-col justify-between gap-5 transition-all cursor-pointer shadow-2xl"
                       >
                         <div className="space-y-3.5">
-                          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
-                            <Volume2 className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" />
+                          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-emerald-500/20 border border-emerald-400/40 flex items-center justify-center">
+                            <Volume2 className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-300" />
                           </div>
-                          <div className="space-y-1.5">
-                            <h3 className="font-pixel text-sm sm:text-base text-white group-hover:text-emerald-400 transition-colors">
+                          <div className="space-y-2">
+                            <h3 className="font-pixel text-xs sm:text-sm text-white group-hover:text-emerald-300 transition-colors">
                               AUDIO
                             </h3>
-                            <p className="text-xs text-slate-300 leading-relaxed">
+                            <p className="text-xs text-slate-200/90 leading-relaxed">
                               Configure sound effects, 16-bit background music, master volume, and saved game data.
                             </p>
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between pt-3.5 border-t border-slate-800/80 text-xs font-semibold text-emerald-400">
-                          <span>Open Audio Settings</span>
+                        <div className="flex items-center justify-between pt-3.5 border-t border-white/20 font-pixel text-[9px] sm:text-[10px] text-emerald-300">
+                          <span>OPEN AUDIO</span>
                           <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                         </div>
                       </button>
 
                       {/* HELP CARD -> Opens the Controls & Mechanics Page */}
                       <button
-                        onClick={() => navigateToMenu('CONTROLS')}
-                        className="group text-left bg-slate-950/95 border-2 border-slate-800 hover:border-amber-400/70 rounded-2xl p-5 sm:p-6 flex flex-col justify-between gap-5 transition-all cursor-pointer shadow-xl"
+                        type="button"
+                        onClick={() => {
+                          soundManager.playCoin();
+                          navigateToMenu('CONTROLS');
+                        }}
+                        className="group text-left bg-slate-950/55 hover:bg-slate-900/65 backdrop-blur-md border-2 border-white/25 hover:border-amber-400/80 rounded-2xl p-5 sm:p-6 flex flex-col justify-between gap-5 transition-all cursor-pointer shadow-2xl"
                       >
                         <div className="space-y-3.5">
-                          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-amber-400/15 border border-amber-400/30 flex items-center justify-center">
-                            <HelpCircle className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
+                          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-amber-400/20 border border-amber-400/40 flex items-center justify-center">
+                            <HelpCircle className="w-5 h-5 sm:w-6 sm:h-6 text-amber-300" />
                           </div>
-                          <div className="space-y-1.5">
-                            <h3 className="font-pixel text-sm sm:text-base text-white group-hover:text-amber-400 transition-colors">
+                          <div className="space-y-2">
+                            <h3 className="font-pixel text-xs sm:text-sm text-white group-hover:text-amber-300 transition-colors">
                               HELP
                             </h3>
-                            <p className="text-xs text-slate-300 leading-relaxed">
+                            <p className="text-xs text-slate-200/90 leading-relaxed">
                               View keyboard controls, power-up guides, platforming tips, and boss battle strategies.
                             </p>
                           </div>
                         </div>
 
-                        <div className="flex items-center justify-between pt-3.5 border-t border-slate-800/80 text-xs font-semibold text-amber-400">
-                          <span>Open Controls & Help</span>
+                        <div className="flex items-center justify-between pt-3.5 border-t border-white/20 font-pixel text-[9px] sm:text-[10px] text-amber-300">
+                          <span>OPEN HELP</span>
                           <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
                         </div>
                       </button>
@@ -1343,47 +1441,60 @@ export default function App() {
               {/* 5. HELP / CONTROLS & MECHANICS SCREEN */}
               {gameState === 'CONTROLS' && (
                 <div className="relative z-10 flex-1 min-h-0 w-full flex flex-col p-3.5 sm:p-5 overflow-hidden">
-                  <div className="shrink-0 flex items-center justify-between gap-3 border-b border-slate-900/20 pb-2.5 sm:pb-3">
+                  <div className="shrink-0 flex items-center justify-between gap-3 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl bg-slate-950/45 backdrop-blur-md border border-white/25 shadow-lg">
                     <button
-                      onClick={() => navigateToMenu('SETTINGS_HUB')}
-                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 text-xs font-semibold text-slate-100 bg-slate-900/95 hover:bg-slate-800 border border-slate-700 rounded-xl flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                      type="button"
+                      onClick={() => {
+                        soundManager.playCoin();
+                        navigateToMenu('SETTINGS_HUB');
+                      }}
+                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-white/15 hover:bg-white/25 active:scale-[0.98] backdrop-blur-md border border-white/30 rounded-xl flex items-center gap-1.5 transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
                     >
-                      <ArrowLeft className="w-4 h-4" />
-                      <span>Back to Settings</span>
+                      <ArrowLeft className="w-4 h-4 shrink-0" />
+                      <span>BACK</span>
                     </button>
-                    <h2 className="font-pixel text-[11px] sm:text-sm text-white text-center bg-slate-950/90 border-2 border-amber-400 px-3 py-1.5 rounded-xl shadow-lg">
-                      CONTROLS & HELP
-                    </h2>
                     <button
-                      onClick={() => navigateToMenu('TITLE_MENU')}
-                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 text-xs font-semibold text-slate-100 bg-slate-900/95 hover:bg-slate-800 border border-slate-700 rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                      type="button"
+                      onClick={() => {
+                        soundManager.playCoin();
+                        navigateToMenu('TITLE_MENU');
+                      }}
+                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-white/15 hover:bg-white/25 active:scale-[0.98] backdrop-blur-md border border-white/30 rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
                     >
-                      Home
+                      HOME
                     </button>
                   </div>
 
-                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain mt-2.5 sm:mt-3 pr-1 space-y-3.5">
+                  <div className="shrink-0 mt-3 sm:mt-4 mb-1 sm:mb-2 flex items-center justify-center">
+                    <div className="px-5 py-2 sm:px-7 sm:py-2.5 rounded-2xl bg-slate-950/55 backdrop-blur-md border-2 border-amber-400/85 shadow-xl">
+                      <h2 className="font-pixel text-xs sm:text-base text-white text-center tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                        CONTROLS & HELP
+                      </h2>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar overscroll-contain mt-2 pr-0.5 space-y-3.5">
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-sm">
-                      <div className="space-y-2.5 bg-slate-950/95 p-4 rounded-xl border border-slate-800 shadow-lg">
-                        <h3 className="font-semibold text-emerald-400 text-xs sm:text-sm">Keyboard Controls</h3>
-                        <div className="space-y-2 text-slate-300 text-xs">
-                          <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                      <div className="space-y-2.5 bg-slate-950/55 backdrop-blur-md p-4 rounded-2xl border-2 border-white/20 shadow-xl">
+                        <h3 className="font-pixel text-[10px] sm:text-xs text-emerald-300">KEYBOARD CONTROLS</h3>
+                        <div className="space-y-2 text-slate-200 text-xs">
+                          <div className="flex items-center justify-between py-1 border-b border-white/15">
                             <span>Move Left / Right</span>
                             <span className="font-mono-num text-amber-300">A / D or Left / Right Arrows</span>
                           </div>
-                          <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                          <div className="flex items-center justify-between py-1 border-b border-white/15">
                             <span>Duck / Sit (When Grown)</span>
                             <span className="font-mono-num text-amber-300">S or Down Arrow</span>
                           </div>
-                          <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                          <div className="flex items-center justify-between py-1 border-b border-white/15">
                             <span>Charged Super Jump (Big / Fire)</span>
                             <span className="font-mono-num text-amber-300">Hold Down (1.5s) + Jump</span>
                           </div>
-                          <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                          <div className="flex items-center justify-between py-1 border-b border-white/15">
                             <span>Jump / Fly / Slow Fall</span>
                             <span className="font-mono-num text-amber-300">Space, W, or Up Arrow</span>
                           </div>
-                          <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                          <div className="flex items-center justify-between py-1 border-b border-white/15">
                             <span>Sprint / Fireball / Tail Attack</span>
                             <span className="font-mono-num text-amber-300">Shift, X, or J</span>
                           </div>
@@ -1394,9 +1505,9 @@ export default function App() {
                         </div>
                       </div>
 
-                      <div className="space-y-2.5 bg-slate-950/95 p-4 rounded-xl border border-slate-800 shadow-lg">
-                        <h3 className="font-semibold text-amber-400 text-xs sm:text-sm">Platforming Tips</h3>
-                        <ul className="space-y-1.5 text-xs text-slate-300 leading-relaxed list-disc list-inside">
+                      <div className="space-y-2.5 bg-slate-950/55 backdrop-blur-md p-4 rounded-2xl border-2 border-white/20 shadow-xl">
+                        <h3 className="font-pixel text-[10px] sm:text-xs text-amber-300">PLATFORMING TIPS</h3>
+                        <ul className="space-y-1.5 text-xs text-slate-200 leading-relaxed list-disc list-inside">
                           <li>Hold the Jump key longer for higher leaps across wide chasms.</li>
                           <li>Hold Shift while moving to build sprint momentum and jump farther.</li>
                           <li>In Big or Fire form, hold Down for 1.5 seconds until your character blinks, then press Jump for a massive Charged Super Jump!</li>
@@ -1407,45 +1518,45 @@ export default function App() {
                     </div>
 
                     {/* Power-Ups Reference Row */}
-                    <div className="bg-slate-950/95 border border-slate-800 rounded-xl p-4 space-y-2.5 shadow-lg">
-                      <div className="font-pixel text-xs text-amber-400">POWER-UP ITEMS</div>
+                    <div className="bg-slate-950/55 backdrop-blur-md border-2 border-white/20 rounded-2xl p-4 space-y-2.5 shadow-xl">
+                      <div className="font-pixel text-[10px] sm:text-xs text-amber-300">POWER-UP ITEMS</div>
                       <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs">
                         <div className="flex items-start gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-red-500/20 border border-red-500/40 flex items-center justify-center shrink-0">
-                            <Shield className="w-4 h-4 text-red-400" />
+                          <div className="w-8 h-8 rounded-lg bg-red-500/20 border border-red-400/40 flex items-center justify-center shrink-0">
+                            <Shield className="w-4 h-4 text-red-300" />
                           </div>
                           <div>
-                            <div className="font-semibold text-slate-100">Growth Mushroom</div>
-                            <div className="text-slate-400">Grows Pip larger, breaks bricks & absorbs 1 hit.</div>
+                            <div className="font-semibold text-white">Growth Mushroom</div>
+                            <div className="text-slate-300">Grows Pip larger, breaks bricks & absorbs 1 hit.</div>
                           </div>
                         </div>
                         <div className="flex items-start gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-amber-600/20 border border-amber-500/40 flex items-center justify-center shrink-0">
-                            <Feather className="w-4 h-4 text-amber-400" />
+                          <div className="w-8 h-8 rounded-lg bg-amber-600/20 border border-amber-400/40 flex items-center justify-center shrink-0">
+                            <Feather className="w-4 h-4 text-amber-300" />
                           </div>
                           <div>
-                            <div className="font-semibold text-slate-100">Raccoon Feather</div>
-                            <div className="text-slate-400">
+                            <div className="font-semibold text-white">Raccoon Feather</div>
+                            <div className="text-slate-300">
                               Fly on sprint-jumps, hold Jump to slow-fall, & press Fire/Shift to spin-attack!
                             </div>
                           </div>
                         </div>
                         <div className="flex items-start gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-orange-500/20 border border-orange-500/40 flex items-center justify-center shrink-0">
-                            <Flame className="w-4 h-4 text-orange-400" />
+                          <div className="w-8 h-8 rounded-lg bg-orange-500/20 border border-orange-400/40 flex items-center justify-center shrink-0">
+                            <Flame className="w-4 h-4 text-orange-300" />
                           </div>
                           <div>
-                            <div className="font-semibold text-slate-100">Solar Fire Flower</div>
-                            <div className="text-slate-400">Press Shift or X to launch bouncing fireballs.</div>
+                            <div className="font-semibold text-white">Solar Fire Flower</div>
+                            <div className="text-slate-300">Press Shift or X to launch bouncing fireballs.</div>
                           </div>
                         </div>
                         <div className="flex items-start gap-2.5">
-                          <div className="w-8 h-8 rounded-lg bg-amber-400/20 border border-amber-400/40 flex items-center justify-center shrink-0">
-                            <Sparkles className="w-4 h-4 text-amber-300" />
+                          <div className="w-8 h-8 rounded-lg bg-amber-400/20 border border-amber-300/40 flex items-center justify-center shrink-0">
+                            <Sparkles className="w-4 h-4 text-amber-200" />
                           </div>
                           <div>
-                            <div className="font-semibold text-slate-100">Invincibility Star</div>
-                            <div className="text-slate-400">Temporary rainbow armor defeats foes on touch.</div>
+                            <div className="font-semibold text-white">Invincibility Star</div>
+                            <div className="text-slate-300">Temporary rainbow armor defeats foes on touch.</div>
                           </div>
                         </div>
                       </div>
@@ -1457,66 +1568,81 @@ export default function App() {
               {/* 6. AUDIO & SAVE SETTINGS SCREEN */}
               {gameState === 'SETTINGS' && (
                 <div className="relative z-10 flex-1 min-h-0 w-full flex flex-col p-3.5 sm:p-5 overflow-hidden">
-                  <div className="shrink-0 flex items-center justify-between gap-3 border-b border-slate-900/20 pb-2.5 sm:pb-3">
+                  <div className="shrink-0 flex items-center justify-between gap-3 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl bg-slate-950/45 backdrop-blur-md border border-white/25 shadow-lg">
                     <button
-                      onClick={() => navigateToMenu('SETTINGS_HUB')}
-                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 text-xs font-semibold text-slate-100 bg-slate-900/95 hover:bg-slate-800 border border-slate-700 rounded-xl flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                      type="button"
+                      onClick={() => {
+                        soundManager.playCoin();
+                        navigateToMenu('SETTINGS_HUB');
+                      }}
+                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-white/15 hover:bg-white/25 active:scale-[0.98] backdrop-blur-md border border-white/30 rounded-xl flex items-center gap-1.5 transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
                     >
-                      <ArrowLeft className="w-4 h-4" />
-                      <span>Back to Settings</span>
+                      <ArrowLeft className="w-4 h-4 shrink-0" />
+                      <span>BACK</span>
                     </button>
-                    <div className="flex items-center gap-2 bg-slate-950/90 border-2 border-amber-400 px-3.5 py-1.5 rounded-xl shadow-lg">
-                      <Sliders className="w-4 h-4 text-emerald-400" />
-                      <h2 className="font-pixel text-xs sm:text-sm text-white">AUDIO</h2>
-                    </div>
                     <button
-                      onClick={() => navigateToMenu('TITLE_MENU')}
-                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 text-xs font-semibold text-slate-100 bg-slate-900/95 hover:bg-slate-800 border border-slate-700 rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                      type="button"
+                      onClick={() => {
+                        soundManager.playCoin();
+                        navigateToMenu('TITLE_MENU');
+                      }}
+                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-white/15 hover:bg-white/25 active:scale-[0.98] backdrop-blur-md border border-white/30 rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
                     >
-                      Home
+                      HOME
                     </button>
                   </div>
 
-                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain mt-2.5 sm:mt-3 pr-1 flex flex-col">
-                    <div className="my-auto w-full max-w-xl mx-auto space-y-3">
-                      <div className="flex items-center justify-between p-3.5 sm:p-4 bg-slate-950/95 rounded-xl border border-slate-800 shadow-lg">
+                  <div className="shrink-0 mt-3 sm:mt-4 mb-1 sm:mb-2 flex items-center justify-center">
+                    <div className="px-5 py-2 sm:px-7 sm:py-2.5 rounded-2xl bg-slate-950/55 backdrop-blur-md border-2 border-amber-400/85 shadow-xl flex items-center gap-2.5">
+                      <Sliders className="w-4 h-4 text-emerald-300 shrink-0" />
+                      <h2 className="font-pixel text-xs sm:text-base text-white text-center tracking-wider drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
+                        AUDIO SETTINGS
+                      </h2>
+                    </div>
+                  </div>
+
+                  <div className="flex-1 min-h-0 overflow-y-auto no-scrollbar overscroll-contain mt-2 pr-0.5 flex flex-col">
+                    <div className="my-auto w-full max-w-xl mx-auto space-y-2.5 sm:space-y-3">
+                      <div className="flex items-center justify-between p-3.5 sm:p-4 bg-slate-950/55 backdrop-blur-md rounded-2xl border-2 border-white/20 shadow-xl gap-3">
                         <div>
-                          <div className="text-xs sm:text-sm font-semibold text-white">Sound Effects (SFX)</div>
-                          <div className="text-[11px] sm:text-xs text-slate-400">Jumps, coins, block breaks, and boss hits</div>
+                          <div className="font-pixel text-[10px] sm:text-xs text-white">SOUND EFFECTS</div>
+                          <div className="text-[11px] sm:text-xs text-slate-200/90 mt-1">Jumps, coins, block breaks & boss hits</div>
                         </div>
                         <button
+                          type="button"
                           onClick={toggleSound}
-                          className={`min-h-[40px] sm:min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                          className={`min-h-[38px] sm:min-h-[42px] px-4 py-2 rounded-xl font-pixel text-[10px] transition-all whitespace-nowrap shrink-0 cursor-pointer ${
                             saveData.soundEnabled
-                              ? 'bg-emerald-500 text-slate-950'
-                              : 'bg-slate-800 text-slate-400'
+                              ? 'bg-emerald-500 text-slate-950 border-b-4 border-emerald-700 shadow-md'
+                              : 'bg-white/15 text-slate-200 border border-white/25'
                           }`}
                         >
-                          {saveData.soundEnabled ? 'Enabled' : 'Muted'}
+                          {saveData.soundEnabled ? 'ON' : 'OFF'}
                         </button>
                       </div>
 
-                      <div className="flex items-center justify-between p-3.5 sm:p-4 bg-slate-950/95 rounded-xl border border-slate-800 shadow-lg">
+                      <div className="flex items-center justify-between p-3.5 sm:p-4 bg-slate-950/55 backdrop-blur-md rounded-2xl border-2 border-white/20 shadow-xl gap-3">
                         <div>
-                          <div className="text-xs sm:text-sm font-semibold text-white">16-Bit Chiptune Music</div>
-                          <div className="text-[11px] sm:text-xs text-slate-400">Synthesized stage themes for all levels</div>
+                          <div className="font-pixel text-[10px] sm:text-xs text-white">16-BIT MUSIC</div>
+                          <div className="text-[11px] sm:text-xs text-slate-200/90 mt-1">Synthesized chiptune stage themes</div>
                         </div>
                         <button
+                          type="button"
                           onClick={toggleMusic}
-                          className={`min-h-[40px] sm:min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                          className={`min-h-[38px] sm:min-h-[42px] px-4 py-2 rounded-xl font-pixel text-[10px] transition-all whitespace-nowrap shrink-0 cursor-pointer ${
                             saveData.musicEnabled
-                              ? 'bg-emerald-500 text-slate-950'
-                              : 'bg-slate-800 text-slate-400'
+                              ? 'bg-emerald-500 text-slate-950 border-b-4 border-emerald-700 shadow-md'
+                              : 'bg-white/15 text-slate-200 border border-white/25'
                           }`}
                         >
-                          {saveData.musicEnabled ? 'Playing' : 'Muted'}
+                          {saveData.musicEnabled ? 'ON' : 'OFF'}
                         </button>
                       </div>
 
-                      <div className="p-3.5 sm:p-4 bg-slate-950/95 rounded-xl border border-slate-800 space-y-2 shadow-lg">
-                        <div className="flex items-center justify-between text-xs">
-                          <span className="font-semibold text-white">Master Volume</span>
-                          <span className="font-mono-num text-amber-400">
+                      <div className="p-3.5 sm:p-4 bg-slate-950/55 backdrop-blur-md rounded-2xl border-2 border-white/20 space-y-2 shadow-xl">
+                        <div className="flex items-center justify-between font-pixel text-[10px] sm:text-xs">
+                          <span className="text-white">MASTER VOLUME</span>
+                          <span className="text-amber-300">
                             {Math.round(saveData.volume * 100)}%
                           </span>
                         </div>
@@ -1531,15 +1657,16 @@ export default function App() {
                         />
                       </div>
 
-                      <div className="flex items-center justify-between p-3.5 sm:p-4 bg-slate-950/95 rounded-xl border border-slate-800 shadow-lg gap-3">
-                        <div className="text-[11px] sm:text-xs text-slate-400">
+                      <div className="flex items-center justify-between p-3.5 sm:p-4 bg-slate-950/55 backdrop-blur-md rounded-2xl border-2 border-white/20 shadow-xl gap-3">
+                        <div className="text-[11px] sm:text-xs text-slate-200/90">
                           Reset unlocked levels and high scores in localStorage
                         </div>
                         <button
+                          type="button"
                           onClick={handleResetSave}
-                          className="min-h-[40px] sm:min-h-[44px] px-3.5 py-2 text-xs font-semibold text-red-300 bg-red-950/60 hover:bg-red-900/70 border border-red-800/60 rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                          className="min-h-[38px] sm:min-h-[42px] px-3.5 py-2 font-pixel text-[9px] sm:text-[10px] text-red-200 bg-red-950/65 hover:bg-red-900/75 border border-red-400/50 rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer"
                         >
-                          Reset Save Data
+                          RESET SAVE
                         </button>
                       </div>
                     </div>
