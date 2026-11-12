@@ -971,7 +971,7 @@ export default function App() {
               {/* Persistent Exact Gameplay Environment Background (Locked to viewport container: sky on top, ground floor sealed at the very bottom) */}
               <GameplayEnvironmentBackdrop />
 
-              {/* 1. CLASSIC GAME HOME SCREEN */}
+              {/* 1. CLASSIC GAME HOME SCREEN (Sleek Glassmorphic Styling & Consistent 16-Bit Pixel Font) */}
               {gameState === 'TITLE_MENU' && (
                 <>
                   {/* In-Game Toast Notification for Store */}
@@ -979,34 +979,38 @@ export default function App() {
                     <div
                       role="status"
                       aria-live="polite"
-                      className="absolute top-16 left-1/2 -translate-x-1/2 z-30 bg-slate-950/95 border-2 border-amber-400 text-amber-300 px-4 py-2 rounded-xl shadow-2xl flex items-center gap-2 text-xs font-pixel whitespace-nowrap animate-bounce"
+                      className="absolute top-16 left-1/2 -translate-x-1/2 z-30 bg-slate-950/65 backdrop-blur-md border-2 border-amber-400/85 text-amber-300 px-4 py-2 rounded-xl shadow-2xl flex items-center gap-2 text-xs font-pixel whitespace-nowrap animate-bounce"
                     >
                       <ShoppingBag className="w-4 h-4 text-amber-400 shrink-0" />
                       <span>Store — Coming Soon!</span>
                     </div>
                   )}
 
-                  {/* Top Status Strip: Top Score on Top-Left, Coins on Top-Right */}
-                  <div className="relative z-10 flex items-center justify-between gap-2 px-3.5 pt-3.5 sm:px-6 sm:pt-5 text-[11px] sm:text-xs font-mono-num text-slate-900 font-bold shrink-0">
-                    <div className="flex items-center gap-1.5 sm:gap-2 bg-white/85 backdrop-blur-sm px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg border border-slate-900/15 shadow-sm">
-                      <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-600 shrink-0" />
-                      <span>TOP SCORE: {totalBestScore.toLocaleString()}</span>
+                  {/* Top Status Strip: 100% Transparent Header Bar with Glassmorphic Top Score (Top-Left) & Coins (Top-Right) */}
+                  <div className="relative z-10 flex items-center justify-between gap-2 px-3.5 pt-3.5 sm:px-6 sm:pt-5 bg-transparent border-0 shadow-none text-[9px] sm:text-[10px] font-pixel text-white shrink-0">
+                    <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-950/55 backdrop-blur-md px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-white/30 shadow-lg">
+                      <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300 shrink-0" />
+                      <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                        TOP SCORE: {totalBestScore.toLocaleString()}
+                      </span>
                     </div>
-                    <div className="flex items-center gap-1.5 sm:gap-2 bg-white/85 backdrop-blur-sm px-2.5 py-1.5 sm:px-3 sm:py-1.5 rounded-lg border border-slate-900/15 shadow-sm">
+                    <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-950/55 backdrop-blur-md px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-white/30 shadow-lg">
                       <GoldCoinIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                      <span>COINS: {saveData.totalCoinsCollected}</span>
+                      <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                        COINS: {saveData.totalCoinsCollected}
+                      </span>
                     </div>
                   </div>
 
-                  {/* Center Compact Signboard Title Card & Balanced Action Buttons */}
+                  {/* Center Compact Glassmorphic Signboard Title Card & Balanced Action Buttons */}
                   <div className="relative z-10 flex-1 min-h-0 flex flex-col items-center justify-center px-4 py-2 sm:py-6 text-center">
-                    <div className="bg-slate-950/90 border-4 border-amber-400 rounded-2xl px-4 py-2.5 sm:px-8 sm:py-4 md:px-10 md:py-5 shadow-2xl max-w-[300px] sm:max-w-lg w-full">
-                      <h1 className="font-pixel text-lg sm:text-2xl md:text-3xl text-white leading-snug tracking-tight drop-shadow">
+                    <div className="bg-slate-950/55 backdrop-blur-md border-2 border-amber-400/85 rounded-2xl px-4 py-2.5 sm:px-8 sm:py-4 md:px-10 md:py-5 shadow-2xl max-w-[300px] sm:max-w-lg w-full">
+                      <h1 className="font-pixel text-lg sm:text-2xl md:text-3xl text-white leading-snug tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
                         CROWN OF EMERALDIA
                       </h1>
                     </div>
 
-                    {/* Balanced Vertical Action Stack: Play, Store, and Settings */}
+                    {/* Balanced Vertical Action Stack: Glassmorphic Play, Store, and Settings */}
                     <div className="mt-5 sm:mt-7 flex flex-col items-center gap-2.5 sm:gap-3 w-full max-w-[210px] sm:max-w-[260px]">
                       <button
                         type="button"
@@ -1014,19 +1018,19 @@ export default function App() {
                           soundManager.playCoin();
                           navigateToMenu('WORLD_SELECT');
                         }}
-                        className="w-full min-h-[46px] sm:min-h-[52px] py-2.5 sm:py-3 px-6 bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-slate-950 font-pixel text-sm sm:text-base rounded-2xl border-b-4 border-emerald-700 shadow-xl flex items-center justify-center gap-2.5 transition-all cursor-pointer whitespace-nowrap shrink-0"
+                        className="w-full min-h-[46px] sm:min-h-[52px] py-2.5 sm:py-3 px-6 bg-emerald-500/65 hover:bg-emerald-500/80 active:scale-[0.98] backdrop-blur-md text-white font-pixel text-sm sm:text-base rounded-2xl border-2 border-emerald-300/80 shadow-xl flex items-center justify-center gap-2.5 transition-all cursor-pointer whitespace-nowrap shrink-0"
                       >
-                        <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current" />
-                        <span>PLAY</span>
+                        <Play className="w-4 h-4 sm:w-5 sm:h-5 fill-current drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]" />
+                        <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.85)]">PLAY</span>
                       </button>
 
                       <button
                         type="button"
                         onClick={handleStoreButtonClick}
-                        className="w-full min-h-[44px] sm:min-h-[48px] py-2.5 px-6 bg-slate-900/95 hover:bg-slate-800 active:scale-[0.98] text-slate-100 font-pixel text-xs rounded-2xl border-b-4 border-slate-950 shadow-lg flex items-center justify-center gap-2.5 transition-all cursor-pointer whitespace-nowrap shrink-0"
+                        className="w-full min-h-[44px] sm:min-h-[48px] py-2.5 px-6 bg-slate-950/55 hover:bg-slate-900/65 active:scale-[0.98] backdrop-blur-md text-white font-pixel text-xs rounded-2xl border-2 border-white/25 hover:border-emerald-400/75 shadow-xl flex items-center justify-center gap-2.5 transition-all cursor-pointer whitespace-nowrap shrink-0"
                       >
-                        <ShoppingBag className="w-4 h-4 text-emerald-400" />
-                        <span>STORE</span>
+                        <ShoppingBag className="w-4 h-4 text-emerald-300 shrink-0" />
+                        <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">STORE</span>
                       </button>
 
                       <button
@@ -1035,10 +1039,10 @@ export default function App() {
                           soundManager.playCoin();
                           navigateToMenu('SETTINGS_HUB');
                         }}
-                        className="w-full min-h-[44px] sm:min-h-[48px] py-2.5 px-6 bg-slate-900/95 hover:bg-slate-800 active:scale-[0.98] text-slate-100 font-pixel text-xs rounded-2xl border-b-4 border-slate-950 shadow-lg flex items-center justify-center gap-2.5 transition-all cursor-pointer whitespace-nowrap shrink-0"
+                        className="w-full min-h-[44px] sm:min-h-[48px] py-2.5 px-6 bg-slate-950/55 hover:bg-slate-900/65 active:scale-[0.98] backdrop-blur-md text-white font-pixel text-xs rounded-2xl border-2 border-white/25 hover:border-amber-400/75 shadow-xl flex items-center justify-center gap-2.5 transition-all cursor-pointer whitespace-nowrap shrink-0"
                       >
-                        <Settings className="w-4 h-4 text-amber-400" />
-                        <span>SETTINGS</span>
+                        <Settings className="w-4 h-4 text-amber-300 shrink-0" />
+                        <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">SETTINGS</span>
                       </button>
                     </div>
                   </div>
@@ -1046,13 +1050,13 @@ export default function App() {
                   {/* Bottom Ground Footer Legal Links (100% Transparent Background, Right Above Reserved Banner Ad Space) */}
                   <div
                     style={{ backgroundColor: 'transparent', border: 'none', boxShadow: 'none' }}
-                    className="relative z-10 h-12 sm:h-16 bg-transparent border-0 shadow-none flex items-center justify-center gap-3 sm:gap-4 px-4 text-[10px] sm:text-xs font-mono-num shrink-0"
+                    className="relative z-10 h-12 sm:h-16 bg-transparent border-0 shadow-none flex items-center justify-center gap-3 sm:gap-4 px-4 text-[8px] sm:text-[10px] font-pixel shrink-0"
                   >
                     <a
                       href="#"
                       onClick={(e) => e.preventDefault()}
                       style={{ backgroundColor: 'transparent' }}
-                      className="bg-transparent text-amber-100 hover:text-amber-300 font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] underline-offset-4 hover:underline transition-colors cursor-pointer"
+                      className="bg-transparent text-amber-100 hover:text-amber-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] underline-offset-4 hover:underline transition-colors cursor-pointer"
                     >
                       Privacy Policy
                     </a>
@@ -1061,7 +1065,7 @@ export default function App() {
                       href="#"
                       onClick={(e) => e.preventDefault()}
                       style={{ backgroundColor: 'transparent' }}
-                      className="bg-transparent text-amber-100 hover:text-amber-300 font-semibold drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] underline-offset-4 hover:underline transition-colors cursor-pointer"
+                      className="bg-transparent text-amber-100 hover:text-amber-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.95)] underline-offset-4 hover:underline transition-colors cursor-pointer"
                     >
                       Terms of Service
                     </a>
@@ -1069,27 +1073,22 @@ export default function App() {
                 </>
               )}
 
-              {/* 2. SELECT WORLD SCREEN (Glassmorphic Header, Repositioned Title, Horizontal Scrollbar-Free Carousel, Vertical Card Stack & 16-Bit Pixel Font) */}
+              {/* 2. SELECT WORLD SCREEN (Transparent Top Header Bar, Repositioned Title, Horizontal Scrollbar-Free Carousel, Vertical Card Stack & 16-Bit Pixel Font) */}
               {gameState === 'WORLD_SELECT' && (
                 <div className="relative z-10 flex-1 min-h-0 w-full flex flex-col p-3.5 sm:p-5 overflow-hidden">
-                  {/* Top Glassmorphic Navigation Header */}
-                  <div className="shrink-0 flex items-center justify-between gap-3 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl bg-slate-950/45 backdrop-blur-md border border-white/25 shadow-lg">
+                  {/* Top Navigation Header (Completely Transparent/Invisible Header Bar, Home Button Only) */}
+                  <div className="shrink-0 flex items-center justify-between gap-3 px-3.5 py-2 sm:px-4 sm:py-2.5 bg-transparent border-0 shadow-none">
                     <button
                       type="button"
                       onClick={() => {
                         soundManager.playCoin();
                         navigateToMenu('TITLE_MENU');
                       }}
-                      className="min-h-[38px] sm:min-h-[42px] px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-white/15 hover:bg-white/25 active:scale-[0.98] backdrop-blur-md border border-white/30 rounded-xl flex items-center gap-2 transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                      className="min-h-[38px] sm:min-h-[42px] px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-slate-950/55 hover:bg-slate-900/65 active:scale-[0.98] backdrop-blur-md border-2 border-white/25 rounded-xl flex items-center gap-2 transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
                     >
                       <ArrowLeft className="w-4 h-4 shrink-0" />
                       <span>HOME</span>
                     </button>
-
-                    <div className="flex items-center gap-2 bg-white/15 backdrop-blur-md border border-white/25 px-3 py-1.5 rounded-xl font-pixel text-[9px] sm:text-[10px] text-amber-200 shadow-sm">
-                      <Trophy className="w-3.5 h-3.5 text-amber-300 shrink-0" />
-                      <span>{totalBestScore.toLocaleString()}</span>
-                    </div>
                   </div>
 
                   {/* Repositioned Prominent Section Title Right Below Header & Above Horizontal World Cards Stack */}
@@ -1234,18 +1233,18 @@ export default function App() {
                 </div>
               )}
 
-              {/* 3. LEVEL SELECTION SCREEN (Consistent Glassmorphic Header, Repositioned Title, Scrollbar-Free Carousel/Grid & 16-Bit Pixel Font) */}
+              {/* 3. LEVEL SELECTION SCREEN (Transparent Top Header Bar, Repositioned Title, Scrollbar-Free Grid & 16-Bit Pixel Font) */}
               {gameState === 'LEVEL_SELECT' && (
                 <div className="relative z-10 flex-1 min-h-0 w-full flex flex-col p-3.5 sm:p-5 overflow-hidden">
-                  {/* Top Glassmorphic Navigation Header */}
-                  <div className="shrink-0 flex items-center justify-between gap-3 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl bg-slate-950/45 backdrop-blur-md border border-white/25 shadow-lg">
+                  {/* Top Navigation Header (Completely Transparent/Invisible Header Bar) */}
+                  <div className="shrink-0 flex items-center justify-between gap-3 px-3.5 py-2 sm:px-4 sm:py-2.5 bg-transparent border-0 shadow-none">
                     <button
                       type="button"
                       onClick={() => {
                         soundManager.playCoin();
                         navigateToMenu('WORLD_SELECT');
                       }}
-                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-white/15 hover:bg-white/25 active:scale-[0.98] backdrop-blur-md border border-white/30 rounded-xl flex items-center gap-1.5 transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-slate-950/55 hover:bg-slate-900/65 active:scale-[0.98] backdrop-blur-md border-2 border-white/25 rounded-xl flex items-center gap-1.5 transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
                     >
                       <ArrowLeft className="w-4 h-4 shrink-0" />
                       <span>WORLDS</span>
@@ -1256,7 +1255,7 @@ export default function App() {
                         soundManager.playCoin();
                         navigateToMenu('TITLE_MENU');
                       }}
-                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-white/15 hover:bg-white/25 active:scale-[0.98] backdrop-blur-md border border-white/30 rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-slate-950/55 hover:bg-slate-900/65 active:scale-[0.98] backdrop-blur-md border-2 border-white/25 rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
                     >
                       HOME
                     </button>
@@ -1348,17 +1347,17 @@ export default function App() {
                 </div>
               )}
 
-              {/* 4. SETTINGS HUB PAGE (Glassmorphic Header, Repositioned Title & Frosted Cards) */}
+              {/* 4. SETTINGS HUB PAGE (Transparent Top Header Bar, Repositioned Title & Frosted Cards) */}
               {gameState === 'SETTINGS_HUB' && (
                 <div className="relative z-10 flex-1 min-h-0 w-full flex flex-col p-3.5 sm:p-5 overflow-hidden">
-                  <div className="shrink-0 flex items-center justify-between gap-3 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl bg-slate-950/45 backdrop-blur-md border border-white/25 shadow-lg">
+                  <div className="shrink-0 flex items-center justify-between gap-3 px-3.5 py-2 sm:px-4 sm:py-2.5 bg-transparent border-0 shadow-none">
                     <button
                       type="button"
                       onClick={() => {
                         soundManager.playCoin();
                         navigateToMenu('TITLE_MENU');
                       }}
-                      className="min-h-[38px] sm:min-h-[42px] px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-white/15 hover:bg-white/25 active:scale-[0.98] backdrop-blur-md border border-white/30 rounded-xl flex items-center gap-2 transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                      className="min-h-[38px] sm:min-h-[42px] px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-slate-950/55 hover:bg-slate-900/65 active:scale-[0.98] backdrop-blur-md border-2 border-white/25 rounded-xl flex items-center gap-2 transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
                     >
                       <ArrowLeft className="w-4 h-4 shrink-0" />
                       <span>HOME</span>
@@ -1438,17 +1437,17 @@ export default function App() {
                 </div>
               )}
 
-              {/* 5. HELP / CONTROLS & MECHANICS SCREEN */}
+              {/* 5. HELP / CONTROLS & MECHANICS SCREEN (Transparent Top Header Bar) */}
               {gameState === 'CONTROLS' && (
                 <div className="relative z-10 flex-1 min-h-0 w-full flex flex-col p-3.5 sm:p-5 overflow-hidden">
-                  <div className="shrink-0 flex items-center justify-between gap-3 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl bg-slate-950/45 backdrop-blur-md border border-white/25 shadow-lg">
+                  <div className="shrink-0 flex items-center justify-between gap-3 px-3.5 py-2 sm:px-4 sm:py-2.5 bg-transparent border-0 shadow-none">
                     <button
                       type="button"
                       onClick={() => {
                         soundManager.playCoin();
                         navigateToMenu('SETTINGS_HUB');
                       }}
-                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-white/15 hover:bg-white/25 active:scale-[0.98] backdrop-blur-md border border-white/30 rounded-xl flex items-center gap-1.5 transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-slate-950/55 hover:bg-slate-900/65 active:scale-[0.98] backdrop-blur-md border-2 border-white/25 rounded-xl flex items-center gap-1.5 transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
                     >
                       <ArrowLeft className="w-4 h-4 shrink-0" />
                       <span>BACK</span>
@@ -1459,7 +1458,7 @@ export default function App() {
                         soundManager.playCoin();
                         navigateToMenu('TITLE_MENU');
                       }}
-                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-white/15 hover:bg-white/25 active:scale-[0.98] backdrop-blur-md border border-white/30 rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-slate-950/55 hover:bg-slate-900/65 active:scale-[0.98] backdrop-blur-md border-2 border-white/25 rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
                     >
                       HOME
                     </button>
@@ -1565,17 +1564,17 @@ export default function App() {
                 </div>
               )}
 
-              {/* 6. AUDIO & SAVE SETTINGS SCREEN */}
+              {/* 6. AUDIO & SAVE SETTINGS SCREEN (Transparent Top Header Bar) */}
               {gameState === 'SETTINGS' && (
                 <div className="relative z-10 flex-1 min-h-0 w-full flex flex-col p-3.5 sm:p-5 overflow-hidden">
-                  <div className="shrink-0 flex items-center justify-between gap-3 px-3.5 py-2 sm:px-4 sm:py-2.5 rounded-2xl bg-slate-950/45 backdrop-blur-md border border-white/25 shadow-lg">
+                  <div className="shrink-0 flex items-center justify-between gap-3 px-3.5 py-2 sm:px-4 sm:py-2.5 bg-transparent border-0 shadow-none">
                     <button
                       type="button"
                       onClick={() => {
                         soundManager.playCoin();
                         navigateToMenu('SETTINGS_HUB');
                       }}
-                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-white/15 hover:bg-white/25 active:scale-[0.98] backdrop-blur-md border border-white/30 rounded-xl flex items-center gap-1.5 transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-slate-950/55 hover:bg-slate-900/65 active:scale-[0.98] backdrop-blur-md border-2 border-white/25 rounded-xl flex items-center gap-1.5 transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
                     >
                       <ArrowLeft className="w-4 h-4 shrink-0" />
                       <span>BACK</span>
@@ -1586,7 +1585,7 @@ export default function App() {
                         soundManager.playCoin();
                         navigateToMenu('TITLE_MENU');
                       }}
-                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-white/15 hover:bg-white/25 active:scale-[0.98] backdrop-blur-md border border-white/30 rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 font-pixel text-[10px] sm:text-xs text-white bg-slate-950/55 hover:bg-slate-900/65 active:scale-[0.98] backdrop-blur-md border-2 border-white/25 rounded-xl transition-all whitespace-nowrap shrink-0 cursor-pointer shadow-md"
                     >
                       HOME
                     </button>
@@ -1681,9 +1680,9 @@ export default function App() {
               data-ad-slot="HOME_BOTTOM_BANNER"
               role="region"
               aria-label="Advertisement Banner Placeholder"
-              className="mt-1.5 w-full h-[50px] sm:hidden shrink-0 rounded-xl bg-slate-900/75 border border-slate-800/90 flex items-center justify-center px-3 shadow-inner"
+              className="mt-1.5 w-full h-[50px] sm:hidden shrink-0 rounded-xl bg-slate-950/55 backdrop-blur-md border border-white/20 flex items-center justify-center px-3 shadow-inner"
             >
-              <span className="font-mono-num text-[10px] font-semibold tracking-widest uppercase text-slate-400/90 select-none">
+              <span className="font-pixel text-[8px] tracking-widest uppercase text-slate-300/90 select-none">
                 Ad Banner Space
               </span>
             </div>
