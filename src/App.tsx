@@ -931,7 +931,10 @@ export default function App() {
   const isPrimaryMenuScreen =
     gameState === 'TITLE_MENU' ||
     gameState === 'WORLD_SELECT' ||
-    gameState === 'LEVEL_SELECT';
+    gameState === 'LEVEL_SELECT' ||
+    gameState === 'SETTINGS_HUB' ||
+    gameState === 'SETTINGS' ||
+    gameState === 'CONTROLS';
 
   const isScrollLockedScreen = isGameplayView || isPrimaryMenuScreen;
 
@@ -950,7 +953,7 @@ export default function App() {
             : 'p-2 sm:px-4 sm:py-6 landscape:p-1 overflow-x-hidden'
         } max-w-full`}
       >
-        {/* UNIFIED LOCKED PRIMARY SCREEN SHELL (Home Screen, World Select Screen, and Level Select Screen) */}
+        {/* UNIFIED LOCKED PRIMARY SCREEN SHELL (Home, World Select, Level Select, Settings Hub, Audio Settings, and Controls & Help) */}
         {isPrimaryMenuScreen && (
           <div className="w-full h-full max-w-4xl sm:max-h-[640px] flex flex-col justify-between overflow-hidden">
             <div className="relative flex-1 min-h-0 w-full rounded-2xl overflow-hidden border-2 border-slate-800 shadow-2xl flex flex-col justify-between bg-slate-950">
@@ -1263,9 +1266,289 @@ export default function App() {
                   </div>
                 </div>
               )}
+
+              {/* 4. SETTINGS HUB PAGE (Audio Card & Help Card inside the Unified Locked Frame) */}
+              {gameState === 'SETTINGS_HUB' && (
+                <div className="relative z-10 flex-1 min-h-0 w-full flex flex-col p-3.5 sm:p-5 overflow-hidden">
+                  <div className="shrink-0 flex items-center justify-between gap-4 border-b border-slate-900/20 pb-2.5 sm:pb-3">
+                    <button
+                      onClick={() => navigateToMenu('TITLE_MENU')}
+                      className="min-h-[38px] sm:min-h-[42px] px-3.5 py-1.5 text-xs font-semibold text-slate-100 bg-slate-900/95 hover:bg-slate-800 border border-slate-700 rounded-xl flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      <span>Home</span>
+                    </button>
+                    <h2 className="font-pixel text-xs sm:text-sm text-white text-center bg-slate-950/90 border-2 border-amber-400 px-3.5 py-1.5 rounded-xl shadow-lg">
+                      SETTINGS
+                    </h2>
+                    <div className="w-16 hidden sm:block" />
+                  </div>
+
+                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain mt-2.5 sm:mt-3 pr-1 flex flex-col">
+                    <div className="my-auto w-full max-w-3xl mx-auto grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5">
+                      {/* AUDIO CARD -> Opens the Audio & Save Settings Page */}
+                      <button
+                        onClick={() => navigateToMenu('SETTINGS')}
+                        className="group text-left bg-slate-950/95 border-2 border-slate-800 hover:border-emerald-500/70 rounded-2xl p-5 sm:p-6 flex flex-col justify-between gap-5 transition-all cursor-pointer shadow-xl"
+                      >
+                        <div className="space-y-3.5">
+                          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
+                            <Volume2 className="w-5 h-5 sm:w-6 sm:h-6 text-emerald-400" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <h3 className="font-pixel text-sm sm:text-base text-white group-hover:text-emerald-400 transition-colors">
+                              AUDIO
+                            </h3>
+                            <p className="text-xs text-slate-300 leading-relaxed">
+                              Configure sound effects, 16-bit background music, master volume, and saved game data.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-3.5 border-t border-slate-800/80 text-xs font-semibold text-emerald-400">
+                          <span>Open Audio Settings</span>
+                          <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        </div>
+                      </button>
+
+                      {/* HELP CARD -> Opens the Controls & Mechanics Page */}
+                      <button
+                        onClick={() => navigateToMenu('CONTROLS')}
+                        className="group text-left bg-slate-950/95 border-2 border-slate-800 hover:border-amber-400/70 rounded-2xl p-5 sm:p-6 flex flex-col justify-between gap-5 transition-all cursor-pointer shadow-xl"
+                      >
+                        <div className="space-y-3.5">
+                          <div className="w-11 h-11 sm:w-12 sm:h-12 rounded-2xl bg-amber-400/15 border border-amber-400/30 flex items-center justify-center">
+                            <HelpCircle className="w-5 h-5 sm:w-6 sm:h-6 text-amber-400" />
+                          </div>
+                          <div className="space-y-1.5">
+                            <h3 className="font-pixel text-sm sm:text-base text-white group-hover:text-amber-400 transition-colors">
+                              HELP
+                            </h3>
+                            <p className="text-xs text-slate-300 leading-relaxed">
+                              View keyboard controls, power-up guides, platforming tips, and boss battle strategies.
+                            </p>
+                          </div>
+                        </div>
+
+                        <div className="flex items-center justify-between pt-3.5 border-t border-slate-800/80 text-xs font-semibold text-amber-400">
+                          <span>Open Controls & Help</span>
+                          <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
+                        </div>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 5. HELP / CONTROLS & MECHANICS SCREEN */}
+              {gameState === 'CONTROLS' && (
+                <div className="relative z-10 flex-1 min-h-0 w-full flex flex-col p-3.5 sm:p-5 overflow-hidden">
+                  <div className="shrink-0 flex items-center justify-between gap-3 border-b border-slate-900/20 pb-2.5 sm:pb-3">
+                    <button
+                      onClick={() => navigateToMenu('SETTINGS_HUB')}
+                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 text-xs font-semibold text-slate-100 bg-slate-900/95 hover:bg-slate-800 border border-slate-700 rounded-xl flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      <span>Back to Settings</span>
+                    </button>
+                    <h2 className="font-pixel text-[11px] sm:text-sm text-white text-center bg-slate-950/90 border-2 border-amber-400 px-3 py-1.5 rounded-xl shadow-lg">
+                      CONTROLS & HELP
+                    </h2>
+                    <button
+                      onClick={() => navigateToMenu('TITLE_MENU')}
+                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 text-xs font-semibold text-slate-100 bg-slate-900/95 hover:bg-slate-800 border border-slate-700 rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                    >
+                      Home
+                    </button>
+                  </div>
+
+                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain mt-2.5 sm:mt-3 pr-1 space-y-3.5">
+                    <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5 text-sm">
+                      <div className="space-y-2.5 bg-slate-950/95 p-4 rounded-xl border border-slate-800 shadow-lg">
+                        <h3 className="font-semibold text-emerald-400 text-xs sm:text-sm">Keyboard Controls</h3>
+                        <div className="space-y-2 text-slate-300 text-xs">
+                          <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                            <span>Move Left / Right</span>
+                            <span className="font-mono-num text-amber-300">A / D or Left / Right Arrows</span>
+                          </div>
+                          <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                            <span>Duck / Sit (When Grown)</span>
+                            <span className="font-mono-num text-amber-300">S or Down Arrow</span>
+                          </div>
+                          <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                            <span>Charged Super Jump (Big / Fire)</span>
+                            <span className="font-mono-num text-amber-300">Hold Down (1.5s) + Jump</span>
+                          </div>
+                          <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                            <span>Jump / Fly / Slow Fall</span>
+                            <span className="font-mono-num text-amber-300">Space, W, or Up Arrow</span>
+                          </div>
+                          <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
+                            <span>Sprint / Fireball / Tail Attack</span>
+                            <span className="font-mono-num text-amber-300">Shift, X, or J</span>
+                          </div>
+                          <div className="flex items-center justify-between py-1">
+                            <span>Pause / Resume Game</span>
+                            <span className="font-mono-num text-amber-300">Escape or P</span>
+                          </div>
+                        </div>
+                      </div>
+
+                      <div className="space-y-2.5 bg-slate-950/95 p-4 rounded-xl border border-slate-800 shadow-lg">
+                        <h3 className="font-semibold text-amber-400 text-xs sm:text-sm">Platforming Tips</h3>
+                        <ul className="space-y-1.5 text-xs text-slate-300 leading-relaxed list-disc list-inside">
+                          <li>Hold the Jump key longer for higher leaps across wide chasms.</li>
+                          <li>Hold Shift while moving to build sprint momentum and jump farther.</li>
+                          <li>In Big or Fire form, hold Down for 1.5 seconds until your character blinks, then press Jump for a massive Charged Super Jump!</li>
+                          <li>In Raccoon form, press Fire/Attack to spin your tail and hit enemies or blocks!</li>
+                          <li>In boss stages, wait for the boss to tire after attacking, then stomp its head, whip your Raccoon tail, or blast it with Fireballs to win!</li>
+                        </ul>
+                      </div>
+                    </div>
+
+                    {/* Power-Ups Reference Row */}
+                    <div className="bg-slate-950/95 border border-slate-800 rounded-xl p-4 space-y-2.5 shadow-lg">
+                      <div className="font-pixel text-xs text-amber-400">POWER-UP ITEMS</div>
+                      <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-3.5 text-xs">
+                        <div className="flex items-start gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-red-500/20 border border-red-500/40 flex items-center justify-center shrink-0">
+                            <Shield className="w-4 h-4 text-red-400" />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-slate-100">Growth Mushroom</div>
+                            <div className="text-slate-400">Grows Pip larger, breaks bricks & absorbs 1 hit.</div>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-amber-600/20 border border-amber-500/40 flex items-center justify-center shrink-0">
+                            <Feather className="w-4 h-4 text-amber-400" />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-slate-100">Raccoon Feather</div>
+                            <div className="text-slate-400">
+                              Fly on sprint-jumps, hold Jump to slow-fall, & press Fire/Shift to spin-attack!
+                            </div>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-orange-500/20 border border-orange-500/40 flex items-center justify-center shrink-0">
+                            <Flame className="w-4 h-4 text-orange-400" />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-slate-100">Solar Fire Flower</div>
+                            <div className="text-slate-400">Press Shift or X to launch bouncing fireballs.</div>
+                          </div>
+                        </div>
+                        <div className="flex items-start gap-2.5">
+                          <div className="w-8 h-8 rounded-lg bg-amber-400/20 border border-amber-400/40 flex items-center justify-center shrink-0">
+                            <Sparkles className="w-4 h-4 text-amber-300" />
+                          </div>
+                          <div>
+                            <div className="font-semibold text-slate-100">Invincibility Star</div>
+                            <div className="text-slate-400">Temporary rainbow armor defeats foes on touch.</div>
+                          </div>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* 6. AUDIO & SAVE SETTINGS SCREEN */}
+              {gameState === 'SETTINGS' && (
+                <div className="relative z-10 flex-1 min-h-0 w-full flex flex-col p-3.5 sm:p-5 overflow-hidden">
+                  <div className="shrink-0 flex items-center justify-between gap-3 border-b border-slate-900/20 pb-2.5 sm:pb-3">
+                    <button
+                      onClick={() => navigateToMenu('SETTINGS_HUB')}
+                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 text-xs font-semibold text-slate-100 bg-slate-900/95 hover:bg-slate-800 border border-slate-700 rounded-xl flex items-center gap-1.5 transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                    >
+                      <ArrowLeft className="w-4 h-4" />
+                      <span>Back to Settings</span>
+                    </button>
+                    <div className="flex items-center gap-2 bg-slate-950/90 border-2 border-amber-400 px-3.5 py-1.5 rounded-xl shadow-lg">
+                      <Sliders className="w-4 h-4 text-emerald-400" />
+                      <h2 className="font-pixel text-xs sm:text-sm text-white">AUDIO</h2>
+                    </div>
+                    <button
+                      onClick={() => navigateToMenu('TITLE_MENU')}
+                      className="min-h-[38px] sm:min-h-[42px] px-3 sm:px-3.5 py-1.5 text-xs font-semibold text-slate-100 bg-slate-900/95 hover:bg-slate-800 border border-slate-700 rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer shadow-md"
+                    >
+                      Home
+                    </button>
+                  </div>
+
+                  <div className="flex-1 min-h-0 overflow-y-auto overscroll-contain mt-2.5 sm:mt-3 pr-1 flex flex-col">
+                    <div className="my-auto w-full max-w-xl mx-auto space-y-3">
+                      <div className="flex items-center justify-between p-3.5 sm:p-4 bg-slate-950/95 rounded-xl border border-slate-800 shadow-lg">
+                        <div>
+                          <div className="text-xs sm:text-sm font-semibold text-white">Sound Effects (SFX)</div>
+                          <div className="text-[11px] sm:text-xs text-slate-400">Jumps, coins, block breaks, and boss hits</div>
+                        </div>
+                        <button
+                          onClick={toggleSound}
+                          className={`min-h-[40px] sm:min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                            saveData.soundEnabled
+                              ? 'bg-emerald-500 text-slate-950'
+                              : 'bg-slate-800 text-slate-400'
+                          }`}
+                        >
+                          {saveData.soundEnabled ? 'Enabled' : 'Muted'}
+                        </button>
+                      </div>
+
+                      <div className="flex items-center justify-between p-3.5 sm:p-4 bg-slate-950/95 rounded-xl border border-slate-800 shadow-lg">
+                        <div>
+                          <div className="text-xs sm:text-sm font-semibold text-white">16-Bit Chiptune Music</div>
+                          <div className="text-[11px] sm:text-xs text-slate-400">Synthesized stage themes for all levels</div>
+                        </div>
+                        <button
+                          onClick={toggleMusic}
+                          className={`min-h-[40px] sm:min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
+                            saveData.musicEnabled
+                              ? 'bg-emerald-500 text-slate-950'
+                              : 'bg-slate-800 text-slate-400'
+                          }`}
+                        >
+                          {saveData.musicEnabled ? 'Playing' : 'Muted'}
+                        </button>
+                      </div>
+
+                      <div className="p-3.5 sm:p-4 bg-slate-950/95 rounded-xl border border-slate-800 space-y-2 shadow-lg">
+                        <div className="flex items-center justify-between text-xs">
+                          <span className="font-semibold text-white">Master Volume</span>
+                          <span className="font-mono-num text-amber-400">
+                            {Math.round(saveData.volume * 100)}%
+                          </span>
+                        </div>
+                        <input
+                          type="range"
+                          min={0}
+                          max={1}
+                          step={0.05}
+                          value={saveData.volume}
+                          onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
+                          className="w-full accent-emerald-400 cursor-pointer"
+                        />
+                      </div>
+
+                      <div className="flex items-center justify-between p-3.5 sm:p-4 bg-slate-950/95 rounded-xl border border-slate-800 shadow-lg gap-3">
+                        <div className="text-[11px] sm:text-xs text-slate-400">
+                          Reset unlocked levels and high scores in localStorage
+                        </div>
+                        <button
+                          onClick={handleResetSave}
+                          className="min-h-[40px] sm:min-h-[44px] px-3.5 py-2 text-xs font-semibold text-red-300 bg-red-950/60 hover:bg-red-900/70 border border-red-800/60 rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer"
+                        >
+                          Reset Save Data
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Mobile Portrait Bottom Ad Banner Placeholder (Consistent 50px footprint across Home, World Select, and Level Select so the main frame never shifts or resizes) */}
+            {/* Mobile Portrait Bottom Ad Banner Placeholder (Consistent 50px footprint across all non-gameplay screens so the main frame never shifts or resizes) */}
             <div
               id="mobile-home-ad-banner-slot"
               data-ad-slot="HOME_BOTTOM_BANNER"
@@ -1276,278 +1559,6 @@ export default function App() {
               <span className="font-mono-num text-[10px] font-semibold tracking-widest uppercase text-slate-400/90 select-none">
                 Ad Banner Space
               </span>
-            </div>
-          </div>
-        )}
-
-        {/* 4. SETTINGS HUB PAGE (Opens when clicking Settings on Home Screen, showing Audio Card & Help Card) */}
-        {gameState === 'SETTINGS_HUB' && (
-          <div className="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8 space-y-6 shadow-2xl">
-            <div className="flex items-center justify-between gap-4 border-b border-slate-800 pb-4">
-              <button
-                onClick={() => navigateToMenu('TITLE_MENU')}
-                className="min-h-[44px] px-4 py-2 text-xs font-semibold text-slate-200 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center gap-2 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Home</span>
-              </button>
-              <h2 className="font-pixel text-base sm:text-lg text-white">SETTINGS</h2>
-              <div className="w-20 hidden sm:block" />
-            </div>
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-5">
-              {/* AUDIO CARD -> Opens the Audio & Save Settings Page */}
-              <button
-                onClick={() => navigateToMenu('SETTINGS')}
-                className="group text-left bg-slate-950 border-2 border-slate-800 hover:border-emerald-500/70 rounded-2xl p-6 flex flex-col justify-between gap-6 transition-all cursor-pointer shadow-lg"
-              >
-                <div className="space-y-4">
-                  <div className="w-12 h-12 rounded-2xl bg-emerald-500/15 border border-emerald-500/30 flex items-center justify-center">
-                    <Volume2 className="w-6 h-6 text-emerald-400" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <h3 className="font-pixel text-base text-white group-hover:text-emerald-400 transition-colors">
-                      AUDIO
-                    </h3>
-                    <p className="text-xs text-slate-400 leading-relaxed">
-                      Configure sound effects, 16-bit background music, master volume, and saved game data.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-4 border-t border-slate-800/80 text-xs font-semibold text-emerald-400">
-                  <span>Open Audio Settings</span>
-                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </button>
-
-              {/* HELP CARD -> Opens the Controls & Mechanics Page */}
-              <button
-                onClick={() => navigateToMenu('CONTROLS')}
-                className="group text-left bg-slate-950 border-2 border-slate-800 hover:border-amber-400/70 rounded-2xl p-6 flex flex-col justify-between gap-6 transition-all cursor-pointer shadow-lg"
-              >
-                <div className="space-y-4">
-                  <div className="w-12 h-12 rounded-2xl bg-amber-400/15 border border-amber-400/30 flex items-center justify-center">
-                    <HelpCircle className="w-6 h-6 text-amber-400" />
-                  </div>
-                  <div className="space-y-1.5">
-                    <h3 className="font-pixel text-base text-white group-hover:text-amber-400 transition-colors">
-                      HELP
-                    </h3>
-                    <p className="text-xs text-slate-400 leading-relaxed">
-                      View keyboard controls, power-up guides, platforming tips, and boss battle strategies.
-                    </p>
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-4 border-t border-slate-800/80 text-xs font-semibold text-amber-400">
-                  <span>Open Controls & Help</span>
-                  <ChevronRight className="w-4 h-4 group-hover:translate-x-1 transition-transform" />
-                </div>
-              </button>
-            </div>
-          </div>
-        )}
-
-        {/* 5. HELP / CONTROLS & MECHANICS SCREEN */}
-        {gameState === 'CONTROLS' && (
-          <div className="w-full max-w-3xl bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8 space-y-6 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <button
-                onClick={() => navigateToMenu('SETTINGS_HUB')}
-                className="min-h-[44px] px-4 py-2 text-xs font-semibold text-slate-200 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center gap-2 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Back to Settings</span>
-              </button>
-              <h2 className="font-pixel text-sm sm:text-base md:text-lg text-white">
-                CONTROLS & HELP
-              </h2>
-              <button
-                onClick={() => navigateToMenu('TITLE_MENU')}
-                className="min-h-[44px] px-3.5 py-2 text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-              >
-                Home
-              </button>
-            </div>
-
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-6 text-sm">
-              <div className="space-y-3 bg-slate-950 p-5 rounded-xl border border-slate-800">
-                <h3 className="font-semibold text-emerald-400">Keyboard Controls</h3>
-                <div className="space-y-2.5 text-slate-300 text-xs">
-                  <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                    <span>Move Left / Right</span>
-                    <span className="font-mono-num text-amber-300">A / D or Left / Right Arrows</span>
-                  </div>
-                  <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                    <span>Duck / Sit (When Grown)</span>
-                    <span className="font-mono-num text-amber-300">S or Down Arrow</span>
-                  </div>
-                  <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                    <span>Charged Super Jump (Big / Fire)</span>
-                    <span className="font-mono-num text-amber-300">Hold Down (1.5s) + Jump</span>
-                  </div>
-                  <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                    <span>Jump / Fly / Slow Fall</span>
-                    <span className="font-mono-num text-amber-300">Space, W, or Up Arrow</span>
-                  </div>
-                  <div className="flex items-center justify-between py-1 border-b border-slate-800/60">
-                    <span>Sprint / Fireball / Tail Attack</span>
-                    <span className="font-mono-num text-amber-300">Shift, X, or J</span>
-                  </div>
-                  <div className="flex items-center justify-between py-1">
-                    <span>Pause / Resume Game</span>
-                    <span className="font-mono-num text-amber-300">Escape or P</span>
-                  </div>
-                </div>
-              </div>
-
-              <div className="space-y-3 bg-slate-950 p-5 rounded-xl border border-slate-800">
-                <h3 className="font-semibold text-amber-400">Platforming Tips</h3>
-                <ul className="space-y-2 text-xs text-slate-300 leading-relaxed list-disc list-inside">
-                  <li>Hold the Jump key longer for higher leaps across wide chasms.</li>
-                  <li>Hold Shift while moving to build sprint momentum and jump farther.</li>
-                  <li>In Big or Fire form, hold Down for 1.5 seconds until your character blinks, then press Jump for a massive Charged Super Jump!</li>
-                  <li>In Raccoon form, press Fire/Attack to spin your tail and hit enemies or blocks!</li>
-                  <li>In boss stages, wait for the boss to tire after attacking, then stomp its head, whip your Raccoon tail, or blast it with Fireballs to win!</li>
-                </ul>
-              </div>
-            </div>
-
-            {/* Power-Ups Reference Row */}
-            <div className="bg-slate-950 border border-slate-800 rounded-xl p-5 space-y-3">
-              <div className="font-pixel text-xs text-amber-400">POWER-UP ITEMS</div>
-              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 text-xs">
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-red-500/20 border border-red-500/40 flex items-center justify-center shrink-0">
-                    <Shield className="w-4 h-4 text-red-400" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-slate-100">Growth Mushroom</div>
-                    <div className="text-slate-400">Grows Pip larger, breaks bricks & absorbs 1 hit.</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-amber-600/20 border border-amber-500/40 flex items-center justify-center shrink-0">
-                    <Feather className="w-4 h-4 text-amber-400" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-slate-100">Raccoon Feather</div>
-                    <div className="text-slate-400">
-                      Fly on sprint-jumps, hold Jump to slow-fall, & press Fire/Shift to spin-attack!
-                    </div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-orange-500/20 border border-orange-500/40 flex items-center justify-center shrink-0">
-                    <Flame className="w-4 h-4 text-orange-400" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-slate-100">Solar Fire Flower</div>
-                    <div className="text-slate-400">Press Shift or X to launch bouncing fireballs.</div>
-                  </div>
-                </div>
-                <div className="flex items-start gap-3">
-                  <div className="w-8 h-8 rounded-lg bg-amber-400/20 border border-amber-400/40 flex items-center justify-center shrink-0">
-                    <Sparkles className="w-4 h-4 text-amber-300" />
-                  </div>
-                  <div>
-                    <div className="font-semibold text-slate-100">Invincibility Star</div>
-                    <div className="text-slate-400">Temporary rainbow armor defeats foes on touch.</div>
-                  </div>
-                </div>
-              </div>
-            </div>
-          </div>
-        )}
-
-        {/* 6. AUDIO & SAVE SETTINGS SCREEN */}
-        {gameState === 'SETTINGS' && (
-          <div className="w-full max-w-xl bg-slate-900 border border-slate-800 rounded-2xl p-6 md:p-8 space-y-6 shadow-2xl">
-            <div className="flex items-center justify-between border-b border-slate-800 pb-4">
-              <button
-                onClick={() => navigateToMenu('SETTINGS_HUB')}
-                className="min-h-[44px] px-4 py-2 text-xs font-semibold text-slate-200 bg-slate-800 hover:bg-slate-700 rounded-xl flex items-center gap-2 transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-              >
-                <ArrowLeft className="w-4 h-4" />
-                <span>Back to Settings</span>
-              </button>
-              <div className="flex items-center gap-2">
-                <Sliders className="w-4 h-4 text-emerald-400" />
-                <h2 className="font-pixel text-sm sm:text-base text-white">AUDIO</h2>
-              </div>
-              <button
-                onClick={() => navigateToMenu('TITLE_MENU')}
-                className="min-h-[44px] px-3.5 py-2 text-xs font-medium text-slate-300 bg-slate-800 hover:bg-slate-700 rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-              >
-                Home
-              </button>
-            </div>
-
-            <div className="space-y-4">
-              <div className="flex items-center justify-between p-4 bg-slate-950 rounded-xl border border-slate-800">
-                <div>
-                  <div className="text-sm font-semibold text-white">Sound Effects (SFX)</div>
-                  <div className="text-xs text-slate-400">Jumps, coins, block breaks, and boss hits</div>
-                </div>
-                <button
-                  onClick={toggleSound}
-                  className={`min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                    saveData.soundEnabled
-                      ? 'bg-emerald-500 text-slate-950'
-                      : 'bg-slate-800 text-slate-400'
-                  }`}
-                >
-                  {saveData.soundEnabled ? 'Enabled' : 'Muted'}
-                </button>
-              </div>
-
-              <div className="flex items-center justify-between p-4 bg-slate-950 rounded-xl border border-slate-800">
-                <div>
-                  <div className="text-sm font-semibold text-white">16-Bit Chiptune Music</div>
-                  <div className="text-xs text-slate-400">Synthesized stage themes for all 5 levels</div>
-                </div>
-                <button
-                  onClick={toggleMusic}
-                  className={`min-h-[44px] px-4 py-2 rounded-xl text-xs font-bold transition-colors whitespace-nowrap shrink-0 cursor-pointer ${
-                    saveData.musicEnabled
-                      ? 'bg-emerald-500 text-slate-950'
-                      : 'bg-slate-800 text-slate-400'
-                  }`}
-                >
-                  {saveData.musicEnabled ? 'Playing' : 'Muted'}
-                </button>
-              </div>
-
-              <div className="p-4 bg-slate-950 rounded-xl border border-slate-800 space-y-2">
-                <div className="flex items-center justify-between text-xs">
-                  <span className="font-semibold text-white">Master Volume</span>
-                  <span className="font-mono-num text-amber-400">
-                    {Math.round(saveData.volume * 100)}%
-                  </span>
-                </div>
-                <input
-                  type="range"
-                  min={0}
-                  max={1}
-                  step={0.05}
-                  value={saveData.volume}
-                  onChange={(e) => handleVolumeChange(parseFloat(e.target.value))}
-                  className="w-full accent-emerald-400 cursor-pointer"
-                />
-              </div>
-
-              <div className="pt-2 flex items-center justify-between border-t border-slate-800">
-                <div className="text-xs text-slate-400">
-                  Reset unlocked levels and high scores in localStorage
-                </div>
-                <button
-                  onClick={handleResetSave}
-                  className="min-h-[44px] px-3.5 py-2 text-xs font-semibold text-red-300 bg-red-950/60 hover:bg-red-900/70 border border-red-800/60 rounded-xl transition-colors whitespace-nowrap shrink-0 cursor-pointer"
-                >
-                  Reset Save Data
-                </button>
-              </div>
             </div>
           </div>
         )}
