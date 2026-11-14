@@ -379,17 +379,18 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
 
 ## 9. Expo / React Native Mobile Migration & Google AdMob Integration (`react-native-game/` — Expo SDK 58)
 
-The complete web platformer is cloned and packaged into a standalone **Expo SDK 58 (`~58.0.25`) / React Native `0.88.1` / React `19.3.0`** mobile project inside `/react-native-game/` with native **Google AdMob (`react-native-google-mobile-ads`)** Banner and Rewarded Ads (full usage instructions in `/react-native-game/README.md`). Future AI agents modifying either the web game or the mobile app must adhere to these rules:
+The complete web platformer is cloned and packaged into a standalone **Expo SDK 58 (`58.0.25`) / React Native `0.88.1` / React `19.3.0`** mobile project inside `/react-native-game/` with native **Google AdMob (`react-native-google-mobile-ads@17.4.0`)** Banner and Rewarded Ads (full usage instructions in `/react-native-game/README.md`). Future AI agents modifying either the web game or the mobile app must adhere to these rules:
 
-1. **Project Directory, SDK 58 Versions & Structure (`/react-native-game/`)**:
-   - **Expo SDK 58 Stack (`react-native-game/package.json`)**:
-     - `expo`: `~58.0.25`, `expo-dev-client`: `~58.0.20`
+1. **Project Directory, Locked SDK 58 Versions & Structure (`/react-native-game/`)**:
+   - **Locked Expo SDK 58 Stack (`react-native-game/package.json`)**:
+     - `expo`: `58.0.25`, `expo-dev-client`: `58.0.20`
      - `react`: `19.3.0`, `react-dom`: `19.3.0`, `react-native`: `0.88.1`
-     - `react-native-google-mobile-ads`: `^14.11.0`
+     - `react-native-google-mobile-ads`: `17.4.0` (**CRITICAL for Gradle / AGP 8+ & RN 0.88.1 New Architecture**: Never downgrade to `14.x` or `15.x`, which lack `namespace = "io.invertase.googlemobileads"`, use deprecated Groovy space-assignment in `build.gradle`, and fail during the EAS `Run gradlew` step on React Native `0.88.1` / `compileSdk 36`).
+     - `react-native-safe-area-context`: `5.11.1`
      - `react-native-webview`: `14.0.1`
      - `@react-native-async-storage/async-storage`: `2.2.0`
-     - `expo-screen-orientation`: `~58.0.4`, `expo-navigation-bar`: `~58.0.4`, `expo-splash-screen`: `~58.0.14`, `expo-status-bar`: `~58.0.5`, `expo-asset`: `~58.0.21`, `expo-constants`: `~58.0.16`, `react-native-safe-area-context`: `~5.11.1`, `typescript`: `~6.0.3`
-   - **Environment Configuration (`react-native-game/.env` & `react-native-game/.env.example`)**:
+     - `expo-screen-orientation`: `58.0.4`, `expo-navigation-bar`: `58.0.4`, `expo-splash-screen`: `58.0.14`, `expo-status-bar`: `58.0.5`, `expo-asset`: `58.0.21`, `expo-constants`: `58.0.16`, `typescript`: `6.0.3`
+   - **Environment Configuration (`react-native-game/.env`, `react-native-game/.env.example`, & `react-native-game/eas.json`)**:
      - Isolated inside `react-native-game/` (separate from the root web project) and configured with official Google AdMob test IDs for Android and iOS:
        - `EXPO_PUBLIC_ADMOB_ANDROID_APP_ID=ca-app-pub-3940256099942544~3375010800`
        - `EXPO_PUBLIC_ADMOB_ANDROID_BANNER_ID=ca-app-pub-3940256099942544/6300978111`
@@ -397,8 +398,10 @@ The complete web platformer is cloned and packaged into a standalone **Expo SDK 
        - `EXPO_PUBLIC_ADMOB_IOS_APP_ID=ca-app-pub-3940256099942544~1458002511`
        - `EXPO_PUBLIC_ADMOB_IOS_BANNER_ID=ca-app-pub-3940256099942544/2934735716`
        - `EXPO_PUBLIC_ADMOB_IOS_REWARDED_ID=ca-app-pub-3940256099942544/1712485313`
-   - **Dynamic Expo Config Plugin (`react-native-game/app.config.js`)**:
-     - Reads `process.env.EXPO_PUBLIC_ADMOB_ANDROID_APP_ID` and `process.env.EXPO_PUBLIC_ADMOB_IOS_APP_ID` and injects them into the `react-native-google-mobile-ads` config plugin (`androidAppId`, `iosAppId`, `delayAppMeasurementInit: true`).
+     - These environment variables are also embedded in the `development` and `preview` profiles of `react-native-game/eas.json` (`"developmentClient": true`, `"distribution": "internal"`, `"android": { "buildType": "apk" }`) so cloud EAS builds always have the App IDs available during prebuild.
+   - **Dual Expo Plugin Config (`react-native-game/app.json` & `react-native-game/app.config.js`)**:
+     - `app.config.js` reads `process.env.EXPO_PUBLIC_ADMOB_ANDROID_APP_ID` and `process.env.EXPO_PUBLIC_ADMOB_IOS_APP_ID` and injects them into the `react-native-google-mobile-ads` config plugin (`androidAppId`, `iosAppId`, `delayAppMeasurementInit: true`, `optimizeInitialization: true`, `optimizeAdLoading: true`).
+     - `app.json` also includes the `"react-native-google-mobile-ads"` plugin entry inside `expo.plugins` with the official test App IDs (`androidAppId`, `iosAppId`, `delayAppMeasurementInit: true`, `optimizeInitialization: true`, `optimizeAdLoading: true`), while keeping `"expo"` as the sole root key in `app.json` so `@expo/config` emits zero root-object warnings during `expo prebuild` and EAS builds.
    - **Native AdMob Modules (`react-native-game/src/ads/`)**:
      - `admobConfig.ts`: Selects the Android or iOS Banner and Rewarded Ad Unit IDs from `process.env.EXPO_PUBLIC_ADMOB_*` with official Google test ID fallbacks.
      - `AdBannerSlot.tsx` & `AdBannerSlot.web.tsx`: Mounts `<BannerAd unitId={...} size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER} />` in the bottom mobile menu slot when `visible={isMenuScreen}` is true, hides it completely during active gameplay (`PLAYING`, `PAUSED`, `LEVEL_COMPLETE`, `WORLD_VICTORY`, `GAME_OVER`, `TIME_OUT`), and uses a clean no-op on Web (`AdBannerSlot.web.tsx`). Inside `src/App.tsx`, `#mobile-home-ad-banner-slot` is hidden when `isNativeExpoApp` is true so the native `<AdBannerSlot />` occupies that bottom slot without duplication.
@@ -425,8 +428,6 @@ The complete web platformer is cloned and packaged into a standalone **Expo SDK 
      - `WORLD_SELECT` / `SETTINGS_HUB` $\rightarrow$ Navigates to `TITLE_MENU` (Home Screen).
      - `TITLE_MENU` (Root Home Screen) $\rightarrow$ Posts `BACK_AT_ROOT` to React Native, which displays `"Press Back again to exit Crown of Emeraldia"` (`ToastAndroid.SHORT`) and exits only on a second press within 2 seconds.
 
-5. **Google Play Store Icon & Splash Screen Assets**:
-   - `react-native-game/assets/icon.png` & `react-native-game/assets/adaptive-icon.png`: High-resolution 1:1 App Icon (`#0f2942` adaptive background).
-   - `react-native-game/assets/playstore-icon-512.png` (also copied to `/public/assets/playstore/icon-512.png`): 1:1 Google Play Store listing icon.
-   - `react-native-game/assets/splash-icon.png` (also copied to `/public/assets/playstore/splash-screen.png`): 9:16 vertical pixel-art Splash Screen configured in `react-native-game/app.json` and `react-native-game/app.config.js`.
+5. **Google Play Store Icon & Splash Screen Assets (Strict Valid PNG Requirement for Android AAPT2)**:
+   - All `.png` files inside `react-native-game/assets/` (`icon.png` 1024×1024, `adaptive-icon.png` 1024×1024, `playstore-icon-512.png` 512×512, `splash-icon.png` 1080×1920, `favicon.png` 48×48) MUST be genuine PNG-encoded files (`89 50 4E 47 0D 0A 1A 0A` header). Never copy JPEG files with a `.png` extension, as Android's AAPT2 resource compiler (`:app:mergeDebugResources` during `Run gradlew`) strictly validates PNG magic bytes and fails the build if a `.png` resource contains JPEG data.
 

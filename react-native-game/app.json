@@ -55,6 +55,16 @@
           "image": "./assets/splash-icon.png",
           "imageWidth": 280
         }
+      ],
+      [
+        "react-native-google-mobile-ads",
+        {
+          "androidAppId": "ca-app-pub-3940256099942544~3375010800",
+          "iosAppId": "ca-app-pub-3940256099942544~1458002511",
+          "delayAppMeasurementInit": true,
+          "optimizeInitialization": true,
+          "optimizeAdLoading": true
+        }
       ]
     ],
     "extra": {

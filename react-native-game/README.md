@@ -1,6 +1,6 @@
 # Crown of Emeraldia — Expo / React Native Mobile Edition (Expo SDK 58 + Google AdMob)
 
-A complete, standalone **React Native (Expo SDK 58 / `~58.0.25`, React `19.3.0`, React Native `0.88.1`)** mobile edition of **Crown of Emeraldia** featuring all 10 Worlds (50 levels), 16-bit pixel-art graphics, synthesized Web Audio chiptune soundtrack, 60Hz fixed-timestep physics, dynamic Portrait/Landscape orientation switching, native Android hardware/gesture Back Button navigation, `AsyncStorage` save persistence, **Google AdMob Banner & Rewarded Ads (`react-native-google-mobile-ads`)**, and Google Play Store icon & splash assets.
+A complete, standalone **React Native (Expo SDK 58 / `58.0.25`, React `19.3.0`, React Native `0.88.1`)** mobile edition of **Crown of Emeraldia** featuring all 10 Worlds (50 levels), 16-bit pixel-art graphics, synthesized Web Audio chiptune soundtrack, 60Hz fixed-timestep physics, dynamic Portrait/Landscape orientation switching, native Android hardware/gesture Back Button navigation, `AsyncStorage` save persistence, **Google AdMob Banner & Rewarded Ads (`react-native-google-mobile-ads@17.4.0`)**, and Google Play Store icon & splash assets.
 
 ---
 
@@ -9,20 +9,20 @@ A complete, standalone **React Native (Expo SDK 58 / `~58.0.25`, React `19.3.0`,
 ```text
 react-native-game/
 ├── App.tsx                           # Main Expo React Native host (60FPS WebView, AdMob Banner & Rewarded Ads, BackHandler, Orientation, AsyncStorage)
-├── app.json                          # Base static Expo configuration (App Icon, Adaptive Icon, Splash Screen, Orientation)
+├── app.json                          # Base static Expo & AdMob Gradle configuration (App Icon, Adaptive Icon, Splash Screen, Orientation, AdMob IDs)
 ├── app.config.js                     # Dynamic Expo config reading EXPO_PUBLIC_ADMOB_* env vars into the react-native-google-mobile-ads plugin
 ├── .env                              # Local environment variables (configured with official Google AdMob test IDs)
 ├── .env.example                      # Template environment variables with official Google AdMob test IDs
-├── eas.json                          # EAS Build profiles (development APK, preview APK, production Play Store AAB)
-├── package.json                      # Expo SDK 58 (~58.0.25) dependencies, expo-dev-client, and react-native-google-mobile-ads
+├── eas.json                          # EAS Build profiles (development APK, preview APK, production Play Store AAB + AdMob env vars)
+├── package.json                      # Pinned Expo SDK 58 (58.0.25) dependencies, expo-dev-client (58.0.20), and react-native-google-mobile-ads (17.4.0)
 ├── babel.config.js                   # Babel preset configuration for Expo
 ├── metro.config.js                   # Metro bundler configuration
-├── tsconfig.json                     # TypeScript (~6.0.3) configuration
+├── tsconfig.json                     # TypeScript (6.0.3) configuration
 ├── assets/
-│   ├── icon.png                      # High-resolution 1:1 App Icon (1024×1024)
-│   ├── adaptive-icon.png             # Android Adaptive Icon Foreground (1024×1024)
-│   ├── playstore-icon-512.png        # Google Play Console High-Res Icon (512×512)
-│   ├── splash-icon.png               # Vertical 9:16 Splash Screen Artwork
+│   ├── icon.png                      # High-resolution 1:1 App Icon (1024×1024 valid PNG)
+│   ├── adaptive-icon.png             # Android Adaptive Icon Foreground (1024×1024 valid PNG)
+│   ├── playstore-icon-512.png        # Google Play Console High-Res Icon (512×512 valid PNG)
+│   ├── splash-icon.png               # Vertical 9:16 Splash Screen Artwork (1080×1920 valid PNG)
 │   ├── favicon.png                   # Web Favicon
 │   └── game-bundle.html              # Pre-compiled standalone offline HTML5 Canvas game bundle
 ├── scripts/

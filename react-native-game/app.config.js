@@ -28,6 +28,8 @@ module.exports = ({ config }) => {
           androidAppId,
           iosAppId,
           delayAppMeasurementInit: true,
+          optimizeInitialization: true,
+          optimizeAdLoading: true,
         },
       ],
     ],

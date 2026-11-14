@@ -16,24 +16,24 @@
   },
   "dependencies": {
     "@react-native-async-storage/async-storage": "2.2.0",
-    "expo": "~58.0.25",
-    "expo-asset": "~58.0.21",
-    "expo-constants": "~58.0.16",
-    "expo-dev-client": "~58.0.20",
-    "expo-navigation-bar": "~58.0.4",
-    "expo-screen-orientation": "~58.0.4",
-    "expo-splash-screen": "~58.0.14",
-    "expo-status-bar": "~58.0.5",
+    "expo": "58.0.25",
+    "expo-asset": "58.0.21",
+    "expo-constants": "58.0.16",
+    "expo-dev-client": "58.0.20",
+    "expo-navigation-bar": "58.0.4",
+    "expo-screen-orientation": "58.0.4",
+    "expo-splash-screen": "58.0.14",
+    "expo-status-bar": "58.0.5",
     "react": "19.3.0",
     "react-dom": "19.3.0",
     "react-native": "0.88.1",
-    "react-native-google-mobile-ads": "^14.11.0",
-    "react-native-safe-area-context": "~5.11.1",
+    "react-native-google-mobile-ads": "17.4.0",
+    "react-native-safe-area-context": "5.11.1",
     "react-native-webview": "14.0.1"
   },
   "devDependencies": {
-    "@babel/core": "^7.25.2",
-    "@types/react": "~19.3.0",
-    "typescript": "~6.0.3"
+    "@babel/core": "7.25.2",
+    "@types/react": "19.3.0",
+    "typescript": "6.0.3"
   }
 }
