@@ -3,6 +3,33 @@ const appJson = require('./app.json');
 const ANDROID_TEST_APP_ID = 'ca-app-pub-3940256099942544~3347511713';
 const IOS_TEST_APP_ID = 'ca-app-pub-3940256099942544~1458002511';
 
+/**
+ * Custom Expo config plugin that ensures Android release/preview builds
+ * do not strip React Native New Architecture / AdMob classes via R8 minification.
+ */
+function withSafeReleaseGradleProperties(config) {
+  try {
+    const { withGradleProperties } = require('@expo/config-plugins');
+    return withGradleProperties(config, (modConfig) => {
+      const props = Array.isArray(modConfig.modResults) ? modConfig.modResults : [];
+      const setProp = (key, value) => {
+        const existing = props.find((item) => item.type === 'property' && item.key === key);
+        if (existing) {
+          existing.value = value;
+        } else {
+          props.push({ type: 'property', key, value });
+        }
+      };
+      setProp('android.enableMinifyInReleaseBuilds', 'false');
+      setProp('android.enableShrinkResourcesInReleaseBuilds', 'false');
+      modConfig.modResults = props;
+      return modConfig;
+    });
+  } catch {
+    return config;
+  }
+}
+
 module.exports = ({ config }) => {
   const baseExpoConfig = appJson.expo || config || {};
   const androidAppId =
@@ -18,8 +45,9 @@ module.exports = ({ config }) => {
       )
     : [];
 
-  return {
+  const nextConfig = {
     ...baseExpoConfig,
+    orientation: 'portrait',
     plugins: [
       ...existingPlugins,
       [
@@ -27,7 +55,7 @@ module.exports = ({ config }) => {
         {
           androidAppId,
           iosAppId,
-          delayAppMeasurementInit: true,
+          delayAppMeasurementInit: false,
           optimizeInitialization: true,
           optimizeAdLoading: true,
         },
@@ -53,4 +81,6 @@ module.exports = ({ config }) => {
       },
     },
   };
+
+  return withSafeReleaseGradleProperties(nextConfig);
 };

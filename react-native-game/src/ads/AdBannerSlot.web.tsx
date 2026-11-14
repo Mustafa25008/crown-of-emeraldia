@@ -2,6 +2,7 @@ import React from 'react';
 
 export interface AdBannerSlotProps {
   visible: boolean;
+  sdkReady?: boolean;
 }
 
 /**

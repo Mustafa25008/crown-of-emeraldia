@@ -3,14 +3,14 @@
     "name": "Crown of Emeraldia",
     "slug": "crown-of-emeraldia",
     "version": "1.0.0",
-    "orientation": "default",
+    "orientation": "portrait",
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "backgroundColor": "#020617",
     "splash": {
       "image": "./assets/splash-icon.png",
-      "resizeMode": "cover",
+      "resizeMode": "contain",
       "backgroundColor": "#020617"
     },
     "ios": {
@@ -34,6 +34,8 @@
         "backgroundColor": "#0f2942"
       },
       "permissions": [
+        "INTERNET",
+        "ACCESS_NETWORK_STATE",
         "VIBRATE"
       ]
     },
@@ -52,8 +54,8 @@
         "expo-splash-screen",
         {
           "backgroundColor": "#020617",
-          "image": "./assets/splash-icon.png",
-          "imageWidth": 280
+          "image": "./assets/icon.png",
+          "imageWidth": 200
         }
       ],
       [
@@ -61,7 +63,7 @@
         {
           "androidAppId": "ca-app-pub-3940256099942544~3347511713",
           "iosAppId": "ca-app-pub-3940256099942544~1458002511",
-          "delayAppMeasurementInit": true,
+          "delayAppMeasurementInit": false,
           "optimizeInitialization": true,
           "optimizeAdLoading": true
         }

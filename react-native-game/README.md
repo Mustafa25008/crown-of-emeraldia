@@ -49,19 +49,19 @@ This project isolates its mobile environment variables inside `react-native-game
 
 ```env
 # Android Google AdMob Test IDs
-EXPO_PUBLIC_ADMOB_ANDROID_APP_ID=ca-app-pub-3940256099942544~3375010800
-EXPO_PUBLIC_ADMOB_ANDROID_BANNER_ID=ca-app-pub-3940256099942544/6300978111
+EXPO_PUBLIC_ADMOB_ANDROID_APP_ID=ca-app-pub-3940256099942544~3347511713
+EXPO_PUBLIC_ADMOB_ANDROID_BANNER_ID=ca-app-pub-3940256099942544/9214589741
 EXPO_PUBLIC_ADMOB_ANDROID_REWARDED_ID=ca-app-pub-3940256099942544/5224354917
 
 # iOS Google AdMob Test IDs
 EXPO_PUBLIC_ADMOB_IOS_APP_ID=ca-app-pub-3940256099942544~1458002511
-EXPO_PUBLIC_ADMOB_IOS_BANNER_ID=ca-app-pub-3940256099942544/2934735716
+EXPO_PUBLIC_ADMOB_IOS_BANNER_ID=ca-app-pub-3940256099942544/2435281174
 EXPO_PUBLIC_ADMOB_IOS_REWARDED_ID=ca-app-pub-3940256099942544/1712485313
 ```
 
-- `app.config.js` automatically reads `EXPO_PUBLIC_ADMOB_ANDROID_APP_ID` and `EXPO_PUBLIC_ADMOB_IOS_APP_ID` and injects them into the `react-native-google-mobile-ads` native config plugin during prebuild/EAS build.
+- `app.config.js` automatically reads `EXPO_PUBLIC_ADMOB_ANDROID_APP_ID` and `EXPO_PUBLIC_ADMOB_IOS_APP_ID` and injects them into the `react-native-google-mobile-ads` native config plugin (`delayAppMeasurementInit: false`) and disables R8 class-stripping in release builds (`android.enableMinifyInReleaseBuilds=false`).
 - `src/ads/admobConfig.ts` reads the Banner and Rewarded Ad Unit IDs at runtime.
-- When preparing for production release on Google Play or the App Store, replace these test IDs in `react-native-game/.env` with your live AdMob App IDs and Ad Unit IDs.
+- `src/ads/rewardedAdManager.ts` and `src/ads/AdBannerSlot.tsx` lazy-load `react-native-google-mobile-ads` after the WebView engine finishes loading (`isEngineReady`) and wrap `<BannerAd />` in `AdErrorBoundary`, ensuring zero cold-start crashes across Expo Go, Development Builds (`--profile development`), Preview APKs (`--profile preview`), and Production AABs (`--profile production`).
 
 ---
 

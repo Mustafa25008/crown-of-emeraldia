@@ -1,4 +1,13 @@
-import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import React, {
+  Component,
+  ErrorInfo,
+  ReactNode,
+  useCallback,
+  useEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react';
 import {
   BackHandler,
   Platform,
@@ -29,15 +38,40 @@ import { GameState } from './src/game/types';
 
 const NATIVE_STORAGE_KEY = 'crown_of_emeraldia_save_v2';
 
-// Prevent native splash screen from auto-hiding before the 60FPS Canvas Engine mounts
-SplashScreen.preventAutoHideAsync().catch(() => {});
+interface RootErrorBoundaryState {
+  hasError: boolean;
+}
 
-export default function App() {
+class RootErrorBoundary extends Component<{ children: ReactNode }, RootErrorBoundaryState> {
+  constructor(props: { children: ReactNode }) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError(): RootErrorBoundaryState {
+    return { hasError: true };
+  }
+
+  componentDidCatch(_error: Error, _info: ErrorInfo): void {
+    SplashScreen.hideAsync().catch(() => {});
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return <View style={styles.container} />;
+    }
+    return this.props.children;
+  }
+}
+
+function GameHostApp() {
   const webViewRef = useRef<WebView<{}> | null>(null);
   const [currentGameState, setCurrentGameState] = useState<GameState>('TITLE_MENU');
   const [isAtRoot, setIsAtRoot] = useState<boolean>(true);
   const [isEngineReady, setIsEngineReady] = useState<boolean>(false);
+  const [isAdMobReady, setIsAdMobReady] = useState<boolean>(false);
   const lastRootBackPressRef = useRef<number>(0);
+  const currentOrientationRef = useRef<'landscape' | 'portrait'>('portrait');
 
   // Banner Ad is visible on mobile menu screens and strictly hidden during active gameplay
   const isMenuScreen = useMemo(() => {
@@ -52,34 +86,54 @@ export default function App() {
   }, [currentGameState]);
 
   const applyNativeOrientation = useCallback(async (mode: 'landscape' | 'portrait') => {
+    if (Platform.OS === 'web') return;
+    if (currentOrientationRef.current === mode) return;
+    currentOrientationRef.current = mode;
+
     try {
       if (mode === 'landscape') {
         await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.LANDSCAPE);
         if (Platform.OS === 'android') {
-          await NavigationBar.setVisibilityAsync('hidden');
+          await NavigationBar.setVisibilityAsync('hidden').catch(() => {});
         }
       } else {
         await ScreenOrientation.lockAsync(ScreenOrientation.OrientationLock.PORTRAIT_UP);
-        if (Platform.OS === 'android') {
-          await NavigationBar.setVisibilityAsync('hidden');
-        }
       }
     } catch {
-      // Orientation lock is a no-op on unsupported simulators
+      // Orientation lock is a no-op on unsupported devices/simulators
     }
   }, []);
 
-  // Lock to Portrait and initialize Google Mobile Ads SDK on initial startup
+  // Ensure native splash screen hides reliably even if WebView onLoadEnd is delayed
   useEffect(() => {
-    applyNativeOrientation('portrait');
-    initializeAdMobSdk();
-  }, [applyNativeOrientation]);
-
-  // Hide native splash screen once the 60FPS engine signals readiness
-  useEffect(() => {
-    if (isEngineReady) {
+    const fallbackTimer = setTimeout(() => {
+      setIsEngineReady(true);
       SplashScreen.hideAsync().catch(() => {});
-    }
+    }, 600);
+    return () => clearTimeout(fallbackTimer);
+  }, []);
+
+  // Hide native splash screen and initialize AdMob SDK only after the WebView engine is ready
+  useEffect(() => {
+    if (!isEngineReady) return;
+
+    SplashScreen.hideAsync().catch(() => {});
+
+    let cancelled = false;
+    const adInitTimer = setTimeout(() => {
+      initializeAdMobSdk()
+        .then((ready) => {
+          if (!cancelled && ready) {
+            setIsAdMobReady(true);
+          }
+        })
+        .catch(() => {});
+    }, 500);
+
+    return () => {
+      cancelled = true;
+      clearTimeout(adInitTimer);
+    };
   }, [isEngineReady]);
 
   // Hydrate saved progress from React Native AsyncStorage when WebView loads
@@ -183,8 +237,12 @@ export default function App() {
     [applyNativeOrientation]
   );
 
+  const handleRootLayout = useCallback(() => {
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
+
   return (
-    <View style={styles.container}>
+    <View style={styles.container} onLayout={handleRootLayout}>
       <StatusBar style="light" hidden />
       <WebView
         ref={webViewRef}
@@ -207,11 +265,21 @@ export default function App() {
         showsVerticalScrollIndicator={false}
         injectedJavaScriptBeforeContentLoaded={INJECTED_NATIVE_BRIDGE_JS}
         onLoadEnd={handleWebViewLoadEnd}
+        onError={() => setIsEngineReady(true)}
+        onHttpError={() => setIsEngineReady(true)}
         onMessage={handleWebViewMessage}
       />
       {/* Native Google AdMob Banner Ad in the bottom menu slot (strictly hidden during active gameplay) */}
-      <AdBannerSlot visible={isMenuScreen} />
+      <AdBannerSlot visible={isMenuScreen && isEngineReady} sdkReady={isAdMobReady} />
     </View>
+  );
+}
+
+export default function App() {
+  return (
+    <RootErrorBoundary>
+      <GameHostApp />
+    </RootErrorBoundary>
   );
 }
 

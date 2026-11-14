@@ -1,8 +1,6 @@
-/**
- * Web no-op fallback for Rewarded Ad Manager.
- */
-export async function initializeAdMobSdk(): Promise<void> {
-  // No-op on web
+export async function initializeAdMobSdk(): Promise<boolean> {
+  // No-op on web platform
+  return false;
 }
 
 export function showRewardedReviveAd(): Promise<{ rewarded: boolean }> {
