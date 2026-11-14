@@ -1,6 +1,6 @@
 const appJson = require('./app.json');
 
-const ANDROID_TEST_APP_ID = 'ca-app-pub-3940256099942544~3375010800';
+const ANDROID_TEST_APP_ID = 'ca-app-pub-3940256099942544~3347511713';
 const IOS_TEST_APP_ID = 'ca-app-pub-3940256099942544~1458002511';
 
 module.exports = ({ config }) => {
@@ -40,13 +40,13 @@ module.exports = ({ config }) => {
         iosAppId,
         androidBannerId:
           process.env.EXPO_PUBLIC_ADMOB_ANDROID_BANNER_ID ||
-          'ca-app-pub-3940256099942544/6300978111',
+          'ca-app-pub-3940256099942544/9214589741',
         androidRewardedId:
           process.env.EXPO_PUBLIC_ADMOB_ANDROID_REWARDED_ID ||
           'ca-app-pub-3940256099942544/5224354917',
         iosBannerId:
           process.env.EXPO_PUBLIC_ADMOB_IOS_BANNER_ID ||
-          'ca-app-pub-3940256099942544/2934735716',
+          'ca-app-pub-3940256099942544/2435281174',
         iosRewardedId:
           process.env.EXPO_PUBLIC_ADMOB_IOS_REWARDED_ID ||
           'ca-app-pub-3940256099942544/1712485313',

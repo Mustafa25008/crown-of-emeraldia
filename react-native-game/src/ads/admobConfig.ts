@@ -2,13 +2,13 @@ import { Platform } from 'react-native';
 
 export const ADMOB_TEST_IDS = {
   android: {
-    appId: 'ca-app-pub-3940256099942544~3375010800',
-    bannerId: 'ca-app-pub-3940256099942544/6300978111',
+    appId: 'ca-app-pub-3940256099942544~3347511713',
+    bannerId: 'ca-app-pub-3940256099942544/9214589741',
     rewardedId: 'ca-app-pub-3940256099942544/5224354917',
   },
   ios: {
     appId: 'ca-app-pub-3940256099942544~1458002511',
-    bannerId: 'ca-app-pub-3940256099942544/2934735716',
+    bannerId: 'ca-app-pub-3940256099942544/2435281174',
     rewardedId: 'ca-app-pub-3940256099942544/1712485313',
   },
 } as const;
