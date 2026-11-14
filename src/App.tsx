@@ -448,13 +448,36 @@ export default function App() {
     hasDragged: false,
   });
 
+  const postToReactNative = useCallback((payload: Record<string, unknown>) => {
+    try {
+      const anyWin = window as unknown as {
+        ReactNativeWebView?: { postMessage?: (msg: string) => void };
+      };
+      if (anyWin.ReactNativeWebView?.postMessage) {
+        anyWin.ReactNativeWebView.postMessage(JSON.stringify(payload));
+      }
+    } catch {
+      // Ignore when running in standard desktop/mobile browser
+    }
+  }, []);
+
   // Sync audio settings with SoundManager
   useEffect(() => {
     soundManager.updateSettings(saveData.soundEnabled, saveData.musicEnabled, saveData.volume);
   }, [saveData.soundEnabled, saveData.musicEnabled, saveData.volume]);
 
+  // Sync save progress with React Native AsyncStorage host when running inside Expo
+  useEffect(() => {
+    postToReactNative({
+      type: 'SAVE_PROGRESS_SYNC',
+      saveData,
+    });
+  }, [saveData, postToReactNative]);
+
   const isMobileTouchDevice = useCallback((): boolean => {
     if (typeof window === 'undefined') return false;
+    const anyWin = window as unknown as { ReactNativeWebView?: unknown };
+    if (anyWin.ReactNativeWebView) return true;
     const hasTouch = 'ontouchstart' in window || navigator.maxTouchPoints > 0;
     const coarsePointer = window.matchMedia?.('(pointer: coarse)').matches ?? false;
     const minDim = Math.min(window.innerWidth, window.innerHeight);
@@ -478,6 +501,7 @@ export default function App() {
   }, [isMobileTouchDevice]);
 
   const lockMobileLandscape = useCallback(() => {
+    postToReactNative({ type: 'SET_ORIENTATION', orientation: 'landscape' });
     if (!isMobileTouchDevice() || isLandscapeLockedRef.current) return;
     isLandscapeLockedRef.current = true;
     try {
@@ -509,9 +533,10 @@ export default function App() {
     } catch {
       // Graceful fallback for browsers without orientation lock support
     }
-  }, [isMobileTouchDevice]);
+  }, [isMobileTouchDevice, postToReactNative]);
 
   const unlockMobileToPortrait = useCallback(() => {
+    postToReactNative({ type: 'SET_ORIENTATION', orientation: 'portrait' });
     if (!isMobileTouchDevice() || !isLandscapeLockedRef.current) return;
     isLandscapeLockedRef.current = false;
     try {
@@ -543,7 +568,7 @@ export default function App() {
     } catch {
       // Graceful fallback for browsers without orientation lock support
     }
-  }, [isMobileTouchDevice]);
+  }, [isMobileTouchDevice, postToReactNative]);
 
   const navigateToMenu = useCallback(
     (targetState: GameState) => {
@@ -557,6 +582,111 @@ export default function App() {
     },
     [unlockMobileToPortrait]
   );
+
+  // Native Android Hardware/Software Back Button & History Navigation Handler
+  const handleAndroidBackPress = useCallback((): boolean => {
+    if (gameState === 'PLAYING') {
+      if (engineRef.current) {
+        engineRef.current.setPaused(true);
+      }
+      soundManager.pauseAllAudio();
+      setGameState('PAUSED');
+      return true;
+    }
+    if (gameState === 'PAUSED') {
+      if (engineRef.current) {
+        engineRef.current.setPaused(false);
+      }
+      soundManager.resumeAudio();
+      setGameState('PLAYING');
+      return true;
+    }
+    if (
+      gameState === 'LEVEL_COMPLETE' ||
+      gameState === 'WORLD_VICTORY' ||
+      gameState === 'GAME_OVER' ||
+      gameState === 'TIME_OUT'
+    ) {
+      soundManager.playCoin();
+      navigateToMenu('LEVEL_SELECT');
+      return true;
+    }
+    if (gameState === 'SETTINGS' || gameState === 'CONTROLS') {
+      soundManager.playCoin();
+      navigateToMenu('SETTINGS_HUB');
+      return true;
+    }
+    if (gameState === 'LEVEL_SELECT') {
+      soundManager.playCoin();
+      navigateToMenu('WORLD_SELECT');
+      return true;
+    }
+    if (gameState === 'WORLD_SELECT' || gameState === 'SETTINGS_HUB') {
+      soundManager.playCoin();
+      navigateToMenu('TITLE_MENU');
+      return true;
+    }
+    postToReactNative({ type: 'BACK_AT_ROOT' });
+    return false;
+  }, [gameState, navigateToMenu, postToReactNative]);
+
+  useEffect(() => {
+    const anyWin = window as unknown as {
+      __handleAndroidBackPress?: () => boolean;
+    };
+    anyWin.__handleAndroidBackPress = handleAndroidBackPress;
+
+    const handleNativeMessage = (event: MessageEvent) => {
+      try {
+        const raw = typeof event.data === 'string' ? JSON.parse(event.data) : event.data;
+        if (!raw || typeof raw !== 'object') return;
+        if (raw.type === 'ANDROID_BACK_PRESS') {
+          handleAndroidBackPress();
+        } else if (raw.type === 'HYDRATE_NATIVE_SAVE' && raw.saveData) {
+          setSaveData((prev) => {
+            const merged = { ...prev, ...raw.saveData };
+            saveProgress(merged);
+            return merged;
+          });
+        }
+      } catch {
+        // Ignore non-JSON messages
+      }
+    };
+
+    window.addEventListener('message', handleNativeMessage);
+    document.addEventListener('message', handleNativeMessage as EventListener);
+    return () => {
+      window.removeEventListener('message', handleNativeMessage);
+      document.removeEventListener('message', handleNativeMessage as EventListener);
+    };
+  }, [handleAndroidBackPress]);
+
+  // Sync browser/WebView history state so Android swipe-back / browser back navigates screens instead of closing the app
+  useEffect(() => {
+    postToReactNative({
+      type: 'GAME_STATE_CHANGE',
+      gameState,
+      isAtRoot: gameState === 'TITLE_MENU',
+    });
+    if (gameState !== 'TITLE_MENU') {
+      try {
+        window.history.pushState({ gameState }, '');
+      } catch {
+        // Ignore in restricted sandbox contexts
+      }
+    }
+  }, [gameState, postToReactNative]);
+
+  useEffect(() => {
+    const onPopState = () => {
+      if (gameState !== 'TITLE_MENU') {
+        handleAndroidBackPress();
+      }
+    };
+    window.addEventListener('popstate', onPopState);
+    return () => window.removeEventListener('popstate', onPopState);
+  }, [gameState, handleAndroidBackPress]);
 
   const startLevel = useCallback(
     (levelId: number, resetRunStats: boolean = false) => {

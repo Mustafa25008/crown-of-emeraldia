@@ -1,0 +1,17 @@
+{
+  "extends": "expo/tsconfig.base",
+  "compilerOptions": {
+    "strict": true
+  },
+  "include": [
+    "App.tsx",
+    "src/bridge/**/*.ts",
+    "src/bundle/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "src/game",
+    "src/App.tsx",
+    "src/main.tsx"
+  ]
+}

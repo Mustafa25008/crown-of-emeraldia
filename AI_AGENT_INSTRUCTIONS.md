@@ -373,4 +373,44 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
      - Progressive Boss Health Scaling Formula (`getBossMaxHpForWorld(worldNumber)`).
      - Desktop/PC Keyboard-Only Rule (never show touch controllers on desktop) and Mobile Landscape Side-Margin Touch Controllers (Left two-part Virtual Joystick / Thumbstick and Right separated Action Buttons `🔥`, `↑` in a 100% transparent container placed in the left/right empty side margins outside the gameplay canvas).
      - Mobile Dynamic Auto-Orientation (`lockMobileLandscape()` when entering any level, `unlockMobileToPortrait()` when exiting to menus/World Select, with zero forced rotation warning modals).
-     - Unified Locked Primary Screen Shell (`isPrimaryMenuScreen`: `TITLE_MENU`, `WORLD_SELECT`, `LEVEL_SELECT`, `SETTINGS_HUB`, `SETTINGS`, and `CONTROLS` sharing the exact same locked `100dvh` / `max-w-4xl` container and persistent `<GameplayEnvironmentBackdrop />`), 100% transparent/invisible top header bar containers across all screens (with no score badge in the `WORLD_SELECT` header), glassmorphic cards/buttons and Home Screen elements with repositioned section titles below the header, scrollbar-free horizontal World Select carousel (`no-scrollbar`) with vertical 4-item card stack (`Number -> Name -> Stages -> Score`) in `font-pixel`, exact Top Header Bar layout during active gameplay, button sound rules, 100% transparent footer legal links (`Privacy Policy` & `Terms of Service` with `/public/privacy-policy.html` and `/public/terms.html`), Mobile Portrait Ad Banner Placeholder (`#mobile-home-ad-banner-slot`), Level Countdown Timer rules, Pause State Manager, and Unified `StageOutcomeModal` (`isMobileTouch` compact sizing across all levels, `SCORE` and `COINS` only, with `<Loader2 />` + `"Loading..."` when `"▶ Watch Ad & Revive"` is clicked).
+     - Unified Locked Primary Screen Shell (`isPrimaryMenuScreen`: `TITLE_MENU`, `WORLD_SELECT`, `LEVEL_SELECT`, `SETTINGS_HUB`, `SETTINGS`, and `CONTROLS` sharing the exact same locked `100dvh` / `max-w-4xl` container and persistent `<GameplayEnvironmentBackdrop />`), 100% transparent/invisible top header bar containers across all screens (with no score badge in the `WORLD_SELECT` header), matching dark glassmorphic header buttons (`bg-slate-950/55 hover:bg-slate-900/65 backdrop-blur-md border-2 border-white/25`), glassmorphic cards/buttons and Home Screen elements with repositioned section titles below the header, scrollbar-free horizontal World Select carousel (`no-scrollbar`) with vertical 4-item card stack (`Number -> Name -> Stages -> Score`) in `font-pixel`, exact Top Header Bar layout during active gameplay, button sound rules, 100% transparent footer legal links (`Privacy Policy` & `Terms of Service` with `/public/privacy-policy.html` and `/public/terms.html`), Mobile Portrait Ad Banner Placeholder (`#mobile-home-ad-banner-slot`), Level Countdown Timer rules, Pause State Manager, and Unified `StageOutcomeModal` (`isMobileTouch` compact sizing across all levels, `SCORE` and `COINS` only, with `<Loader2 />` + `"Loading..."` when `"▶ Watch Ad & Revive"` is clicked).
+
+---
+
+## 9. Expo / React Native Mobile Migration (`react-native-game/` — Expo SDK 58)
+
+The complete web platformer is cloned and packaged into a standalone **Expo SDK 58 (`~58.0.25`) / React Native `0.88.1` / React `19.3.0`** mobile project inside `/react-native-game/` (with usage instructions in `/react-native-game/README.md`). Future AI agents modifying either the web game or the mobile app must adhere to these rules:
+
+1. **Project Directory, SDK 58 Versions & Structure (`/react-native-game/`)**:
+   - **Expo SDK 58 Stack (`react-native-game/package.json`)**:
+     - `expo`: `~58.0.25`
+     - `react`: `19.3.0`, `react-dom`: `19.3.0`, `react-native`: `0.88.1`
+     - `react-native-webview`: `14.0.1`
+     - `@react-native-async-storage/async-storage`: `2.2.0`
+     - `expo-screen-orientation`: `~58.0.4`, `expo-navigation-bar`: `~58.0.4`, `expo-splash-screen`: `~58.0.14`, `expo-status-bar`: `~58.0.5`, `expo-asset`: `~58.0.21`, `expo-constants`: `~58.0.16`, `react-native-safe-area-context`: `~5.11.1`, `typescript`: `~6.0.3`
+     - To upgrade or align native modules in `react-native-game/`, run `npx expo install expo@latest` and `npx expo install --fix` inside `react-native-game/`.
+   - `react-native-game/App.tsx`: Native Expo entry component hosting the hardware-accelerated 60FPS `WebView`, native `ScreenOrientation` lock manager, `AsyncStorage` save synchronizer, `SplashScreen` controller, and Android `BackHandler`.
+   - `react-native-game/src/bridge/nativeBridge.ts`: Bi-directional bridge contract (`GAME_STATE_CHANGE`, `SET_ORIENTATION`, `SAVE_PROGRESS_SYNC`, `BACK_AT_ROOT`, `ENGINE_READY`) and injected startup script (`INJECTED_NATIVE_BRIDGE_JS`).
+   - `react-native-game/src/bundle/inlineGameHtml.ts` & `react-native-game/assets/game-bundle.html`: Auto-generated single-file offline HTML5 Canvas bundle produced by `react-native-game/scripts/build-inline-bundle.mjs`.
+   - `react-native-game/src/game/`: Complete copy of all game logic, physics engine, renderer, synthesized audio, storage, and Worlds 1–10 (`level_1.ts` through `level_5.ts` in `world_1/`–`world_10/`).
+   - **Root `tsconfig.json` Isolation**: Keep `"react-native-game"` in the `"exclude"` array of the root `/tsconfig.json` so web `tsc --noEmit` and Vite builds remain isolated from React Native types.
+
+2. **Zero-Lag 60+ FPS Native Performance**:
+   - The Expo `WebView` must always run with `androidLayerType="hardware"`, `overScrollMode="never"`, `bounces={false}`, `scrollEnabled={false}`, `scalesPageToFit={false}`, `mediaPlaybackRequiresUserAction={false}`, and `allowsInlineMediaPlayback={true}`.
+   - Always keep the game pre-bundled via `node react-native-game/scripts/build-inline-bundle.mjs` (after running `npm run build` in the root) so the mobile app loads `INLINE_GAME_HTML` instantaneously offline with zero network latency.
+
+3. **Native Android Hardware & Gesture Back Button (`handleAndroidBackPress` in `src/App.tsx` & `BackHandler` in `react-native-game/App.tsx`)**:
+   - Pressing the Android hardware/software Back button must never abruptly close the app while navigating menus or playing a stage. Follow this exact routing hierarchy:
+     - `PLAYING` $\rightarrow$ Pauses the game (`PAUSED`, freezes timer, pauses audio).
+     - `PAUSED` $\rightarrow$ Resumes the game (`PLAYING`, unpauses audio).
+     - `LEVEL_COMPLETE` / `WORLD_VICTORY` / `GAME_OVER` / `TIME_OUT` $\rightarrow$ Navigates to `LEVEL_SELECT` (and unlocks to Portrait).
+     - `SETTINGS` / `CONTROLS` $\rightarrow$ Navigates to `SETTINGS_HUB`.
+     - `LEVEL_SELECT` $\rightarrow$ Navigates to `WORLD_SELECT`.
+     - `WORLD_SELECT` / `SETTINGS_HUB` $\rightarrow$ Navigates to `TITLE_MENU` (Home Screen).
+     - `TITLE_MENU` (Root Home Screen) $\rightarrow$ Posts `BACK_AT_ROOT` to React Native, which displays `"Press Back again to exit Crown of Emeraldia"` (`ToastAndroid.SHORT`) and exits only on a second press within 2 seconds.
+
+4. **Google Play Store Icon & Splash Screen Assets**:
+   - `react-native-game/assets/icon.png` & `react-native-game/assets/adaptive-icon.png`: High-resolution 1:1 App Icon (`#0f2942` adaptive background).
+   - `react-native-game/assets/playstore-icon-512.png` (also copied to `/public/assets/playstore/icon-512.png`): 1:1 Google Play Store listing icon.
+   - `react-native-game/assets/splash-icon.png` (also copied to `/public/assets/playstore/splash-screen.png`): 9:16 vertical pixel-art Splash Screen configured in `react-native-game/app.json`.
+
