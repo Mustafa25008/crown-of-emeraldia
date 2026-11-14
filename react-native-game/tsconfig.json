@@ -5,6 +5,8 @@
   },
   "include": [
     "App.tsx",
+    "src/ads/**/*.ts",
+    "src/ads/**/*.tsx",
     "src/bridge/**/*.ts",
     "src/bundle/**/*.ts"
   ],

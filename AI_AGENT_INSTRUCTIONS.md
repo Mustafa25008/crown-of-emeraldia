@@ -377,29 +377,45 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
 
 ---
 
-## 9. Expo / React Native Mobile Migration (`react-native-game/` — Expo SDK 58)
+## 9. Expo / React Native Mobile Migration & Google AdMob Integration (`react-native-game/` — Expo SDK 58)
 
-The complete web platformer is cloned and packaged into a standalone **Expo SDK 58 (`~58.0.25`) / React Native `0.88.1` / React `19.3.0`** mobile project inside `/react-native-game/` (with usage instructions in `/react-native-game/README.md`). Future AI agents modifying either the web game or the mobile app must adhere to these rules:
+The complete web platformer is cloned and packaged into a standalone **Expo SDK 58 (`~58.0.25`) / React Native `0.88.1` / React `19.3.0`** mobile project inside `/react-native-game/` with native **Google AdMob (`react-native-google-mobile-ads`)** Banner and Rewarded Ads (full usage instructions in `/react-native-game/README.md`). Future AI agents modifying either the web game or the mobile app must adhere to these rules:
 
 1. **Project Directory, SDK 58 Versions & Structure (`/react-native-game/`)**:
    - **Expo SDK 58 Stack (`react-native-game/package.json`)**:
-     - `expo`: `~58.0.25`
+     - `expo`: `~58.0.25`, `expo-dev-client`: `~58.0.20`
      - `react`: `19.3.0`, `react-dom`: `19.3.0`, `react-native`: `0.88.1`
+     - `react-native-google-mobile-ads`: `^14.11.0`
      - `react-native-webview`: `14.0.1`
      - `@react-native-async-storage/async-storage`: `2.2.0`
      - `expo-screen-orientation`: `~58.0.4`, `expo-navigation-bar`: `~58.0.4`, `expo-splash-screen`: `~58.0.14`, `expo-status-bar`: `~58.0.5`, `expo-asset`: `~58.0.21`, `expo-constants`: `~58.0.16`, `react-native-safe-area-context`: `~5.11.1`, `typescript`: `~6.0.3`
-     - To upgrade or align native modules in `react-native-game/`, run `npx expo install expo@latest` and `npx expo install --fix` inside `react-native-game/`.
-   - `react-native-game/App.tsx`: Native Expo entry component hosting the hardware-accelerated 60FPS `WebView`, native `ScreenOrientation` lock manager, `AsyncStorage` save synchronizer, `SplashScreen` controller, and Android `BackHandler`.
-   - `react-native-game/src/bridge/nativeBridge.ts`: Bi-directional bridge contract (`GAME_STATE_CHANGE`, `SET_ORIENTATION`, `SAVE_PROGRESS_SYNC`, `BACK_AT_ROOT`, `ENGINE_READY`) and injected startup script (`INJECTED_NATIVE_BRIDGE_JS`).
-   - `react-native-game/src/bundle/inlineGameHtml.ts` & `react-native-game/assets/game-bundle.html`: Auto-generated single-file offline HTML5 Canvas bundle produced by `react-native-game/scripts/build-inline-bundle.mjs`.
-   - `react-native-game/src/game/`: Complete copy of all game logic, physics engine, renderer, synthesized audio, storage, and Worlds 1–10 (`level_1.ts` through `level_5.ts` in `world_1/`–`world_10/`).
+   - **Environment Configuration (`react-native-game/.env` & `react-native-game/.env.example`)**:
+     - Isolated inside `react-native-game/` (separate from the root web project) and configured with official Google AdMob test IDs for Android and iOS:
+       - `EXPO_PUBLIC_ADMOB_ANDROID_APP_ID=ca-app-pub-3940256099942544~3375010800`
+       - `EXPO_PUBLIC_ADMOB_ANDROID_BANNER_ID=ca-app-pub-3940256099942544/6300978111`
+       - `EXPO_PUBLIC_ADMOB_ANDROID_REWARDED_ID=ca-app-pub-3940256099942544/5224354917`
+       - `EXPO_PUBLIC_ADMOB_IOS_APP_ID=ca-app-pub-3940256099942544~1458002511`
+       - `EXPO_PUBLIC_ADMOB_IOS_BANNER_ID=ca-app-pub-3940256099942544/2934735716`
+       - `EXPO_PUBLIC_ADMOB_IOS_REWARDED_ID=ca-app-pub-3940256099942544/1712485313`
+   - **Dynamic Expo Config Plugin (`react-native-game/app.config.js`)**:
+     - Reads `process.env.EXPO_PUBLIC_ADMOB_ANDROID_APP_ID` and `process.env.EXPO_PUBLIC_ADMOB_IOS_APP_ID` and injects them into the `react-native-google-mobile-ads` config plugin (`androidAppId`, `iosAppId`, `delayAppMeasurementInit: true`).
+   - **Native AdMob Modules (`react-native-game/src/ads/`)**:
+     - `admobConfig.ts`: Selects the Android or iOS Banner and Rewarded Ad Unit IDs from `process.env.EXPO_PUBLIC_ADMOB_*` with official Google test ID fallbacks.
+     - `AdBannerSlot.tsx` & `AdBannerSlot.web.tsx`: Mounts `<BannerAd unitId={...} size={BannerAdSize.ANCHORED_ADAPTIVE_BANNER} />` in the bottom mobile menu slot when `visible={isMenuScreen}` is true, hides it completely during active gameplay (`PLAYING`, `PAUSED`, `LEVEL_COMPLETE`, `WORLD_VICTORY`, `GAME_OVER`, `TIME_OUT`), and uses a clean no-op on Web (`AdBannerSlot.web.tsx`). Inside `src/App.tsx`, `#mobile-home-ad-banner-slot` is hidden when `isNativeExpoApp` is true so the native `<AdBannerSlot />` occupies that bottom slot without duplication.
+     - `rewardedAdManager.ts` & `rewardedAdManager.web.ts`: Initializes `mobileAds().initialize()`, preloads `RewardedAd.createForAdRequest(...)`, and handles the `"Watch Ad & Revive"` flow when the game engine posts `{ type: 'SHOW_REWARDED_AD' }` upon `GAME_OVER` or `TIME_OUT`. When `RewardedAdEventType.EARNED_REWARD` completes and the ad closes, `react-native-game/App.tsx` dispatches `buildRewardedAdResultScript(true)` (`REWARDED_AD_RESULT`) back to the engine to refill 3 lives, reset the stage timer, and resume gameplay.
    - **Root `tsconfig.json` Isolation**: Keep `"react-native-game"` in the `"exclude"` array of the root `/tsconfig.json` so web `tsc --noEmit` and Vite builds remain isolated from React Native types.
 
-2. **Zero-Lag 60+ FPS Native Performance**:
-   - The Expo `WebView` must always run with `androidLayerType="hardware"`, `overScrollMode="never"`, `bounces={false}`, `scrollEnabled={false}`, `scalesPageToFit={false}`, `mediaPlaybackRequiresUserAction={false}`, and `allowsInlineMediaPlayback={true}`.
-   - Always keep the game pre-bundled via `node react-native-game/scripts/build-inline-bundle.mjs` (after running `npm run build` in the root) so the mobile app loads `INLINE_GAME_HTML` instantaneously offline with zero network latency.
+2. **EAS Development Client Workflow & Rebuilding the Offline Bundle**:
+   - Because `react-native-google-mobile-ads` contains custom native binaries, standard Expo Go cannot run it directly. Always use a custom Expo Development Build (`expo-dev-client`):
+     1. Log in to EAS: `npx eas login`
+     2. Build a development APK in the cloud: `npx eas build --profile development --platform android`
+     3. Install the generated `.apk` on an Android device/emulator and start the server with: `npx expo start --dev-client`
+   - Whenever `src/` in the root project is updated, sync `src/App.tsx` to `react-native-game/src/App.tsx`, run `npm run build` in the root, and run `npm run bundle:game` (`node ./scripts/build-inline-bundle.mjs`) inside `react-native-game/` to regenerate `react-native-game/src/bundle/inlineGameHtml.ts` and `react-native-game/assets/game-bundle.html`, then verify with `tsc --noEmit`.
 
-3. **Native Android Hardware & Gesture Back Button (`handleAndroidBackPress` in `src/App.tsx` & `BackHandler` in `react-native-game/App.tsx`)**:
+3. **Zero-Lag 60+ FPS Native Performance**:
+   - The Expo `WebView` must always run with `androidLayerType="hardware"`, `overScrollMode="never"`, `bounces={false}`, `scrollEnabled={false}`, `scalesPageToFit={false}`, `mediaPlaybackRequiresUserAction={false}`, and `allowsInlineMediaPlayback={true}`.
+
+4. **Native Android Hardware & Gesture Back Button (`handleAndroidBackPress` in `src/App.tsx` & `BackHandler` in `react-native-game/App.tsx`)**:
    - Pressing the Android hardware/software Back button must never abruptly close the app while navigating menus or playing a stage. Follow this exact routing hierarchy:
      - `PLAYING` $\rightarrow$ Pauses the game (`PAUSED`, freezes timer, pauses audio).
      - `PAUSED` $\rightarrow$ Resumes the game (`PLAYING`, unpauses audio).
@@ -409,8 +425,8 @@ The complete web platformer is cloned and packaged into a standalone **Expo SDK 
      - `WORLD_SELECT` / `SETTINGS_HUB` $\rightarrow$ Navigates to `TITLE_MENU` (Home Screen).
      - `TITLE_MENU` (Root Home Screen) $\rightarrow$ Posts `BACK_AT_ROOT` to React Native, which displays `"Press Back again to exit Crown of Emeraldia"` (`ToastAndroid.SHORT`) and exits only on a second press within 2 seconds.
 
-4. **Google Play Store Icon & Splash Screen Assets**:
+5. **Google Play Store Icon & Splash Screen Assets**:
    - `react-native-game/assets/icon.png` & `react-native-game/assets/adaptive-icon.png`: High-resolution 1:1 App Icon (`#0f2942` adaptive background).
    - `react-native-game/assets/playstore-icon-512.png` (also copied to `/public/assets/playstore/icon-512.png`): 1:1 Google Play Store listing icon.
-   - `react-native-game/assets/splash-icon.png` (also copied to `/public/assets/playstore/splash-screen.png`): 9:16 vertical pixel-art Splash Screen configured in `react-native-game/app.json`.
+   - `react-native-game/assets/splash-icon.png` (also copied to `/public/assets/playstore/splash-screen.png`): 9:16 vertical pixel-art Splash Screen configured in `react-native-game/app.json` and `react-native-game/app.config.js`.
 

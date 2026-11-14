@@ -630,11 +630,24 @@ export default function App() {
     return false;
   }, [gameState, navigateToMenu, postToReactNative]);
 
+  const pendingRewardReviveRef = useRef<((rewarded: boolean) => void) | null>(null);
+
+  const isNativeExpoApp = useMemo(() => {
+    if (typeof window === 'undefined') return false;
+    return Boolean((window as unknown as { ReactNativeWebView?: unknown }).ReactNativeWebView);
+  }, []);
+
   useEffect(() => {
     const anyWin = window as unknown as {
       __handleAndroidBackPress?: () => boolean;
+      __onNativeRewardedAdResult?: (rewarded: boolean) => void;
     };
     anyWin.__handleAndroidBackPress = handleAndroidBackPress;
+    anyWin.__onNativeRewardedAdResult = (rewarded: boolean) => {
+      if (pendingRewardReviveRef.current) {
+        pendingRewardReviveRef.current(rewarded);
+      }
+    };
 
     const handleNativeMessage = (event: MessageEvent) => {
       try {
@@ -648,6 +661,10 @@ export default function App() {
             saveProgress(merged);
             return merged;
           });
+        } else if (raw.type === 'REWARDED_AD_RESULT') {
+          if (pendingRewardReviveRef.current) {
+            pendingRewardReviveRef.current(Boolean(raw.rewarded));
+          }
         }
       } catch {
         // Ignore non-JSON messages
@@ -866,6 +883,7 @@ export default function App() {
     soundManager.pauseAllAudio();
 
     const completeRewardRevive = () => {
+      pendingRewardReviveRef.current = null;
       setIsWatchingAd(false);
       setCarriedLives(3);
       if (engineRef.current) {
@@ -876,11 +894,30 @@ export default function App() {
       soundManager.playMusic(level.musicTrack);
     };
 
-    // Invoke AdMob Rewarded Video bridge if present on mobile wrapper, otherwise run rewarded ad timer
     const anyWin = window as unknown as {
+      ReactNativeWebView?: { postMessage?: (msg: string) => void };
       AdMob?: { showRewardVideoAd?: () => Promise<unknown> };
       AndroidAdMob?: { showRewardedAd?: (cb?: () => void) => void };
     };
+
+    // 1. Native Expo / React Native Google Mobile Ads Rewarded Ad bridge
+    if (anyWin.ReactNativeWebView?.postMessage) {
+      pendingRewardReviveRef.current = (rewarded: boolean) => {
+        pendingRewardReviveRef.current = null;
+        if (rewarded) {
+          completeRewardRevive();
+        } else {
+          setIsWatchingAd(false);
+        }
+      };
+      postToReactNative({
+        type: 'SHOW_REWARDED_AD',
+        levelId: currentLevelId,
+      });
+      return;
+    }
+
+    // 2. Legacy WebView AdMob wrappers
     if (anyWin.AdMob?.showRewardVideoAd) {
       anyWin.AdMob.showRewardVideoAd()
         .then(() => completeRewardRevive())
@@ -892,10 +929,11 @@ export default function App() {
       return;
     }
 
+    // 3. Web browser fallback timer
     window.setTimeout(() => {
       completeRewardRevive();
     }, 1400);
-  }, [currentLevelId, isWatchingAd]);
+  }, [currentLevelId, isWatchingAd, postToReactNative]);
 
   const toggleSound = () => {
     setSaveData((prev) => {
@@ -1804,18 +1842,20 @@ export default function App() {
               )}
             </div>
 
-            {/* Mobile Portrait Bottom Ad Banner Placeholder (Consistent 50px footprint across all non-gameplay screens so the main frame never shifts or resizes) */}
-            <div
-              id="mobile-home-ad-banner-slot"
-              data-ad-slot="HOME_BOTTOM_BANNER"
-              role="region"
-              aria-label="Advertisement Banner Placeholder"
-              className="mt-1.5 w-full h-[50px] sm:hidden shrink-0 rounded-xl bg-slate-950/55 backdrop-blur-md border border-white/20 flex items-center justify-center px-3 shadow-inner"
-            >
-              <span className="font-pixel text-[8px] tracking-widest uppercase text-slate-300/90 select-none">
-                Ad Banner Space
-              </span>
-            </div>
+            {/* Mobile Portrait Bottom Ad Banner Placeholder (Rendered on Web; in Native Expo, the real AdMob BannerAd component mounts in this bottom slot) */}
+            {!isNativeExpoApp && (
+              <div
+                id="mobile-home-ad-banner-slot"
+                data-ad-slot="HOME_BOTTOM_BANNER"
+                role="region"
+                aria-label="Advertisement Banner Placeholder"
+                className="mt-1.5 w-full h-[50px] sm:hidden shrink-0 rounded-xl bg-slate-950/55 backdrop-blur-md border border-white/20 flex items-center justify-center px-3 shadow-inner"
+              >
+                <span className="font-pixel text-[8px] tracking-widest uppercase text-slate-300/90 select-none">
+                  Ad Banner Space
+                </span>
+              </div>
+            )}
           </div>
         )}
 

@@ -15,6 +15,10 @@ export type NativeBridgeInboundMessage =
       saveData: SaveProgress;
     }
   | {
+      type: 'SHOW_REWARDED_AD';
+      levelId?: number;
+    }
+  | {
       type: 'BACK_AT_ROOT';
     }
   | {
@@ -84,6 +88,22 @@ export function buildHydrateSaveScript(rawSaveJson: string): string {
         var parsed = JSON.parse(${escaped});
         localStorage.setItem('crown_of_emeraldia_save_v2', JSON.stringify(parsed));
         window.postMessage(JSON.stringify({ type: 'HYDRATE_NATIVE_SAVE', saveData: parsed }), '*');
+      } catch (e) {}
+    })();
+    true;
+  `;
+}
+
+export function buildRewardedAdResultScript(rewarded: boolean): string {
+  const flag = rewarded ? 'true' : 'false';
+  return `
+    (function() {
+      try {
+        if (typeof window.__onNativeRewardedAdResult === 'function') {
+          window.__onNativeRewardedAdResult(${flag});
+        } else {
+          window.postMessage(JSON.stringify({ type: 'REWARDED_AD_RESULT', rewarded: ${flag} }), '*');
+        }
       } catch (e) {}
     })();
     true;

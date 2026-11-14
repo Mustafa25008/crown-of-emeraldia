@@ -1,4 +1,4 @@
-import React, { useCallback, useEffect, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import {
   BackHandler,
   Platform,
@@ -12,10 +12,16 @@ import * as SplashScreen from 'expo-splash-screen';
 import * as NavigationBar from 'expo-navigation-bar';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { WebView, WebViewMessageEvent } from 'react-native-webview';
+import { AdBannerSlot } from './src/ads/AdBannerSlot';
+import {
+  initializeAdMobSdk,
+  showRewardedReviveAd,
+} from './src/ads/rewardedAdManager';
 import {
   INJECTED_NATIVE_BRIDGE_JS,
   buildAndroidBackPressScript,
   buildHydrateSaveScript,
+  buildRewardedAdResultScript,
   parseBridgeMessage,
 } from './src/bridge/nativeBridge';
 import { INLINE_GAME_HTML } from './src/bundle/inlineGameHtml';
@@ -32,6 +38,18 @@ export default function App() {
   const [isAtRoot, setIsAtRoot] = useState<boolean>(true);
   const [isEngineReady, setIsEngineReady] = useState<boolean>(false);
   const lastRootBackPressRef = useRef<number>(0);
+
+  // Banner Ad is visible on mobile menu screens and strictly hidden during active gameplay
+  const isMenuScreen = useMemo(() => {
+    return (
+      currentGameState === 'TITLE_MENU' ||
+      currentGameState === 'WORLD_SELECT' ||
+      currentGameState === 'LEVEL_SELECT' ||
+      currentGameState === 'SETTINGS_HUB' ||
+      currentGameState === 'SETTINGS' ||
+      currentGameState === 'CONTROLS'
+    );
+  }, [currentGameState]);
 
   const applyNativeOrientation = useCallback(async (mode: 'landscape' | 'portrait') => {
     try {
@@ -51,9 +69,10 @@ export default function App() {
     }
   }, []);
 
-  // Lock to Portrait on initial startup
+  // Lock to Portrait and initialize Google Mobile Ads SDK on initial startup
   useEffect(() => {
     applyNativeOrientation('portrait');
+    initializeAdMobSdk();
   }, [applyNativeOrientation]);
 
   // Hide native splash screen once the 60FPS engine signals readiness
@@ -140,6 +159,13 @@ export default function App() {
           }
           break;
         }
+        case 'SHOW_REWARDED_AD': {
+          const result = await showRewardedReviveAd();
+          webViewRef.current?.injectJavaScript(
+            buildRewardedAdResultScript(result.rewarded)
+          );
+          break;
+        }
         case 'BACK_AT_ROOT': {
           if (Platform.OS === 'android') {
             const now = Date.now();
@@ -183,6 +209,8 @@ export default function App() {
         onLoadEnd={handleWebViewLoadEnd}
         onMessage={handleWebViewMessage}
       />
+      {/* Native Google AdMob Banner Ad in the bottom menu slot (strictly hidden during active gameplay) */}
+      <AdBannerSlot visible={isMenuScreen} />
     </View>
   );
 }

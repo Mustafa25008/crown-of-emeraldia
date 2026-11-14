@@ -1,6 +1,6 @@
-# Crown of Emeraldia — Expo / React Native Mobile Edition (Expo SDK 58)
+# Crown of Emeraldia — Expo / React Native Mobile Edition (Expo SDK 58 + Google AdMob)
 
-A complete, standalone **React Native (Expo SDK 58 / `~58.0.25`, React `19.3.0`, React Native `0.88.1`)** mobile edition of **Crown of Emeraldia** featuring all 10 Worlds (50 levels), 16-bit pixel-art graphics, synthesized Web Audio chiptune soundtrack, 60Hz fixed-timestep physics, dynamic Portrait/Landscape orientation switching, native Android hardware/gesture Back Button navigation, `AsyncStorage` save persistence, and Google Play Store icon & splash assets.
+A complete, standalone **React Native (Expo SDK 58 / `~58.0.25`, React `19.3.0`, React Native `0.88.1`)** mobile edition of **Crown of Emeraldia** featuring all 10 Worlds (50 levels), 16-bit pixel-art graphics, synthesized Web Audio chiptune soundtrack, 60Hz fixed-timestep physics, dynamic Portrait/Landscape orientation switching, native Android hardware/gesture Back Button navigation, `AsyncStorage` save persistence, **Google AdMob Banner & Rewarded Ads (`react-native-google-mobile-ads`)**, and Google Play Store icon & splash assets.
 
 ---
 
@@ -8,10 +8,13 @@ A complete, standalone **React Native (Expo SDK 58 / `~58.0.25`, React `19.3.0`,
 
 ```text
 react-native-game/
-├── App.tsx                           # Main Expo React Native host (Hardware-accelerated 60FPS WebView, BackHandler, Orientation, AsyncStorage)
-├── app.json                          # Expo configuration (App Icon, Adaptive Icon, Splash Screen, Orientation & Permissions)
-├── eas.json                          # EAS Build profiles (development, preview APK, production Play Store AAB)
-├── package.json                      # Expo SDK 58 (~58.0.25) dependencies and build scripts
+├── App.tsx                           # Main Expo React Native host (60FPS WebView, AdMob Banner & Rewarded Ads, BackHandler, Orientation, AsyncStorage)
+├── app.json                          # Base static Expo configuration (App Icon, Adaptive Icon, Splash Screen, Orientation)
+├── app.config.js                     # Dynamic Expo config reading EXPO_PUBLIC_ADMOB_* env vars into the react-native-google-mobile-ads plugin
+├── .env                              # Local environment variables (configured with official Google AdMob test IDs)
+├── .env.example                      # Template environment variables with official Google AdMob test IDs
+├── eas.json                          # EAS Build profiles (development APK, preview APK, production Play Store AAB)
+├── package.json                      # Expo SDK 58 (~58.0.25) dependencies, expo-dev-client, and react-native-google-mobile-ads
 ├── babel.config.js                   # Babel preset configuration for Expo
 ├── metro.config.js                   # Metro bundler configuration
 ├── tsconfig.json                     # TypeScript (~6.0.3) configuration
@@ -25,8 +28,14 @@ react-native-game/
 ├── scripts/
 │   └── build-inline-bundle.mjs       # Compiles and inlines the latest web build into src/bundle/inlineGameHtml.ts
 └── src/
+    ├── ads/
+    │   ├── admobConfig.ts            # Reads EXPO_PUBLIC_ADMOB_* environment variables with Google test ID fallbacks
+    │   ├── AdBannerSlot.tsx          # Native Google AdMob Anchored Adaptive Banner for mobile menu screens (hidden in gameplay)
+    │   ├── AdBannerSlot.web.tsx      # Web no-op fallback for AdBannerSlot
+    │   ├── rewardedAdManager.ts      # Native Google AdMob Rewarded Ad manager for "Watch Ad & Revive"
+    │   └── rewardedAdManager.web.ts  # Web no-op fallback for Rewarded Ad manager
     ├── bridge/
-    │   └── nativeBridge.ts           # Bi-directional React Native <-> Game Engine bridge (Back button, Orientation, Save sync)
+    │   └── nativeBridge.ts           # Bi-directional React Native <-> Game Engine bridge (Back button, Orientation, Save sync, Rewarded Ads)
     ├── bundle/
     │   └── inlineGameHtml.ts         # Auto-generated offline HTML5 Canvas bundle string for zero-latency startup
     └── game/                         # Complete cloned game engine, renderer, audio, storage, and Worlds 1–10 (50 levels)
@@ -34,92 +43,125 @@ react-native-game/
 
 ---
 
-## 2. Quick Start (Running in Expo SDK 58)
+## 2. Environment Configuration (`.env` & `.env.example`)
 
-### Prerequisites
-- **Node.js** `>= 18`
-- **Expo CLI** (included via `npx expo`)
-- **Expo Go (SDK 58)** app on your Android/iOS device, or **Android Studio Emulator** / **Xcode Simulator**
+This project isolates its mobile environment variables inside `react-native-game/.env` (separate from the root web app). By default, both `.env` and `.env.example` are pre-configured with **official Google AdMob Test IDs**:
 
-### Step 1: Install & Verify Expo SDK 58 Dependencies
-```bash
-cd react-native-game
-npm install --legacy-peer-deps
-npx expo install expo@latest
-npx expo install --fix
+```env
+# Android Google AdMob Test IDs
+EXPO_PUBLIC_ADMOB_ANDROID_APP_ID=ca-app-pub-3940256099942544~3375010800
+EXPO_PUBLIC_ADMOB_ANDROID_BANNER_ID=ca-app-pub-3940256099942544/6300978111
+EXPO_PUBLIC_ADMOB_ANDROID_REWARDED_ID=ca-app-pub-3940256099942544/5224354917
+
+# iOS Google AdMob Test IDs
+EXPO_PUBLIC_ADMOB_IOS_APP_ID=ca-app-pub-3940256099942544~1458002511
+EXPO_PUBLIC_ADMOB_IOS_BANNER_ID=ca-app-pub-3940256099942544/2934735716
+EXPO_PUBLIC_ADMOB_IOS_REWARDED_ID=ca-app-pub-3940256099942544/1712485313
 ```
 
-### Step 2: Start the Expo Development Server
-```bash
-npx expo start
-```
-- Press **`a`** to open on an Android Emulator or connected Android device.
-- Press **`i`** to open on an iOS Simulator.
-- Or scan the **QR Code** in the terminal using the **Expo Go** app on your phone.
+- `app.config.js` automatically reads `EXPO_PUBLIC_ADMOB_ANDROID_APP_ID` and `EXPO_PUBLIC_ADMOB_IOS_APP_ID` and injects them into the `react-native-google-mobile-ads` native config plugin during prebuild/EAS build.
+- `src/ads/admobConfig.ts` reads the Banner and Rewarded Ad Unit IDs at runtime.
+- When preparing for production release on Google Play or the App Store, replace these test IDs in `react-native-game/.env` with your live AdMob App IDs and Ad Unit IDs.
 
 ---
 
-## 3. Syncing & Rebuilding the Standalone Game Bundle
+## 3. How to Run the Project (Important: Custom Dev Client vs. Expo Go)
 
-Whenever you make changes to the core web platformer in the root project and want to update the offline bundle inside `react-native-game/`:
+> **Why Standard Expo Go Cannot Run This App Directly:**
+> Because this project integrates native Google Mobile Ads (`react-native-google-mobile-ads`), which includes custom native Android/iOS SDK binaries not bundled inside the standard **Expo Go** store app, **standard Expo Go cannot execute the native AdMob module directly**.
+> To run and test the project on an Android device or emulator with real test ads, you must build and install a **Custom Expo Development Client (`expo-dev-client`)** using EAS Build (or local Android Studio prebuild).
+
+### Step 1: Install Dependencies
+```bash
+cd react-native-game
+npm install --legacy-peer-deps
+```
+
+### Step 2: Log in to EAS (Expo Application Services)
+```bash
+npx eas login
+```
+*(Enter your Expo account credentials. If you do not have an account, create a free one at [expo.dev](https://expo.dev)).*
+
+### Step 3: Build the Development APK via EAS Cloud Build
+Run the following command inside `react-native-game/` to build a custom Android Development Client APK in the cloud (configured via the `development` profile in `eas.json` with `"developmentClient": true` and `"distribution": "internal"`):
 
 ```bash
-# From the repository root:
+npx eas build --profile development --platform android
+```
+
+- When prompted to create or link an EAS project, confirm with **`Y`** and allow EAS to generate a temporary Android keystore.
+- Once the cloud build finishes, EAS will provide a **download URL and QR code** for the `.apk` file.
+- Download and install that development `.apk` onto your Android phone or drag-and-drop it onto your Android Emulator.
+
+### Step 4: Start the Expo Development Server (`--dev-client`) & Connect
+Once the custom Development Client APK is installed on your device, start the Metro server in **Dev Client mode**:
+
+```bash
+npx expo start --dev-client
+```
+
+- Open the installed **Crown of Emeraldia** development app on your Android device, or scan the QR code shown in the terminal, to connect to the bundler with full native Google AdMob support.
+
+*(Optional Local Build Alternative: If you have the Android SDK / Xcode installed locally on your machine, you can also compile and launch the development build directly without EAS Cloud via `npx expo run:android` or `npx expo run:ios`.)*
+
+---
+
+## 4. Google AdMob Integration Details
+
+### A. Bottom Menu Banner Ad (`src/ads/AdBannerSlot.tsx`)
+- Renders an `ANCHORED_ADAPTIVE_BANNER` using `EXPO_PUBLIC_ADMOB_ANDROID_BANNER_ID` / `EXPO_PUBLIC_ADMOB_IOS_BANNER_ID` in the dedicated bottom slot across all mobile menu screens (`TITLE_MENU`, `WORLD_SELECT`, `LEVEL_SELECT`, `SETTINGS_HUB`, `SETTINGS`, `CONTROLS`).
+- **Automatically hidden during active gameplay** (`PLAYING`, `PAUSED`, `LEVEL_COMPLETE`, `WORLD_VICTORY`, `GAME_OVER`, `TIME_OUT`) so it never obstructs the landscape gameplay canvas or side-margin touch controls.
+- Uses `AdBannerSlot.web.tsx` as a clean no-op when running on Web.
+
+### B. "Watch Ad to Revive" Rewarded Ad (`src/ads/rewardedAdManager.ts`)
+- Preloads a Google AdMob `RewardedAd` on startup using `EXPO_PUBLIC_ADMOB_ANDROID_REWARDED_ID` / `EXPO_PUBLIC_ADMOB_IOS_REWARDED_ID`.
+- When the player runs out of lives (`GAME_OVER`) or time (`TIME_OUT`) and taps **"▶ Watch Ad & Revive"**, the game engine sends `{ type: 'SHOW_REWARDED_AD' }` over the React Native bridge.
+- `App.tsx` displays the native fullscreen Rewarded Video Ad (`showRewardedReviveAd()`).
+- Upon earning the reward (`RewardedAdEventType.EARNED_REWARD`) and closing the ad, `App.tsx` sends `REWARDED_AD_RESULT` (`rewarded: true`) back to the engine, immediately refilling **3 lives**, resetting the stage countdown timer, and resuming the level.
+
+---
+
+## 5. Syncing & Rebuilding the Standalone Game Bundle
+
+Whenever you modify the core game or UI in the root project and want to update the offline bundle inside `react-native-game/`:
+
+```bash
+# 1. From the repository root, build the web assets:
 npm run build
 
-# Then from inside react-native-game/:
+# 2. From inside react-native-game/, bundle into inlineGameHtml.ts & game-bundle.html:
 cd react-native-game
 npm run bundle:game
 ```
 
-This script compiles the latest Vite production assets and writes both:
-- `react-native-game/assets/game-bundle.html`
-- `react-native-game/src/bundle/inlineGameHtml.ts`
-
-Because the entire game is inlined into `INLINE_GAME_HTML`, the Expo app runs **100% offline with zero network latency** at a locked 60 FPS.
-
----
-
-## 4. Native Mobile Features & Performance Architecture
-
-### A. Zero-Lag 60+ FPS Hardware-Accelerated Rendering
-- **Hardware Layer Acceleration**: `WebView` runs with `androidLayerType="hardware"`, `overScrollMode="never"`, `bounces={false}`, and `scrollEnabled={false}`.
-- **60Hz Fixed-Timestep Engine**: `PlatformerEngine` (`src/game/engine.ts`) uses a deterministic `1 / 60` (`FIXED_DT`) physics accumulator so gameplay runs at identical real-time speed on 60Hz, 90Hz, and 120Hz displays.
-- **Offscreen Tile Sprite Cache**: `drawTile()` (`src/game/renderer.ts`) caches rendered `32×32` pixel tiles offscreen and blits via `ctx.drawImage()`.
-- **Ref-Based Hardware Thumbstick**: The left-margin virtual joystick updates its knob position via `translate3d(x, y, 0)` on a direct DOM ref (`joystickKnobRef`) with zero React re-renders during pointer movement.
-
-### B. Dynamic Auto-Orientation (`expo-screen-orientation`)
-- **Portrait Mode on Menus**: Automatically locks to `ScreenOrientation.OrientationLock.PORTRAIT_UP` on the **Home Screen (`TITLE_MENU`)**, **Select World (`WORLD_SELECT`)**, **Level Select (`LEVEL_SELECT`)**, and **Settings (`SETTINGS_HUB`, `SETTINGS`, `CONTROLS`)**.
-- **Landscape Mode in Gameplay**: Automatically switches to `ScreenOrientation.OrientationLock.LANDSCAPE` with hidden Android navigation/status bars when entering any level (`PLAYING`, `PAUSED`, or stage outcome modals) so the left/right side-margin touch controllers sit cleanly outside the `896×608` gameplay canvas.
-
-### C. Native Android Hardware & Gesture Back Button (`BackHandler`)
-Pressing the Android hardware/software Back button navigates smoothly through the screen hierarchy instead of abruptly closing the app:
-
-| Current Screen (`GameState`) | Android Back Button Action |
-| :--- | :--- |
-| **`PLAYING`** (Active Level) | Pauses gameplay (`PAUSED`), freezes the level timer, and pauses audio |
-| **`PAUSED`** (Pause Modal) | Resumes gameplay (`PLAYING`) and unpauses audio |
-| **`LEVEL_COMPLETE` / `WORLD_VICTORY` / `GAME_OVER` / `TIME_OUT`** | Returns to **Level Select (`LEVEL_SELECT`)** and unlocks to Portrait |
-| **`SETTINGS` (Audio) / `CONTROLS` (Help)** | Returns to **Settings Hub (`SETTINGS_HUB`)** |
-| **`LEVEL_SELECT`** | Returns to **Select World (`WORLD_SELECT`)** |
-| **`WORLD_SELECT` / `SETTINGS_HUB`** | Returns to **Home Screen (`TITLE_MENU`)** |
-| **`TITLE_MENU`** (Root Home Screen) | Shows `"Press Back again to exit Crown of Emeraldia"` toast; second press within 2s exits the app |
-
-### D. Native `AsyncStorage` Save Persistence
-- Every time the player completes a level, collects coins, or updates audio settings, the game posts `SAVE_PROGRESS_SYNC` over the React Native bridge.
-- `App.tsx` persists the save payload in `@react-native-async-storage/async-storage` (`crown_of_emeraldia_save_v2`) and hydrates it automatically on app launch.
-
----
-
-## 5. Building for Google Play Store (APK & AAB)
-
-### Install EAS CLI
+Verify TypeScript compilation inside `react-native-game/` at any time with:
 ```bash
-npm install -g eas-cli
-eas login
+cd react-native-game
+npx tsc --noEmit
 ```
 
-### Build an Internal Testing APK
+---
+
+## 6. Native Mobile Features & Performance Architecture
+
+- **Zero-Lag 60+ FPS Hardware-Accelerated Rendering**: `WebView` runs with `androidLayerType="hardware"`, `overScrollMode="never"`, `bounces={false}`, and `scrollEnabled={false}`, backed by the 60Hz fixed-timestep physics accumulator (`FIXED_DT = 1 / 60`) and offscreen `32×32` tile sprite cache.
+- **Dynamic Auto-Orientation (`expo-screen-orientation`)**: Locks to `PORTRAIT_UP` on menus and switches to `LANDSCAPE` with hidden system bars during active gameplay.
+- **Native Android Hardware & Gesture Back Button (`BackHandler`)**:
+  - `PLAYING` $\rightarrow$ Pauses gameplay (`PAUSED`)
+  - `PAUSED` $\rightarrow$ Resumes gameplay (`PLAYING`)
+  - Stage Outcome Modals $\rightarrow$ Returns to `LEVEL_SELECT` (Portrait)
+  - `SETTINGS` / `CONTROLS` $\rightarrow$ Returns to `SETTINGS_HUB`
+  - `LEVEL_SELECT` $\rightarrow$ Returns to `WORLD_SELECT`
+  - `WORLD_SELECT` / `SETTINGS_HUB` $\rightarrow$ Returns to `TITLE_MENU` (Home)
+  - `TITLE_MENU` $\rightarrow$ Prompts `"Press Back again to exit Crown of Emeraldia"` toast before exiting.
+- **Native `AsyncStorage` Save Persistence**: Automatically syncs and hydrates `crown_of_emeraldia_save_v2` via `@react-native-async-storage/async-storage`.
+
+---
+
+## 7. Building Production APK & Play Store AAB
+
+### Build an Internal Testing Preview APK
 ```bash
 cd react-native-game
 npm run build:android-apk
@@ -130,8 +172,3 @@ npm run build:android-apk
 cd react-native-game
 npm run build:android-aab
 ```
-
-### Play Store Assets Included
-- **App Icon (`assets/icon.png` & `assets/adaptive-icon.png`)**: High-resolution 1:1 square icon featuring the golden Crown of Emeraldia and emerald jewel over a 16-bit question block and hills.
-- **Play Console 512×512 Icon (`assets/playstore-icon-512.png`)**: Ready to upload directly to the Google Play Console Store Listing.
-- **Splash Screen (`assets/splash-icon.png`)**: High-resolution 9:16 vertical pixel-art splash screen configured via `expo-splash-screen`.
