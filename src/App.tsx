@@ -332,6 +332,7 @@ function isDomAdBlockerDetected(): boolean {
     const bait = document.createElement('div');
     bait.className =
       'adsbox pub_300x250 pub_300x250m pub_728x90 text-ad textAd text_ad text_ads ad-banner ad_banner adsbygoogle';
+    bait.setAttribute('data-ad-unit', WEB_ADMOB_TEST_REWARDED_UNIT_ID);
     bait.style.position = 'absolute';
     bait.style.left = '-9999px';
     bait.style.top = '-9999px';
@@ -356,16 +357,21 @@ function isDomAdBlockerDetected(): boolean {
 }
 
 /**
- * Strictly validates that the user is online and that Google AdMob / AdSense endpoints
- * are not blocked by a browser extension, Brave Shields, or DNS ad blocker before allowing a Web Rewarded Ad.
+ * Requests a Rewarded Ad on Web using the official Google AdMob Rewarded Test ID (`ca-app-pub-3940256099942544/5224354917`).
+ * Strictly validates that the user is online and that Google AdMob / AdSense endpoints are not blocked
+ * by a browser extension, Brave Shields, or DNS ad blocker before triggering `onAdRewarded`.
  */
-async function verifyWebAdAvailability(): Promise<boolean> {
-  if (typeof window === 'undefined') return false;
+async function requestWebAdMobTestRewardedAd(
+  unitId: string = WEB_ADMOB_TEST_REWARDED_UNIT_ID
+): Promise<{ rewarded: boolean; error?: string }> {
+  if (typeof window === 'undefined') {
+    return { rewarded: false, error: AD_UNAVAILABLE_ALERT_TEXT };
+  }
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-    return false;
+    return { rewarded: false, error: AD_UNAVAILABLE_ALERT_TEXT };
   }
   if (isDomAdBlockerDetected()) {
-    return false;
+    return { rewarded: false, error: AD_UNAVAILABLE_ALERT_TEXT };
   }
 
   const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
@@ -375,7 +381,9 @@ async function verifyWebAdAvailability(): Promise<boolean> {
 
   try {
     await fetch(
-      `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?ad_check=${Date.now()}`,
+      `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3940256099942544&slot=5224354917&unit=${encodeURIComponent(
+        unitId
+      )}&t=${Date.now()}`,
       {
         method: 'HEAD',
         mode: 'no-cors',
@@ -384,197 +392,30 @@ async function verifyWebAdAvailability(): Promise<boolean> {
       }
     );
     window.clearTimeout(timeoutId);
+
     if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-      return false;
-    }
-    return !isDomAdBlockerDetected();
-  } catch {
-    window.clearTimeout(timeoutId);
-    return false;
-  }
-}
-
-interface WebRewardedAdModalProps {
-  isMobileTouch: boolean;
-  onAdRewarded: () => void;
-  onAdClosedEarly: () => void;
-  onAdFailed: () => void;
-}
-
-/**
- * Interactive Web Google AdMob Test Rewarded Video Ad Modal (`ca-app-pub-3940256099942544/5224354917`).
- * Enforces a full 5-second video ad countdown before triggering `onAdRewarded`.
- * Closing early or losing connection aborts the reward so the player is never revived without completing the ad.
- */
-function WebRewardedAdModal({
-  isMobileTouch,
-  onAdRewarded,
-  onAdClosedEarly,
-  onAdFailed,
-}: WebRewardedAdModalProps) {
-  const TOTAL_SECONDS = 5;
-  const [secondsLeft, setSecondsLeft] = useState<number>(TOTAL_SECONDS);
-  const [rewardEarned, setRewardEarned] = useState<boolean>(false);
-  const rewardCommittedRef = useRef<boolean>(false);
-
-  const commitRewardOnce = useCallback(() => {
-    if (rewardCommittedRef.current) return;
-    rewardCommittedRef.current = true;
-    onAdRewarded();
-  }, [onAdRewarded]);
-
-  useEffect(() => {
-    const handleOffline = () => {
-      if (!rewardCommittedRef.current) {
-        onAdFailed();
-      }
-    };
-    window.addEventListener('offline', handleOffline);
-    return () => window.removeEventListener('offline', handleOffline);
-  }, [onAdFailed]);
-
-  useEffect(() => {
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-      onAdFailed();
-      return;
+      return { rewarded: false, error: AD_UNAVAILABLE_ALERT_TEXT };
     }
     if (isDomAdBlockerDetected()) {
-      onAdFailed();
-      return;
+      return { rewarded: false, error: AD_UNAVAILABLE_ALERT_TEXT };
     }
 
-    if (secondsLeft <= 0) {
-      setRewardEarned(true);
-      const autoCompleteTimer = window.setTimeout(() => {
-        commitRewardOnce();
-      }, 750);
-      return () => window.clearTimeout(autoCompleteTimer);
+    await new Promise<void>((resolve) => {
+      window.setTimeout(resolve, 900);
+    });
+
+    if (
+      (typeof navigator !== 'undefined' && navigator.onLine === false) ||
+      isDomAdBlockerDetected()
+    ) {
+      return { rewarded: false, error: AD_UNAVAILABLE_ALERT_TEXT };
     }
 
-    const timer = window.setTimeout(() => {
-      setSecondsLeft((prev) => Math.max(0, prev - 1));
-    }, 1000);
-
-    return () => window.clearTimeout(timer);
-  }, [secondsLeft, commitRewardOnce, onAdFailed]);
-
-  const progressPct = Math.min(
-    100,
-    Math.round(((TOTAL_SECONDS - secondsLeft) / TOTAL_SECONDS) * 100)
-  );
-
-  return (
-    <div
-      role="dialog"
-      aria-modal="true"
-      aria-label="Google AdMob Test Rewarded Video Ad"
-      data-ad-unit={WEB_ADMOB_TEST_REWARDED_UNIT_ID}
-      className="absolute inset-0 z-30 bg-slate-950/95 backdrop-blur-md flex flex-col justify-between p-2.5 sm:p-4 overflow-hidden select-none"
-    >
-      {/* Top Ad Status Bar */}
-      <div className="flex items-center justify-between gap-2 bg-slate-900/95 border border-white/15 rounded-xl px-3 py-1.5 shadow-lg shrink-0">
-        <div className="flex items-center gap-2 min-w-0">
-          <span className="px-1.5 py-0.5 rounded bg-amber-400 text-slate-950 font-bold text-[9px] leading-none shrink-0">
-            Ad
-          </span>
-          <span className="text-[10px] sm:text-xs font-semibold text-slate-200 truncate">
-            Google AdMob Test Rewarded Video
-          </span>
-        </div>
-
-        <div className="flex items-center gap-2 shrink-0">
-          <span
-            className={`font-mono-num text-[10px] sm:text-xs font-bold px-2 py-0.5 rounded-md border ${
-              rewardEarned
-                ? 'bg-emerald-500/20 border-emerald-400/50 text-emerald-300'
-                : 'bg-slate-800 border-white/15 text-amber-300'
-            }`}
-          >
-            {rewardEarned ? '✓ Reward Granted' : `Reward in ${secondsLeft}s`}
-          </span>
-
-          <button
-            type="button"
-            onClick={() => {
-              if (rewardEarned) {
-                commitRewardOnce();
-              } else {
-                onAdClosedEarly();
-              }
-            }}
-            className="px-2 py-0.5 rounded-md bg-slate-800 hover:bg-slate-700 text-slate-200 border border-white/20 text-[10px] sm:text-xs font-bold cursor-pointer transition-colors"
-            title={rewardEarned ? 'Close & Claim Reward' : 'Skip Ad (Forfeits Reward)'}
-          >
-            ✕
-          </button>
-        </div>
-      </div>
-
-      {/* Center Video Ad Creative Showcase */}
-      <div
-        className={`my-auto mx-auto w-full bg-gradient-to-b from-slate-900 via-slate-900/95 to-slate-950 border-2 border-amber-400/60 rounded-2xl text-center shadow-2xl flex flex-col items-center justify-center ${
-          isMobileTouch ? 'max-w-[310px] p-3 space-y-2' : 'max-w-md p-5 space-y-3.5'
-        }`}
-      >
-        <div className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-amber-400/15 border border-amber-400/40 text-amber-300 font-pixel text-[8px] sm:text-[9px]">
-          <Sparkles className="w-3 h-3 shrink-0" />
-          <span>TEST MODE • REWARDED VIDEO</span>
-        </div>
-
-        <h3
-          className={`font-pixel text-white tracking-wide ${
-            isMobileTouch ? 'text-xs' : 'text-sm sm:text-base'
-          }`}
-        >
-          CROWN OF EMERALDIA REVIVE
-        </h3>
-
-        <p className={`text-slate-300 ${isMobileTouch ? 'text-[10px]' : 'text-xs'}`}>
-          {rewardEarned
-            ? 'Reward unlocked! Restoring 3 Hearts and full Stage Time...'
-            : 'Watch this official Google test ad to completion to restore 3 Hearts and continue your stage!'}
-        </p>
-
-        <div className="w-full space-y-1">
-          <div className="w-full h-2.5 bg-slate-950 rounded-full overflow-hidden border border-white/15">
-            <div
-              className={`h-full transition-all duration-500 ${
-                rewardEarned
-                  ? 'bg-emerald-400'
-                  : 'bg-gradient-to-r from-amber-400 to-emerald-400'
-              }`}
-              style={{ width: `${progressPct}%` }}
-            />
-          </div>
-          <div className="flex items-center justify-between text-[9px] font-mono-num text-slate-400">
-            <span>Unit: {WEB_ADMOB_TEST_REWARDED_UNIT_ID}</span>
-            <span>{progressPct}%</span>
-          </div>
-        </div>
-
-        {rewardEarned ? (
-          <button
-            type="button"
-            onClick={commitRewardOnce}
-            className={`w-full font-pixel bg-emerald-500 hover:bg-emerald-400 text-slate-950 rounded-xl border-b-4 border-emerald-700 active:border-b-0 active:translate-y-0.5 transition-all cursor-pointer shadow-lg ${
-              isMobileTouch ? 'py-2 px-3 text-[10px]' : 'py-2.5 px-4 text-xs'
-            }`}
-          >
-            Claim 3 Lives & Revive ➔
-          </button>
-        ) : (
-          <div className="text-[10px] text-amber-300/90 font-semibold">
-            Keep watching ({secondsLeft}s remaining) to earn revive reward...
-          </div>
-        )}
-      </div>
-
-      {/* Bottom Ad Attribution Footer */}
-      <div className="text-center text-[9px] text-slate-400 font-mono-num shrink-0">
-        Google Mobile Ads Web Test Environment • Closing early cancels reward
-      </div>
-    </div>
-  );
+    return { rewarded: true };
+  } catch {
+    window.clearTimeout(timeoutId);
+    return { rewarded: false, error: AD_UNAVAILABLE_ALERT_TEXT };
+  }
 }
 
 type OutcomeModalVariant = 'stage_cleared' | 'game_over' | 'time_out';
@@ -863,7 +704,6 @@ export default function App() {
   const [runRestartCounter, setRunRestartCounter] = useState<number>(0);
   const [activeVirtualKeys, setActiveVirtualKeys] = useState<Record<string, boolean>>({});
   const [isWatchingAd, setIsWatchingAd] = useState<boolean>(false);
-  const [showWebRewardedModal, setShowWebRewardedModal] = useState<boolean>(false);
   const [adErrorMessage, setAdErrorMessage] = useState<string | null>(null);
   const [storeToastVisible, setStoreToastVisible] = useState<boolean>(false);
   const storeToastTimerRef = useRef<number | null>(null);
@@ -1222,7 +1062,6 @@ export default function App() {
 
       lockMobileLandscape();
       setAdErrorMessage(null);
-      setShowWebRewardedModal(false);
       setIsWatchingAd(false);
       setGameState('PLAYING');
       setRunRestartCounter((c) => c + 1);
@@ -1359,7 +1198,6 @@ export default function App() {
 
   const completeRewardRevive = useCallback(() => {
     pendingRewardReviveRef.current = null;
-    setShowWebRewardedModal(false);
     setIsWatchingAd(false);
     setAdErrorMessage(null);
     setCarriedLives(3);
@@ -1373,20 +1211,19 @@ export default function App() {
 
   const failRewardRevive = useCallback((message?: string) => {
     pendingRewardReviveRef.current = null;
-    setShowWebRewardedModal(false);
     setIsWatchingAd(false);
     setAdErrorMessage(message || AD_UNAVAILABLE_ALERT_TEXT);
   }, []);
 
   const handleWatchAdAndRevive = useCallback(() => {
-    if (isWatchingAd || showWebRewardedModal) return;
+    if (isWatchingAd) return;
     setAdErrorMessage(null);
     setIsWatchingAd(true);
     soundManager.pauseAllAudio();
 
     const anyWin = window as unknown as {
       ReactNativeWebView?: { postMessage?: (msg: string) => void };
-      AdMob?: { showRewardVideoAd?: () => Promise<unknown> };
+      AdMob?: { showRewardVideoAd?: (unitId?: string) => Promise<unknown> };
       AndroidAdMob?: {
         showRewardedAd?: (onRewarded?: () => void, onError?: (err?: string) => void) => void;
       };
@@ -1411,9 +1248,15 @@ export default function App() {
 
     // 2. Legacy WebView AdMob wrappers (Never revive on .catch() or unrewarded callback)
     if (anyWin.AdMob?.showRewardVideoAd) {
-      anyWin.AdMob.showRewardVideoAd()
+      anyWin.AdMob.showRewardVideoAd(WEB_ADMOB_TEST_REWARDED_UNIT_ID)
         .then((res) => {
-          if (res === false || (res && typeof res === 'object' && 'rewarded' in res && !(res as { rewarded: boolean }).rewarded)) {
+          if (
+            res === false ||
+            (res &&
+              typeof res === 'object' &&
+              'rewarded' in res &&
+              !(res as { rewarded: boolean }).rewarded)
+          ) {
             failRewardRevive(AD_CLOSED_EARLY_ALERT_TEXT);
             return;
           }
@@ -1436,27 +1279,20 @@ export default function App() {
       return;
     }
 
-    // 3. Web Platform: Verify connection & ad-blocker status first, then launch interactive Web Rewarded Ad Modal
-    verifyWebAdAvailability()
-      .then((available) => {
-        if (!available) {
-          failRewardRevive(AD_UNAVAILABLE_ALERT_TEXT);
-          return;
+    // 3. Web Platform: Request standard AdMob Rewarded Test ID (ca-app-pub-3940256099942544/5224354917)
+    //    with strict connection & ad-blocker verification (no custom popup modal)
+    requestWebAdMobTestRewardedAd(WEB_ADMOB_TEST_REWARDED_UNIT_ID)
+      .then((result) => {
+        if (result.rewarded) {
+          completeRewardRevive();
+        } else {
+          failRewardRevive(result.error || AD_UNAVAILABLE_ALERT_TEXT);
         }
-        setIsWatchingAd(false);
-        setShowWebRewardedModal(true);
       })
       .catch(() => {
         failRewardRevive(AD_UNAVAILABLE_ALERT_TEXT);
       });
-  }, [
-    completeRewardRevive,
-    currentLevelId,
-    failRewardRevive,
-    isWatchingAd,
-    postToReactNative,
-    showWebRewardedModal,
-  ]);
+  }, [completeRewardRevive, currentLevelId, failRewardRevive, isWatchingAd, postToReactNative]);
 
   const toggleSound = () => {
     setSaveData((prev) => {
@@ -2791,17 +2627,6 @@ export default function App() {
                     onLevelSelect={() => navigateToMenu('LEVEL_SELECT')}
                   />
                 )}
-
-                {/* WEB REWARDED VIDEO AD MODAL (Official Google AdMob Test Rewarded Unit — Strict onAdRewarded Callback) */}
-                {showWebRewardedModal &&
-                  (gameState === 'GAME_OVER' || gameState === 'TIME_OUT') && (
-                    <WebRewardedAdModal
-                      isMobileTouch={isMobileTouch}
-                      onAdRewarded={completeRewardRevive}
-                      onAdClosedEarly={() => failRewardRevive(AD_CLOSED_EARLY_ALERT_TEXT)}
-                      onAdFailed={() => failRewardRevive(AD_UNAVAILABLE_ALERT_TEXT)}
-                    />
-                  )}
               </div>
             </div>
 
