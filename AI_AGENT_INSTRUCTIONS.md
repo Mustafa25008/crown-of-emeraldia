@@ -266,10 +266,15 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
      - Do **not** place the countdown timer on the right side of the header.
 
 2. **Stage Countdown Timer, Respawn Timer Preservation & Revive Reset Rules (`src/game/engine.ts`)**:
-   - **Balanced Stage Duration (`getInitialLevelTime()`)**:
-     - **Normal / Standard stages**: `180` seconds (`3:00` / 3 minutes).
-     - **Secret Room / Key / Underwater stages** (`hiddenRoom`, `requiresKey`, or `isUnderwater`): `210` seconds (`3:30` / 3 minutes 30 seconds).
-     - **Boss stages** (`hasBoss: true`, i.e., Stage X-5 of every World): `240` seconds (`4:00` / 4 minutes).
+   - **Stage Timer Durations (`getInitialLevelTime()` & `getBossStageTimeForWorld(worldNumber)`)**:
+     - **All Non-Boss Stages** (Normal / Standard stages, **including** Secret Room, Golden Key, and Underwater stages — i.e., Stages X-1 to X-4 of every World): **`90` seconds (`1:30` / $1\frac{1}{2}$ minutes)**.
+     - **Boss Stages (`hasBoss: true` — Stage X-5 of every World)**: Dynamically scales alongside Boss HP (`getBossMaxHpForWorld(worldNumber)`) by adding **`+15` seconds every 2 worlds** ($\text{bossStageTime} = 90 + \lfloor (\text{worldNumber} - 1) / 2 \rfloor \times 15 = 90 + ((\text{bossHits} - 3) / 2) \times 15$):
+       - **World 1–2 (`3` Boss Hits)**: `90` seconds (`1:30`)
+       - **World 3–4 (`5` Boss Hits)**: `90 + 15 = 105` seconds (`1:45`)
+       - **World 5–6 (`7` Boss Hits)**: `105 + 15 = 120` seconds (`2:00`)
+       - **World 7–8 (`9` Boss Hits)**: `120 + 15 = 135` seconds (`2:15`)
+       - **World 9–10 (`11` Boss Hits)**: `135 + 15 = 150` seconds (`2:30`)
+       - **Future Worlds > 10**: Continues adding `+15` seconds after every 2 worlds (alongside `+2` boss hits).
    - **Respawn Preserves Remaining Timer (`initEntitiesFromLevel(false, false)`)**:
      - When the player loses a heart while still having hearts remaining (`this.lives > 0`), the player respawns at the stage start or active checkpoint (`this.initEntitiesFromLevel(false, false)` with `resetTimer = false`).
      - **NEVER reset `this.timeRemaining` on respawn!** The countdown timer must continue from the exact remaining time the player had before losing that heart.

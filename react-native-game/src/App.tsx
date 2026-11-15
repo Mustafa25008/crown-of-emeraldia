@@ -802,7 +802,7 @@ export default function App() {
     score: 0,
     coins: 0,
     lives: 3,
-    timeRemaining: 180,
+    timeRemaining: 90,
     levelId: 1,
     levelName: LEVELS[0].name,
     powerState: 'SMALL',

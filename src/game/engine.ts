@@ -96,6 +96,19 @@ export function getBossMaxHpForWorld(worldNumber: number): number {
   return 3 + Math.floor((activeWorld - 1) / 2) * 2;
 }
 
+export function getBossStageTimeForWorld(worldNumber: number): number {
+  const activeWorld = Math.max(1, Math.floor(worldNumber || 1));
+  const bossHits = getBossMaxHpForWorld(activeWorld);
+  // Progressive Boss Stage Timer formula (linked to Boss HP stepping):
+  // World 1-2 (3 hits): 90s (1:30)
+  // World 3-4 (5 hits): 105s (1:45) (+15s)
+  // World 5-6 (7 hits): 120s (2:00) (+15s)
+  // World 7-8 (9 hits): 135s (2:15) (+15s)
+  // World 9-10 (11 hits): 150s (2:30) (+15s)
+  // Future Worlds > 10 (+2 hits every 2 worlds): +15s every 2 worlds
+  return 90 + Math.floor((bossHits - 3) / 2) * 15;
+}
+
 export class PlatformerEngine {
   private ctx: CanvasRenderingContext2D;
   private level: LevelDefinition;
@@ -138,7 +151,7 @@ export class PlatformerEngine {
   private score: number = 0;
   private coins: number = 0;
   private lives: number = 3;
-  private timeRemaining: number = 180;
+  private timeRemaining: number = 90;
   private checkpointReached: boolean = false;
   private respawnPoint: { x: number; y: number };
   private cameraX: number = 0;
@@ -251,12 +264,11 @@ export class PlatformerEngine {
 
   private getInitialLevelTime(): number {
     if (this.level.hasBoss) {
-      return 240; // 4:00 for boss stages
+      const worldNumber = this.level.worldId || Math.floor((this.level.id - 1) / 5) + 1;
+      return getBossStageTimeForWorld(worldNumber);
     }
-    if (this.level.hiddenRoom || this.level.requiresKey || this.level.isUnderwater) {
-      return 210; // 3:30 for secret room / key / underwater stages
-    }
-    return 180; // 3:00 balanced standard stage time
+    // All normal/standard stages (including secret room, key, and underwater stages): 90s (1:30)
+    return 90;
   }
 
   private createInitialBossState(): BossState {
