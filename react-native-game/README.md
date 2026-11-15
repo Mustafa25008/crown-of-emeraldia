@@ -114,11 +114,15 @@ npx expo start --dev-client
 - **Automatically hidden during active gameplay** (`PLAYING`, `PAUSED`, `LEVEL_COMPLETE`, `WORLD_VICTORY`, `GAME_OVER`, `TIME_OUT`) so it never obstructs the landscape gameplay canvas or side-margin touch controls.
 - Uses `AdBannerSlot.web.tsx` as a clean no-op when running on Web.
 
-### B. "Watch Ad to Revive" Rewarded Ad (`src/ads/rewardedAdManager.ts`)
+### B. "Watch Ad to Revive" Rewarded Ad (`src/ads/rewardedAdManager.ts` & Web `<WebRewardedAdModal />`)
 - Preloads a Google AdMob `RewardedAd` on startup using `EXPO_PUBLIC_ADMOB_ANDROID_REWARDED_ID` / `EXPO_PUBLIC_ADMOB_IOS_REWARDED_ID`.
 - When the player runs out of lives (`GAME_OVER`) or time (`TIME_OUT`) and taps **"▶ Watch Ad & Revive"**, the game engine sends `{ type: 'SHOW_REWARDED_AD' }` over the React Native bridge.
 - `App.tsx` displays the native fullscreen Rewarded Video Ad (`showRewardedReviveAd()`).
-- Upon earning the reward (`RewardedAdEventType.EARNED_REWARD`) and closing the ad, `App.tsx` sends `REWARDED_AD_RESULT` (`rewarded: true`) back to the engine, immediately refilling **3 lives**, resetting the stage countdown timer, and resuming the level.
+- **Strict `onAdRewarded` Validation (Ad-Blocker & Offline Exploit Prevention)**:
+  - Revive (`rewarded: true`) is granted **only** when `RewardedAdEventType.EARNED_REWARD` (`onAdRewarded`) fires and the ad completes.
+  - If the ad fails to load (`AdEventType.ERROR`), times out (`10s`), the device is offline, an ad blocker / DNS blocker is active, or the user closes the ad early before earning the reward, `showRewardedReviveAd()` returns `{ rewarded: false, error }`. The player is **never** revived without watching the ad, and `StageOutcomeModal` displays a clear alert (`"Ad unavailable. Please check your connection or disable ad blocker to revive!"` or `"Reward not earned. Please watch the full ad to revive!"`).
+- **Web Platform Rewarded Ad Modal (`<WebRewardedAdModal />`)**:
+  - On the Web build, clicking **"▶ Watch Ad & Revive"** runs `verifyWebAdAvailability()` (verifying `navigator.onLine`, DOM ad-blocker bait nodes, and network reachability to `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js`) and opens an interactive 5-second **Google AdMob Test Rewarded Video Ad Modal** (`ca-app-pub-3940256099942544/5224354917`) that triggers `onAdRewarded` only upon completion.
 
 ---
 

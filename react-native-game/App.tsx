@@ -215,7 +215,7 @@ function GameHostApp() {
         case 'SHOW_REWARDED_AD': {
           const result = await showRewardedReviveAd();
           webViewRef.current?.injectJavaScript(
-            buildRewardedAdResultScript(result.rewarded)
+            buildRewardedAdResultScript(result.rewarded, result.error)
           );
           break;
         }

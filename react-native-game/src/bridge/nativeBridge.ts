@@ -95,15 +95,16 @@ export function buildHydrateSaveScript(rawSaveJson: string): string {
   `;
 }
 
-export function buildRewardedAdResultScript(rewarded: boolean): string {
+export function buildRewardedAdResultScript(rewarded: boolean, errorMessage?: string): string {
   const flag = rewarded ? 'true' : 'false';
+  const serializedError = errorMessage ? JSON.stringify(errorMessage) : 'undefined';
   return `
     (function() {
       try {
         if (typeof window.__onNativeRewardedAdResult === 'function') {
-          window.__onNativeRewardedAdResult(${flag});
+          window.__onNativeRewardedAdResult(${flag}, ${serializedError});
         } else {
-          window.postMessage(JSON.stringify({ type: 'REWARDED_AD_RESULT', rewarded: ${flag} }), '*');
+          window.postMessage(JSON.stringify({ type: 'REWARDED_AD_RESULT', rewarded: ${flag}, error: ${serializedError} }), '*');
         }
       } catch (e) {}
     })();

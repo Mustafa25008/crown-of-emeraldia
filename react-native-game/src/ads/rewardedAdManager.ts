@@ -98,44 +98,86 @@ export async function initializeAdMobSdk(): Promise<boolean> {
   return initPromise;
 }
 
+export interface RewardedAdResult {
+  rewarded: boolean;
+  error?: string;
+}
+
+const AD_UNAVAILABLE_MESSAGE =
+  'Ad unavailable. Please check your connection or disable ad blocker to revive!';
+const AD_CLOSED_EARLY_MESSAGE =
+  'Reward not earned. Please watch the full ad to revive!';
+const AD_LOAD_TIMEOUT_MS = 10000;
+
 /**
  * Displays the Google AdMob Rewarded Ad for the "Watch Ad & Revive" feature.
- * Resolves with `{ rewarded: true }` once the user earns the reward (or if offline test fallback activates),
- * or `{ rewarded: false }` if the user dismisses the ad early before earning the reward.
+ * STRICT VALIDATION:
+ * - Resolves with `{ rewarded: true }` ONLY when `RewardedAdEventType.EARNED_REWARD` (`onAdRewarded`) fires.
+ * - If the SDK is unavailable, ad fails to load, device is offline, an ad blocker blocks AdMob,
+ *   or the user closes the ad before earning the reward, resolves with `{ rewarded: false, error }`.
  */
-export async function showRewardedReviveAd(): Promise<{ rewarded: boolean }> {
+export async function showRewardedReviveAd(): Promise<RewardedAdResult> {
   if (Platform.OS === 'web') {
-    return { rewarded: true };
+    return {
+      rewarded: false,
+      error: AD_UNAVAILABLE_MESSAGE,
+    };
   }
 
   const ready = await initializeAdMobSdk();
   const adMob = getSafeAdMobModule();
   if (!ready || !adMob) {
-    return new Promise((resolve) => {
-      setTimeout(() => resolve({ rewarded: true }), 800);
-    });
+    return {
+      rewarded: false,
+      error: AD_UNAVAILABLE_MESSAGE,
+    };
   }
 
   return new Promise((resolve) => {
     let settled = false;
     let earnedReward = false;
+    let loadTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
-    const finish = (rewarded: boolean) => {
+    const clearLoadTimeout = () => {
+      if (loadTimeoutId !== null) {
+        clearTimeout(loadTimeoutId);
+        loadTimeoutId = null;
+      }
+    };
+
+    const finish = (rewarded: boolean, error?: string) => {
       if (settled) return;
       settled = true;
+      clearLoadTimeout();
       createAndLoadRewardedAd();
-      resolve({ rewarded });
+      resolve({ rewarded, error });
     };
 
     try {
       const { RewardedAd, RewardedAdEventType, AdEventType } = adMob;
       const unitId = getRewardedAdUnitId();
-      const adInstance =
-        preloadedRewardedAd && isPreloadedAdReady
-          ? preloadedRewardedAd
-          : RewardedAd.createForAdRequest(unitId, {
-              requestNonPersonalizedAdsOnly: true,
-            });
+      const usePreloaded = Boolean(preloadedRewardedAd && isPreloadedAdReady);
+      const adInstance = usePreloaded
+        ? (preloadedRewardedAd as RewardedAdInstance)
+        : RewardedAd.createForAdRequest(unitId, {
+            requestNonPersonalizedAdsOnly: true,
+          });
+
+      let unsubLoaded: (() => void) | null = null;
+
+      const cleanupListeners = () => {
+        try {
+          unsubEarned();
+          unsubClosed();
+          unsubError();
+          if (unsubLoaded) {
+            unsubLoaded();
+            unsubLoaded = null;
+          }
+        } catch {
+          // Ignore listener cleanup errors
+        }
+      };
 
       const unsubEarned = adInstance.addAdEventListener(
         RewardedAdEventType.EARNED_REWARD,
@@ -145,38 +187,52 @@ export async function showRewardedReviveAd(): Promise<{ rewarded: boolean }> {
       );
 
       const unsubClosed = adInstance.addAdEventListener(AdEventType.CLOSED, () => {
-        unsubEarned();
-        unsubClosed();
-        unsubError();
-        finish(earnedReward);
+        cleanupListeners();
+        if (earnedReward) {
+          finish(true);
+        } else {
+          finish(false, AD_CLOSED_EARLY_MESSAGE);
+        }
       });
 
       const unsubError = adInstance.addAdEventListener(AdEventType.ERROR, () => {
-        unsubEarned();
-        unsubClosed();
-        unsubError();
-        setTimeout(() => finish(true), 900);
+        cleanupListeners();
+        finish(false, AD_UNAVAILABLE_MESSAGE);
       });
 
-      if (adInstance === preloadedRewardedAd && isPreloadedAdReady) {
+      if (usePreloaded) {
         isPreloadedAdReady = false;
+        preloadedRewardedAd = null;
         adInstance.show().catch(() => {
-          finish(true);
+          cleanupListeners();
+          finish(false, AD_UNAVAILABLE_MESSAGE);
         });
       } else {
-        const unsubLoaded = adInstance.addAdEventListener(
+        loadTimeoutId = setTimeout(() => {
+          cleanupListeners();
+          finish(false, AD_UNAVAILABLE_MESSAGE);
+        }, AD_LOAD_TIMEOUT_MS);
+
+        unsubLoaded = adInstance.addAdEventListener(
           RewardedAdEventType.LOADED,
           () => {
-            unsubLoaded();
+            clearLoadTimeout();
+            if (unsubLoaded) {
+              unsubLoaded();
+              unsubLoaded = null;
+            }
             adInstance.show().catch(() => {
-              finish(true);
+              cleanupListeners();
+              finish(false, AD_UNAVAILABLE_MESSAGE);
             });
           }
         );
+
         adInstance.load();
       }
     } catch {
-      setTimeout(() => finish(true), 900);
+      finish(false, AD_UNAVAILABLE_MESSAGE);
     }
   });
 }
+
