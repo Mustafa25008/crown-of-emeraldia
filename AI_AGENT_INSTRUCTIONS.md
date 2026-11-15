@@ -469,12 +469,22 @@ The complete web platformer is cloned and packaged into a standalone **Expo SDK 
      - `WORLD_SELECT` / `SETTINGS_HUB` $\rightarrow$ Navigates to `TITLE_MENU` (Home Screen).
      - `TITLE_MENU` (Root Home Screen) $\rightarrow$ Posts `BACK_AT_ROOT` to React Native, which displays `"Press Back again to exit Crown of Emeraldia"` (`ToastAndroid.SHORT`) and exits only on a second press within 2 seconds.
 
-5. **Google Play Store Icon, Splash Screen Assets & Android 12+ `androidx.core:core-splashscreen` Compliance**:
+5. **Google Play Store Icon, Splash Screen Assets, Cold-Launch / Home Re-Entry Splash Sequence & Android 12+ `androidx.core:core-splashscreen`**:
    - **Sky High Crown App Icon (`image_a17ba343.png`)**: Deployed across both Web (`/public/icon.png`, `/public/icon-512.png`, `/public/icon-192.png`, `/public/apple-touch-icon.png`, `/public/favicon.png`, referenced in `/index.html` and `/public/manifest.json`) and Native (`/react-native-game/assets/icon.png` 1024×1024, `adaptive-icon.png` 1024×1024, `playstore-icon-512.png` 512×512, `favicon.png` 48×48, and all `mipmap-mdpi` through `mipmap-xxxhdpi` launcher icons).
    - **Light Blue Pixel-Art Sky & Crown Splash Screen (`image_17420219.png`) & Visual Continuity (`#48C3F7`)**: Deployed to `/public/splash.png`, `/react-native-game/assets/splash-icon.png` (1080×1920), `/react-native-game/assets/splash.png`, `/react-native-game/android/app/src/main/res/drawable/splashscreen_image.png`, and `drawable-mdpi` through `drawable-xxxhdpi` `splashscreen_logo.png`. All splash, activity, and container backgrounds (`colors.xml`, `styles.xml`, `app.json`, `index.html`, and `App.tsx`) use `#48C3F7` so the Splash Screen sky continues seamlessly into the Home Screen (`TITLE_MENU`) sky with zero dark flash or visual shift.
-   - **Android 12+ `androidx.core:core-splashscreen:1.0.1` & Zero Fake Delay**:
+   - **Android 12+ `androidx.core:core-splashscreen:1.0.1`**:
      - `react-native-game/android/app/build.gradle` explicitly includes `implementation("androidx.core:core-splashscreen:1.0.1")` with `MainActivity` using `Theme.App.SplashScreen` (`parent="Theme.SplashScreen"`) and `SplashScreenManager.registerOnActivity(this)` (no legacy `SplashActivity`).
-     - The Splash Screen is displayed strictly during Cold Start resource initialization and is dismissed **immediately** with zero artificial `setTimeout` delay the instant the first frame of `<GameplayEnvironmentBackdrop />` finishes painting (`ENGINE_READY` / `onLoadEnd`).
+   - **Consistent Cold-Launch & Home-Screen Re-Entry Splash Sequence (`1100ms`)**:
+     - On **Native (`react-native-game/App.tsx`)**: Displays the full-screen `<Image source={require('./assets/splash-icon.png')} />` splash sequence (`SPLASH_LAUNCH_DURATION_MS = 1100`) on initial cold launch AND whenever the app is exited via Back on the Home Screen (`BackHandler.exitApp()` $\rightarrow$ `shouldRunSplashOnResumeRef.current = true`) or minimized to background and re-opened on the Home Screen (`AppState` transition `background` $\rightarrow$ `active` when `currentGameStateRef.current === 'TITLE_MENU'` and `!isShowingRewardedAdRef.current`).
+     - On **Web (`src/App.tsx`)**: Displays the full-screen `/splash.png` overlay (`isWebSplashVisible`, `1100ms`) on initial cold launch AND whenever the page is restored from BFCache (`pageshow` with `event.persisted`) or returns from hidden/minimized tab state (`visibilitychange` $\rightarrow$ `'visible'`) while on `TITLE_MENU`.
    - **Strict Valid PNG Requirement for Android AAPT2**: All `.png` files inside `react-native-game/assets/`, `react-native-game/android/app/src/main/res/`, and `/public/` MUST be genuine PNG-encoded files (`89 50 4E 47 0D 0A 1A 0A` header).
+
+6. **CRITICAL DATA SAFETY RULE — Non-Destructive Save Progress Persistence (`src/game/storage.ts`, `src/App.tsx`, `react-native-game/App.tsx`)**:
+   - **Zero Data Loss Guarantee**: Stored user progress (`unlockedLevel`, `highScores`, `bestCoins`, `totalCoinsCollected`, `soundEnabled`, `musicEnabled`, `volume`) in `localStorage` and `AsyncStorage` (`crown_of_emeraldia_save_v1` and `crown_of_emeraldia_save_v2`) must **NEVER** be reset, cleared, or overwritten during app startup, splash screen sequences, background/foreground resume, or WebView hydration.
+   - **Non-Destructive Merge (`mergeSaveProgress(base, incoming)`)**:
+     - Always use `mergeSaveProgress(base, incoming)` in `loadProgress()`, `saveProgress()`, `HYDRATE_NATIVE_SAVE`, `SAVE_PROGRESS_SYNC`, and foreground resume handlers.
+     - `mergeSaveProgress` computes the monotonic maximum across both states (`Math.max` for `unlockedLevel`, `totalCoinsCollected`, every stage's `highScores[levelId]`, and every stage's `bestCoins[levelId]`, plus inferred unlocked stage from any completed stage), making it mathematically impossible for a fresh initial state to overwrite existing player progress.
+   - **Explicit Reset Only**: Save data may only be reset when the player explicitly clicks **"Reset Save Data"** in the Settings screen (`handleResetSave()` $\rightarrow$ `resetAllProgress()` + `{ type: 'RESET_NATIVE_SAVE' }`).
+
 
 

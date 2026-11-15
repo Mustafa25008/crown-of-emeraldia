@@ -39,7 +39,8 @@ A complete, playable 2D side-scrolling pixel art platformer inspired by classic 
   - **"Watch Ad & Revive" Protection**: Uses the official Google AdMob Rewarded Test ID (`ca-app-pub-3940256099942544/5224354917`) across both Web and Native builds. Player revival (3 lives + full stage timer) triggers **only** when a real Rewarded Ad actually opens on screen and completes (`AdEventType.OPENED` + `RewardedAdEventType.EARNED_REWARD` on Native, or `beforeAd` + `adViewed` on Web).
   - **Never Revive Without Ad**: If no ad opens on screen, an ad fails to load, the user is offline, or an ad blocker is active, the player is **never** revived without an ad and an in-game alert (`"Ad unavailable. Please check your connection or disable ad blocker to revive!"`) is shown inside the Game Over / Time Up modal.
 - **Web Audio API Chiptune Synthesizer**: Custom sound effects and looping background tracks with mute and master volume controls.
-- **Persistent Progression**: Automatically saves unlocked stages, high scores, best coins, and audio preferences in `localStorage` (and native `AsyncStorage` in the Expo mobile app).
+- **Startup & Home Re-Entry Splash Sequence**: Displays the official Pixel-Art Sky & Crown Splash Screen (`/splash.png` on Web, `assets/splash-icon.png` on Native) on every cold launch as well as when re-opening the app on the Home Screen (`TITLE_MENU`) after minimizing/backgrounding or exiting via the Android Back button.
+- **100% Safe, Non-Destructive Persistent Progression (`mergeSaveProgress`)**: Automatically saves and non-destructively merges unlocked stages, high scores, best coins, total coins, and audio preferences across `localStorage` and native `AsyncStorage` (`crown_of_emeraldia_save_v1` & `crown_of_emeraldia_save_v2`) so player progress is never reset, cleared, or overwritten during startup, splash transitions, or background/foreground resume.
 
 ## Project & Stage Architecture
 

@@ -16,6 +16,9 @@ export type NativeBridgeInboundMessage =
       saveData: SaveProgress;
     }
   | {
+      type: 'RESET_NATIVE_SAVE';
+    }
+  | {
       type: 'SHOW_REWARDED_AD';
       levelId?: number;
     }
@@ -87,7 +90,9 @@ export function buildHydrateSaveScript(rawSaveJson: string): string {
     (function() {
       try {
         var parsed = JSON.parse(${escaped});
-        localStorage.setItem('crown_of_emeraldia_save_v2', JSON.stringify(parsed));
+        var serialized = JSON.stringify(parsed);
+        localStorage.setItem('crown_of_emeraldia_save_v1', serialized);
+        localStorage.setItem('crown_of_emeraldia_save_v2', serialized);
         window.postMessage(JSON.stringify({ type: 'HYDRATE_NATIVE_SAVE', saveData: parsed }), '*');
       } catch (e) {}
     })();

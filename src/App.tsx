@@ -32,6 +32,7 @@ import {
   saveProgressDebounced,
   recordLevelCompletion,
   resetAllProgress,
+  mergeSaveProgress,
 } from './game/storage';
 import { soundManager } from './game/audio';
 import { PlatformerEngine, CANVAS_WIDTH, CANVAS_HEIGHT } from './game/engine';
@@ -993,7 +994,7 @@ export default function App() {
           handleAndroidBackPress();
         } else if (raw.type === 'HYDRATE_NATIVE_SAVE' && raw.saveData) {
           setSaveData((prev) => {
-            const merged = { ...prev, ...raw.saveData };
+            const merged = mergeSaveProgress(prev, raw.saveData);
             saveProgress(merged);
             return merged;
           });
@@ -1017,6 +1018,85 @@ export default function App() {
       document.removeEventListener('message', handleNativeMessage as EventListener);
     };
   }, [handleAndroidBackPress]);
+
+  // Web Cold-Launch & Home-Screen Re-Entry Splash Sequence (Native uses its own native splash overlay in App.tsx)
+  const [isWebSplashVisible, setIsWebSplashVisible] = useState<boolean>(() => !isNativeExpoApp);
+  const webSplashTimerRef = useRef<number | null>(null);
+  const gameStateRef = useRef<GameState>(gameState);
+
+  useEffect(() => {
+    gameStateRef.current = gameState;
+  }, [gameState]);
+
+  const triggerWebSplashSequence = useCallback(
+    (durationMs: number = 1100) => {
+      if (isNativeExpoApp) return;
+      // Non-destructively re-verify and preserve localStorage save data on every launch/resume
+      setSaveData((prev) => {
+        const merged = mergeSaveProgress(prev, loadProgress());
+        saveProgress(merged);
+        return merged;
+      });
+      setIsWebSplashVisible(true);
+      if (webSplashTimerRef.current !== null) {
+        window.clearTimeout(webSplashTimerRef.current);
+      }
+      webSplashTimerRef.current = window.setTimeout(() => {
+        setIsWebSplashVisible(false);
+        webSplashTimerRef.current = null;
+      }, durationMs);
+    },
+    [isNativeExpoApp]
+  );
+
+  useEffect(() => {
+    if (isNativeExpoApp) {
+      setIsWebSplashVisible(false);
+      return;
+    }
+
+    // Run initial cold-launch splash sequence
+    triggerWebSplashSequence(1100);
+
+    const handleVisibilityChange = () => {
+      if (document.visibilityState === 'visible') {
+        // Always ensure localStorage progress is non-destructively preserved on foreground resume
+        setSaveData((prev) => {
+          const merged = mergeSaveProgress(prev, loadProgress());
+          saveProgress(merged);
+          return merged;
+        });
+        // If resuming/re-opening on the Home Screen, run the proper Splash Screen sequence
+        if (gameStateRef.current === 'TITLE_MENU') {
+          triggerWebSplashSequence(1100);
+        }
+      }
+    };
+
+    const handlePageShow = (event: PageTransitionEvent) => {
+      if (event.persisted) {
+        setSaveData((prev) => {
+          const merged = mergeSaveProgress(prev, loadProgress());
+          saveProgress(merged);
+          return merged;
+        });
+        if (gameStateRef.current === 'TITLE_MENU') {
+          triggerWebSplashSequence(1100);
+        }
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('pageshow', handlePageShow);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('pageshow', handlePageShow);
+      if (webSplashTimerRef.current !== null) {
+        window.clearTimeout(webSplashTimerRef.current);
+      }
+    };
+  }, [isNativeExpoApp, triggerWebSplashSequence]);
 
   const [bannerRefreshCount, setBannerRefreshCount] = useState<number>(0);
 
@@ -1357,6 +1437,7 @@ export default function App() {
   const handleResetSave = () => {
     const fresh = resetAllProgress();
     setSaveData(fresh);
+    postToReactNative({ type: 'RESET_NATIVE_SAVE' });
   };
 
   const handleVirtualInput = useCallback((code: string, pressed: boolean) => {
@@ -1516,8 +1597,23 @@ export default function App() {
     <div
       className={`${
         isScrollLockedScreen ? 'h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen'
-      } flex flex-col bg-slate-950 text-slate-100 select-none`}
+      } relative flex flex-col bg-slate-950 text-slate-100 select-none`}
     >
+      {/* Web Cold-Launch & Home Re-Entry Splash Screen Overlay */}
+      {isWebSplashVisible && !isNativeExpoApp && (
+        <div
+          role="status"
+          aria-label="Loading Crown of Emeraldia"
+          className="fixed inset-0 z-[9999] bg-[#48C3F7] flex items-center justify-center overflow-hidden select-none"
+        >
+          <img
+            src="/splash.png"
+            alt="Crown of Emeraldia Loading Splash"
+            className="w-full h-full max-w-[520px] object-contain pixelated pointer-events-none select-none"
+          />
+        </div>
+      )}
+
       <main
         className={`flex-1 min-h-0 w-full flex flex-col items-center justify-center ${
           isGameplayView

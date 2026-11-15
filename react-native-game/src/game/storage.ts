@@ -1,8 +1,9 @@
 import { SaveProgress } from './types';
 
-const STORAGE_KEY = 'crown_of_emeraldia_save_v1';
+export const STORAGE_KEY = 'crown_of_emeraldia_save_v1';
+export const STORAGE_KEY_V2 = 'crown_of_emeraldia_save_v2';
 
-const DEFAULT_SAVE: SaveProgress = {
+export const DEFAULT_SAVE: SaveProgress = {
   unlockedLevel: 1,
   highScores: {},
   bestCoins: {},
@@ -28,6 +29,97 @@ function sanitizeNumericMap(rawMap: unknown): Record<number, number> {
   return clean;
 }
 
+/**
+ * Non-destructively merges two SaveProgress objects so unlocked stages, high scores,
+ * best coins, and total coins collected can NEVER be downgraded or accidentally overwritten.
+ */
+export function mergeSaveProgress(
+  base: SaveProgress,
+  incoming?: Partial<SaveProgress> | null
+): SaveProgress {
+  if (!incoming || typeof incoming !== 'object') {
+    return {
+      ...base,
+      highScores: sanitizeNumericMap(base.highScores),
+      bestCoins: sanitizeNumericMap(base.bestCoins),
+    };
+  }
+
+  const baseHighScores = sanitizeNumericMap(base.highScores);
+  const incHighScores = sanitizeNumericMap(incoming.highScores);
+  const mergedHighScores: Record<number, number> = { ...baseHighScores };
+  for (const [k, v] of Object.entries(incHighScores)) {
+    const id = Number(k);
+    mergedHighScores[id] = Math.max(mergedHighScores[id] || 0, v);
+  }
+
+  const baseBestCoins = sanitizeNumericMap(base.bestCoins);
+  const incBestCoins = sanitizeNumericMap(incoming.bestCoins);
+  const mergedBestCoins: Record<number, number> = { ...baseBestCoins };
+  for (const [k, v] of Object.entries(incBestCoins)) {
+    const id = Number(k);
+    mergedBestCoins[id] = Math.max(mergedBestCoins[id] || 0, v);
+  }
+
+  const baseUnlocked = Math.max(1, Math.min(50, Number(base.unlockedLevel) || 1));
+  const incUnlocked = Math.max(1, Math.min(50, Number(incoming.unlockedLevel) || 1));
+
+  // Also infer minimum unlocked level from completed stages in mergedHighScores / mergedBestCoins
+  let highestCompletedStage = 0;
+  for (const idStr of Object.keys(mergedHighScores)) {
+    const id = Number(idStr);
+    if (mergedHighScores[id] > 0 && id > highestCompletedStage) {
+      highestCompletedStage = id;
+    }
+  }
+  for (const idStr of Object.keys(mergedBestCoins)) {
+    const id = Number(idStr);
+    if (mergedBestCoins[id] > 0 && id > highestCompletedStage) {
+      highestCompletedStage = id;
+    }
+  }
+  const inferredUnlocked = highestCompletedStage > 0 ? Math.min(50, highestCompletedStage + 1) : 1;
+
+  const baseTotalCoins = Math.max(0, Math.floor(Number(base.totalCoinsCollected) || 0));
+  const incTotalCoins = Math.max(0, Math.floor(Number(incoming.totalCoinsCollected) || 0));
+
+  return {
+    unlockedLevel: Math.max(baseUnlocked, incUnlocked, inferredUnlocked),
+    highScores: mergedHighScores,
+    bestCoins: mergedBestCoins,
+    totalCoinsCollected: Math.max(baseTotalCoins, incTotalCoins),
+    soundEnabled:
+      typeof incoming.soundEnabled === 'boolean'
+        ? incoming.soundEnabled
+        : typeof base.soundEnabled === 'boolean'
+        ? base.soundEnabled
+        : true,
+    musicEnabled:
+      typeof incoming.musicEnabled === 'boolean'
+        ? incoming.musicEnabled
+        : typeof base.musicEnabled === 'boolean'
+        ? base.musicEnabled
+        : true,
+    volume:
+      typeof incoming.volume === 'number' && Number.isFinite(incoming.volume)
+        ? Math.max(0, Math.min(1, incoming.volume))
+        : typeof base.volume === 'number' && Number.isFinite(base.volume)
+        ? Math.max(0, Math.min(1, base.volume))
+        : 0.7,
+  };
+}
+
+function parseRawSave(raw: string | null): Partial<SaveProgress> | null {
+  if (!raw) return null;
+  try {
+    const parsed = JSON.parse(raw);
+    if (!parsed || typeof parsed !== 'object') return null;
+    return parsed as Partial<SaveProgress>;
+  } catch {
+    return null;
+  }
+}
+
 function serializeCompact(progress: SaveProgress): string {
   return JSON.stringify({
     unlockedLevel: progress.unlockedLevel,
@@ -42,25 +134,31 @@ function serializeCompact(progress: SaveProgress): string {
 
 export function loadProgress(): SaveProgress {
   try {
-    const raw = localStorage.getItem(STORAGE_KEY);
-    if (!raw) {
+    const rawV1 = localStorage.getItem(STORAGE_KEY);
+    const rawV2 = localStorage.getItem(STORAGE_KEY_V2);
+    const parsedV1 = parseRawSave(rawV1);
+    const parsedV2 = parseRawSave(rawV2);
+
+    if (!parsedV1 && !parsedV2) {
       return {
         ...DEFAULT_SAVE,
         highScores: {},
         bestCoins: {},
       };
     }
-    const parsed = JSON.parse(raw);
-    const loaded: SaveProgress = {
-      unlockedLevel: Math.max(1, Math.min(50, Number(parsed.unlockedLevel) || 1)),
-      highScores: sanitizeNumericMap(parsed.highScores),
-      bestCoins: sanitizeNumericMap(parsed.bestCoins),
-      totalCoinsCollected: Math.max(0, Math.floor(Number(parsed.totalCoinsCollected) || 0)),
-      soundEnabled: typeof parsed.soundEnabled === 'boolean' ? parsed.soundEnabled : true,
-      musicEnabled: typeof parsed.musicEnabled === 'boolean' ? parsed.musicEnabled : true,
-      volume: typeof parsed.volume === 'number' ? Math.max(0, Math.min(1, parsed.volume)) : 0.7,
+
+    const baseSave: SaveProgress = {
+      ...DEFAULT_SAVE,
+      highScores: {},
+      bestCoins: {},
     };
-    lastSavedJson = serializeCompact(loaded);
+    const mergedV1 = mergeSaveProgress(baseSave, parsedV1);
+    const loaded = mergeSaveProgress(mergedV1, parsedV2);
+
+    const serialized = serializeCompact(loaded);
+    lastSavedJson = serialized;
+    localStorage.setItem(STORAGE_KEY, serialized);
+    localStorage.setItem(STORAGE_KEY_V2, serialized);
     return loaded;
   } catch {
     return {
@@ -77,9 +175,21 @@ export function saveProgress(progress: SaveProgress): void {
     debounceTimer = null;
   }
   try {
-    const serialized = serializeCompact(progress);
+    // Non-destructive guard: always merge with any existing stored progress in localStorage
+    // so an unhydrated mount state can never overwrite higher saved progress
+    const existingV1 = parseRawSave(localStorage.getItem(STORAGE_KEY));
+    const existingV2 = parseRawSave(localStorage.getItem(STORAGE_KEY_V2));
+    let safeProgress = mergeSaveProgress(
+      { ...DEFAULT_SAVE, highScores: {}, bestCoins: {} },
+      existingV1
+    );
+    safeProgress = mergeSaveProgress(safeProgress, existingV2);
+    safeProgress = mergeSaveProgress(safeProgress, progress);
+
+    const serialized = serializeCompact(safeProgress);
     if (serialized === lastSavedJson) return;
     localStorage.setItem(STORAGE_KEY, serialized);
+    localStorage.setItem(STORAGE_KEY_V2, serialized);
     lastSavedJson = serialized;
   } catch {
     // Ignore storage quota errors
@@ -127,11 +237,22 @@ export function recordLevelCompletion(
 }
 
 export function resetAllProgress(): SaveProgress {
+  if (debounceTimer !== null) {
+    window.clearTimeout(debounceTimer);
+    debounceTimer = null;
+  }
   const fresh: SaveProgress = {
     ...DEFAULT_SAVE,
     highScores: {},
     bestCoins: {},
   };
-  saveProgress(fresh);
+  try {
+    const serialized = serializeCompact(fresh);
+    localStorage.setItem(STORAGE_KEY, serialized);
+    localStorage.setItem(STORAGE_KEY_V2, serialized);
+    lastSavedJson = serialized;
+  } catch {
+    // Ignore storage errors
+  }
   return fresh;
 }
