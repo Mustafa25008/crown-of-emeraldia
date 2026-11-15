@@ -135,6 +135,7 @@ export async function showRewardedReviveAd(): Promise<RewardedAdResult> {
 
   return new Promise((resolve) => {
     let settled = false;
+    let adOpened = false;
     let earnedReward = false;
     let loadTimeoutId: ReturnType<typeof setTimeout> | null = null;
 
@@ -150,6 +151,11 @@ export async function showRewardedReviveAd(): Promise<RewardedAdResult> {
       settled = true;
       clearLoadTimeout();
       createAndLoadRewardedAd();
+      // Strict guard: never grant revive reward unless the ad actually opened AND earned the reward
+      if (rewarded && (!adOpened || !earnedReward)) {
+        resolve({ rewarded: false, error: AD_UNAVAILABLE_MESSAGE });
+        return;
+      }
       resolve({ rewarded, error });
     };
 
@@ -167,6 +173,7 @@ export async function showRewardedReviveAd(): Promise<RewardedAdResult> {
 
       const cleanupListeners = () => {
         try {
+          unsubOpened();
           unsubEarned();
           unsubClosed();
           unsubError();
@@ -179,19 +186,28 @@ export async function showRewardedReviveAd(): Promise<RewardedAdResult> {
         }
       };
 
+      const unsubOpened = adInstance.addAdEventListener(AdEventType.OPENED, () => {
+        adOpened = true;
+        clearLoadTimeout();
+      });
+
       const unsubEarned = adInstance.addAdEventListener(
         RewardedAdEventType.EARNED_REWARD,
-        () => {
-          earnedReward = true;
+        (reward) => {
+          if (reward) {
+            earnedReward = true;
+          }
         }
       );
 
       const unsubClosed = adInstance.addAdEventListener(AdEventType.CLOSED, () => {
         cleanupListeners();
-        if (earnedReward) {
+        if (adOpened && earnedReward) {
           finish(true);
-        } else {
+        } else if (adOpened && !earnedReward) {
           finish(false, AD_CLOSED_EARLY_MESSAGE);
+        } else {
+          finish(false, AD_UNAVAILABLE_MESSAGE);
         }
       });
 
@@ -203,6 +219,12 @@ export async function showRewardedReviveAd(): Promise<RewardedAdResult> {
       if (usePreloaded) {
         isPreloadedAdReady = false;
         preloadedRewardedAd = null;
+        loadTimeoutId = setTimeout(() => {
+          if (!adOpened) {
+            cleanupListeners();
+            finish(false, AD_UNAVAILABLE_MESSAGE);
+          }
+        }, 5000);
         adInstance.show().catch(() => {
           cleanupListeners();
           finish(false, AD_UNAVAILABLE_MESSAGE);
@@ -221,6 +243,12 @@ export async function showRewardedReviveAd(): Promise<RewardedAdResult> {
               unsubLoaded();
               unsubLoaded = null;
             }
+            loadTimeoutId = setTimeout(() => {
+              if (!adOpened) {
+                cleanupListeners();
+                finish(false, AD_UNAVAILABLE_MESSAGE);
+              }
+            }, 5000);
             adInstance.show().catch(() => {
               cleanupListeners();
               finish(false, AD_UNAVAILABLE_MESSAGE);

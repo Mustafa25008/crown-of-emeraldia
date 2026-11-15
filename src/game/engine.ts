@@ -400,7 +400,7 @@ export class PlatformerEngine {
     return this.inHiddenRoom ? undefined : this.level.teleporters;
   }
 
-  private initEntitiesFromLevel(resetCoinsAndBlocks: boolean) {
+  private initEntitiesFromLevel(resetCoinsAndBlocks: boolean, resetTimer: boolean = true) {
     // Dying or restarting resets the hidden room & collected key so the player must re-acquire the key!
     const wasInHiddenRoom = this.inHiddenRoom;
     this.inHiddenRoom = false;
@@ -434,7 +434,9 @@ export class PlatformerEngine {
       this.parentLevelSnapshot = null;
     }
 
-    this.timeRemaining = this.getInitialLevelTime();
+    if (resetTimer) {
+      this.timeRemaining = this.getInitialLevelTime();
+    }
     this.updatePlayerDimensions();
     this.px = this.respawnPoint.x;
     this.py = this.respawnPoint.y - (this.pHeight - 28);
@@ -794,7 +796,7 @@ export class PlatformerEngine {
     this.lives = refillLives;
     this.timeRemaining = this.getInitialLevelTime();
     if (this.isDead) {
-      this.initEntitiesFromLevel(false);
+      this.initEntitiesFromLevel(false, true);
     } else {
       // Reviving from a timeout: restore timer, grant brief invulnerability, and resume safely
       this.invulnTimer = 2.0;
@@ -859,7 +861,8 @@ export class PlatformerEngine {
       this.updateParticles(dt);
       if (this.deathTimer <= 0) {
         if (this.lives > 0) {
-          this.initEntitiesFromLevel(false);
+          // Respawn with remaining hearts: preserve the current stage countdown timer!
+          this.initEntitiesFromLevel(false, false);
           soundManager.playMusic(this.level.musicTrack);
         } else {
           this.isPaused = true;

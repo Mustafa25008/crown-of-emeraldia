@@ -358,13 +358,16 @@ function isDomAdBlockerDetected(): boolean {
 
 /**
  * Requests a Rewarded Ad on Web using the official Google AdMob Rewarded Test ID (`ca-app-pub-3940256099942544/5224354917`).
- * Strictly validates that the user is online and that Google AdMob / AdSense endpoints are not blocked
- * by a browser extension, Brave Shields, or DNS ad blocker before triggering `onAdRewarded`.
+ * STRICT MONETIZATION VALIDATION:
+ * - Resolves `{ rewarded: true }` ONLY if a real Google Rewarded Ad actually opens on screen (`beforeAd`)
+ *   AND completes (`adViewed` / `onAdRewarded`).
+ * - Never revives the player without an ad. If offline, blocked by an ad blocker, or if the Google AdMob
+ *   test unit cannot render a video ad in the current browser context, resolves `{ rewarded: false, error: AD_UNAVAILABLE_ALERT_TEXT }`.
  */
 async function requestWebAdMobTestRewardedAd(
   unitId: string = WEB_ADMOB_TEST_REWARDED_UNIT_ID
 ): Promise<{ rewarded: boolean; error?: string }> {
-  if (typeof window === 'undefined') {
+  if (typeof window === 'undefined' || typeof document === 'undefined') {
     return { rewarded: false, error: AD_UNAVAILABLE_ALERT_TEXT };
   }
   if (typeof navigator !== 'undefined' && navigator.onLine === false) {
@@ -374,48 +377,115 @@ async function requestWebAdMobTestRewardedAd(
     return { rewarded: false, error: AD_UNAVAILABLE_ALERT_TEXT };
   }
 
-  const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
-  const timeoutId = window.setTimeout(() => {
-    controller?.abort();
-  }, 3200);
+  return new Promise((resolve) => {
+    let settled = false;
+    let adOpenedOnScreen = false;
+    let rewardEarned = false;
 
-  try {
-    await fetch(
-      `https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3940256099942544&slot=5224354917&unit=${encodeURIComponent(
-        unitId
-      )}&t=${Date.now()}`,
-      {
-        method: 'HEAD',
-        mode: 'no-cors',
-        cache: 'no-store',
-        signal: controller?.signal,
+    const finish = (rewarded: boolean, error?: string) => {
+      if (settled) return;
+      settled = true;
+      window.clearTimeout(overallTimeoutId);
+      // Strict guard: never grant reward unless the ad actually opened AND earned the reward
+      if (rewarded && (!adOpenedOnScreen || !rewardEarned)) {
+        resolve({ rewarded: false, error: AD_UNAVAILABLE_ALERT_TEXT });
+        return;
       }
-    );
-    window.clearTimeout(timeoutId);
+      resolve({ rewarded, error });
+    };
 
-    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
-      return { rewarded: false, error: AD_UNAVAILABLE_ALERT_TEXT };
+    const overallTimeoutId = window.setTimeout(() => {
+      finish(false, AD_UNAVAILABLE_ALERT_TEXT);
+    }, 2200);
+
+    try {
+      const anyWin = window as unknown as {
+        adsbygoogle?: Array<Record<string, unknown>> & { loaded?: boolean };
+      };
+      anyWin.adsbygoogle = anyWin.adsbygoogle || [];
+
+      const triggerAdPlacementBreak = () => {
+        if (settled) return;
+        if (
+          (typeof navigator !== 'undefined' && navigator.onLine === false) ||
+          isDomAdBlockerDetected()
+        ) {
+          finish(false, AD_UNAVAILABLE_ALERT_TEXT);
+          return;
+        }
+
+        try {
+          anyWin.adsbygoogle?.push({
+            type: 'reward',
+            name: 'revive_player',
+            adUnit: unitId,
+            beforeReward: (showAdFn: () => void) => {
+              if (typeof showAdFn === 'function') {
+                showAdFn();
+              } else {
+                finish(false, AD_UNAVAILABLE_ALERT_TEXT);
+              }
+            },
+            beforeAd: () => {
+              adOpenedOnScreen = true;
+            },
+            adViewed: () => {
+              rewardEarned = true;
+            },
+            adDismissed: () => {
+              finish(false, AD_CLOSED_EARLY_ALERT_TEXT);
+            },
+            adBreakDone: (placementInfo?: { breakStatus?: string }) => {
+              const status = placementInfo?.breakStatus;
+              if (status === 'viewed' && adOpenedOnScreen && rewardEarned) {
+                finish(true);
+              } else if (status === 'dismissed') {
+                finish(false, AD_CLOSED_EARLY_ALERT_TEXT);
+              } else {
+                finish(false, AD_UNAVAILABLE_ALERT_TEXT);
+              }
+            },
+          });
+        } catch {
+          finish(false, AD_UNAVAILABLE_ALERT_TEXT);
+        }
+      };
+
+      const existingScript = document.querySelector<HTMLScriptElement>(
+        'script[data-emeraldia-admob-rewarded="true"]'
+      );
+
+      if (existingScript && anyWin.adsbygoogle?.loaded) {
+        triggerAdPlacementBreak();
+      } else {
+        if (existingScript) {
+          existingScript.remove();
+        }
+        const script = document.createElement('script');
+        script.async = true;
+        script.crossOrigin = 'anonymous';
+        script.setAttribute('data-emeraldia-admob-rewarded', 'true');
+        script.setAttribute('data-ad-client', 'ca-pub-3940256099942544');
+        script.setAttribute('data-ad-slot', '5224354917');
+        script.setAttribute('data-ad-unit', unitId);
+        script.setAttribute('data-adbreak-test', 'on');
+        script.src =
+          'https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-3940256099942544';
+
+        script.onload = () => {
+          triggerAdPlacementBreak();
+        };
+        script.onerror = () => {
+          script.remove();
+          finish(false, AD_UNAVAILABLE_ALERT_TEXT);
+        };
+
+        document.head.appendChild(script);
+      }
+    } catch {
+      finish(false, AD_UNAVAILABLE_ALERT_TEXT);
     }
-    if (isDomAdBlockerDetected()) {
-      return { rewarded: false, error: AD_UNAVAILABLE_ALERT_TEXT };
-    }
-
-    await new Promise<void>((resolve) => {
-      window.setTimeout(resolve, 900);
-    });
-
-    if (
-      (typeof navigator !== 'undefined' && navigator.onLine === false) ||
-      isDomAdBlockerDetected()
-    ) {
-      return { rewarded: false, error: AD_UNAVAILABLE_ALERT_TEXT };
-    }
-
-    return { rewarded: true };
-  } catch {
-    window.clearTimeout(timeoutId);
-    return { rewarded: false, error: AD_UNAVAILABLE_ALERT_TEXT };
-  }
+  });
 }
 
 type OutcomeModalVariant = 'stage_cleared' | 'game_over' | 'time_out';
@@ -1231,7 +1301,15 @@ export default function App() {
 
     // 1. Native Expo / React Native Google Mobile Ads Rewarded Ad bridge (Strict onAdRewarded validation)
     if (anyWin.ReactNativeWebView?.postMessage) {
+      const bridgeTimeoutId = window.setTimeout(() => {
+        if (pendingRewardReviveRef.current) {
+          pendingRewardReviveRef.current = null;
+          failRewardRevive(AD_UNAVAILABLE_ALERT_TEXT);
+        }
+      }, 14000);
+
       pendingRewardReviveRef.current = (rewarded: boolean, error?: string) => {
+        window.clearTimeout(bridgeTimeoutId);
         pendingRewardReviveRef.current = null;
         if (rewarded === true) {
           completeRewardRevive();
@@ -1246,17 +1324,18 @@ export default function App() {
       return;
     }
 
-    // 2. Legacy WebView AdMob wrappers (Never revive on .catch() or unrewarded callback)
+    // 2. Legacy WebView AdMob wrappers (Never revive unless explicit rewarded === true is confirmed)
     if (anyWin.AdMob?.showRewardVideoAd) {
       anyWin.AdMob.showRewardVideoAd(WEB_ADMOB_TEST_REWARDED_UNIT_ID)
         .then((res) => {
-          if (
-            res === false ||
-            (res &&
+          const isExplicitlyRewarded =
+            res === true ||
+            (Boolean(res) &&
               typeof res === 'object' &&
-              'rewarded' in res &&
-              !(res as { rewarded: boolean }).rewarded)
-          ) {
+              'rewarded' in (res as Record<string, unknown>) &&
+              (res as { rewarded?: boolean }).rewarded === true);
+
+          if (!isExplicitlyRewarded) {
             failRewardRevive(AD_CLOSED_EARLY_ALERT_TEXT);
             return;
           }
@@ -1280,10 +1359,10 @@ export default function App() {
     }
 
     // 3. Web Platform: Request standard AdMob Rewarded Test ID (ca-app-pub-3940256099942544/5224354917)
-    //    with strict connection & ad-blocker verification (no custom popup modal)
+    //    Strictly requires real ad display + onAdRewarded; never revives without an ad!
     requestWebAdMobTestRewardedAd(WEB_ADMOB_TEST_REWARDED_UNIT_ID)
       .then((result) => {
-        if (result.rewarded) {
+        if (result.rewarded === true) {
           completeRewardRevive();
         } else {
           failRewardRevive(result.error || AD_UNAVAILABLE_ALERT_TEXT);

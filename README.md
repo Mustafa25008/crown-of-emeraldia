@@ -25,9 +25,14 @@ A complete, playable 2D side-scrolling pixel art platformer inspired by classic 
 - **Clean, Consistent UI/UX & `'Stage'` Terminology Standard**:
   - **Stage Select Cards**: Compact, symmetrical 5-card row featuring `STAGE X-Y` + status icon in the card header, clean prefix-free stage title (`formatCleanStageTitle`, with no redundant `1-1:` / `8-1:` / `Level X:` prefixes, no `Boss Fight` tags, and no subtitle clutter), and a vertical stacked icon-only stats column (`🏆` Top Score above `🪙` Coins) formatted with `formatCompactNumber()` (`10.5K`, `1.2M`).
   - **100% `'Stage'` Terminology**: Unified `'Stage'` labels across the Top Gameplay HUD (`Stage X-Y`), Stage Select (`STAGE X-Y`), Pause Menu (`Stage X-Y: [Clean Title]`, `Stage Select`), Stage Outcome Modal (`Next Stage ➔`, `Stage Select`), and Settings.
+- **Stage Countdown Timers & Respawn vs. Revive Rules**:
+  - **Normal Stages**: `180 seconds` (`3:00` / 3 minutes).
+  - **Secret Room / Key / Underwater Stages**: `210 seconds` (`3:30` / 3 minutes 30 seconds).
+  - **Boss Stages (Stage X-5 of every World)**: `240 seconds` (`4:00` / 4 minutes).
+  - **Respawn Preserves Timer**: Respawning while hearts remain (`lives > 0`) preserves the player's current remaining countdown time (`initEntitiesFromLevel(false, false)`). Full hearts (`3`) and full stage time are reset only on a verified **Rewarded Ad Revive** or full stage restart.
 - **Strict Rewarded Ad Validation (`ca-app-pub-3940256099942544/5224354917`)**:
-  - **"Watch Ad & Revive" Protection**: Uses the official Google AdMob Rewarded Test ID (`ca-app-pub-3940256099942544/5224354917`) across both Web and Native builds. Player revival (3 lives + full stage timer) triggers **only** when the Rewarded Ad successfully loads and completes (`RewardedAdEventType.EARNED_REWARD` on Native or verified AdMob test request on Web, without any custom popup modal).
-  - **Ad-Blocker & Offline Exploit Prevention**: If an ad fails to load, the user is offline, or an ad blocker is active, the revive is blocked and an in-game alert (`"Ad unavailable. Please check your connection or disable ad blocker to revive!"`) is shown inside the Game Over / Time Up modal.
+  - **"Watch Ad & Revive" Protection**: Uses the official Google AdMob Rewarded Test ID (`ca-app-pub-3940256099942544/5224354917`) across both Web and Native builds. Player revival (3 lives + full stage timer) triggers **only** when a real Rewarded Ad actually opens on screen and completes (`AdEventType.OPENED` + `RewardedAdEventType.EARNED_REWARD` on Native, or `beforeAd` + `adViewed` on Web).
+  - **Never Revive Without Ad**: If no ad opens on screen, an ad fails to load, the user is offline, or an ad blocker is active, the player is **never** revived without an ad and an in-game alert (`"Ad unavailable. Please check your connection or disable ad blocker to revive!"`) is shown inside the Game Over / Time Up modal.
 - **Web Audio API Chiptune Synthesizer**: Custom sound effects and looping background tracks with mute and master volume controls.
 - **Persistent Progression**: Automatically saves unlocked stages, high scores, best coins, and audio preferences in `localStorage` (and native `AsyncStorage` in the Expo mobile app).
 

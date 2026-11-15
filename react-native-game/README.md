@@ -117,9 +117,9 @@ npx expo start --dev-client
 ### B. "Watch Ad to Revive" Rewarded Ad (`src/ads/rewardedAdManager.ts` & Web `WEB_ADMOB_TEST_REWARDED_UNIT_ID`)
 - Configured on both Web and Native with the official Google AdMob Rewarded Test ID (`ca-app-pub-3940256099942544/5224354917`).
 - When the player runs out of lives (`GAME_OVER`) or time (`TIME_OUT`) and taps **"▶ Watch Ad & Revive"**, the game engine sends `{ type: 'SHOW_REWARDED_AD' }` over the React Native bridge on Native, or calls `requestWebAdMobTestRewardedAd('ca-app-pub-3940256099942544/5224354917')` on Web (with no custom popup modal).
-- **Strict `onAdRewarded` Validation (Ad-Blocker & Offline Exploit Prevention)**:
-  - Revive (`rewarded: true`) is granted **only** when `RewardedAdEventType.EARNED_REWARD` (`onAdRewarded`) fires on Native or the AdMob test request completes without ad-blocker/offline errors on Web.
-  - If the ad fails to load (`AdEventType.ERROR`), times out (`10s`), the device is offline, an ad blocker / DNS blocker is active, or the user closes the ad early before earning the reward, `{ rewarded: false, error }` is returned. The player is **never** revived without completing the ad, and `StageOutcomeModal` displays `"Ad unavailable. Please check your connection or disable ad blocker to revive!"`.
+- **Strict `onAdRewarded` Validation (Never Revive Without Ad)**:
+  - Revive (`rewarded: true` — restoring 3 hearts and full stage time: `180s` normal, `210s` secret/key/underwater, `240s` boss) is granted **only** when a real Rewarded Ad actually opens on screen and completes (`AdEventType.OPENED` + `RewardedAdEventType.EARNED_REWARD` on Native, or `beforeAd` + `adViewed` on Web). Note that normal mid-stage respawns when hearts remain (`lives > 0`) preserve the current remaining timer without resetting it.
+  - If no ad opens on screen, the ad fails to load (`AdEventType.ERROR`), times out, the device is offline, an ad blocker / DNS blocker is active, or the user closes the ad early before earning the reward, `{ rewarded: false, error }` is returned. The player is **never** revived without watching an ad, and `StageOutcomeModal` displays `"Ad unavailable. Please check your connection or disable ad blocker to revive!"`.
 
 ---
 

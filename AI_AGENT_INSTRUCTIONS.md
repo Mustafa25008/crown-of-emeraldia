@@ -265,12 +265,16 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
      - Do **not** include a standalone Restart button in the header (Restart is available inside the Pause menu modal).
      - Do **not** place the countdown timer on the right side of the header.
 
-2. **Stage Countdown Timer & Reset Rules (`src/game/engine.ts`)**:
+2. **Stage Countdown Timer, Respawn Timer Preservation & Revive Reset Rules (`src/game/engine.ts`)**:
    - **Balanced Stage Duration (`getInitialLevelTime()`)**:
-     - Standard stages: `180` seconds (`3:00`).
-     - Secret Room / Key / Underwater stages (`hiddenRoom`, `requiresKey`, or `isUnderwater`): `210` seconds (`3:30`).
-     - Boss stages (`hasBoss`): `240` seconds (`4:00`).
-   - **Automatic Reset**: The timer automatically resets to full stage time whenever a stage starts, restarts, progresses to a new stage, respawns, or revives via rewarded ad.
+     - **Normal / Standard stages**: `180` seconds (`3:00` / 3 minutes).
+     - **Secret Room / Key / Underwater stages** (`hiddenRoom`, `requiresKey`, or `isUnderwater`): `210` seconds (`3:30` / 3 minutes 30 seconds).
+     - **Boss stages** (`hasBoss: true`, i.e., Stage X-5 of every World): `240` seconds (`4:00` / 4 minutes).
+   - **Respawn Preserves Remaining Timer (`initEntitiesFromLevel(false, false)`)**:
+     - When the player loses a heart while still having hearts remaining (`this.lives > 0`), the player respawns at the stage start or active checkpoint (`this.initEntitiesFromLevel(false, false)` with `resetTimer = false`).
+     - **NEVER reset `this.timeRemaining` on respawn!** The countdown timer must continue from the exact remaining time the player had before losing that heart.
+   - **Full Reset Only on Stage Start / Restart / Rewarded Ad Revive (`resetTimer = true`)**:
+     - The timer resets to full stage time (`getInitialLevelTime()`) **only** when starting a stage, restarting from scratch, advancing to a new stage, or reviving via a verified Rewarded Ad (`revivePlayer(3)`, which resets both hearts to `3` and `timeRemaining` to full stage time).
    - **Timeout Handling**: If `timeRemaining` reaches `0` before reaching the goal, gameplay immediately stops (`isPaused = true`), stage music stops, the timeout chime plays, and `onTimeOut` transitions `gameState` to `'TIME_OUT'` (`"TIME UP!"` header).
 
 3. **Unified Reusable Modal System (`StageOutcomeModal` in `src/App.tsx`) — Consistent Mobile Fit & `'Stage'` Terminology Across All 50 Stages**:
@@ -286,14 +290,14 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
    - **Mandatory 2-Row Button Layout & Strict Rewarded Ad Validation across All Variants**:
      - **Row 1 (Primary, full-width)**:
        - `"Next Stage ➔"` (for `'stage_cleared'`)
-       - `"▶ Watch Ad & Revive"` (for `'game_over'` and `'time_out'`, triggering the rewarded video ad flow to refill 3 lives, reset the stage countdown timer, and resume the stage **ONLY** upon verified ad completion).
+       - `"▶ Watch Ad & Revive"` (for `'game_over'` and `'time_out'`, triggering the rewarded video ad flow to refill 3 lives, reset the stage countdown timer, and resume the stage **ONLY** upon verified ad display and completion).
        - **Clicked / Loading State (`isWatchingAd === true`)**: Whenever `"▶ Watch Ad & Revive"` is clicked, the button must display **only a spinning loading icon (`<Loader2 className="w-4 h-4 animate-spin shrink-0" />`) and `"Loading..."`** (never show long descriptive text like `"Playing Rewarded Ad... (Refilling 3 Lives)"`).
-       - **Strict `onAdRewarded` Validation & Zero Ad-Blocker / Offline Exploit Rule (No Custom Web Popup Modal)**:
-         - Never revive the player (`completeRewardRevive` / `revivePlayer(3)`) if an ad fails to load, the device is offline, an ad blocker / DNS blocker is active, or the player closes the ad before earning the reward.
+       - **Strict `onAdRewarded` Validation & Zero Ad-Blocker / Offline / Unshown-Ad Exploit Rule (No Custom Web Popup Modal)**:
+         - **NEVER** revive the player (`completeRewardRevive` / `revivePlayer(3)`) without an ad actually opening on screen and completing! If an ad fails to load, does not open on screen, the device is offline, an ad blocker / DNS blocker is active, or the player closes the ad before earning the reward, `rewarded` MUST be `false`.
          - Use the official Google AdMob Rewarded Test ID (`ca-app-pub-3940256099942544/5224354917`) on both Web (`WEB_ADMOB_TEST_REWARDED_UNIT_ID`) and Native (`EXPO_PUBLIC_ADMOB_ANDROID_REWARDED_ID`), just like the Banner Test ID. Do **not** render a custom simulated Web popup modal for rewarded ads.
-         - On **Native (`react-native-game/src/ads/rewardedAdManager.ts`)**, `showRewardedReviveAd()` must resolve `{ rewarded: true }` **only** when `RewardedAdEventType.EARNED_REWARD` (`onAdRewarded`) fires. Any `AdEventType.ERROR`, `show()` rejection, SDK unavailability, 10s load timeout, or early dismissal resolves `{ rewarded: false, error }`.
-         - On **Web (`src/App.tsx`)**, `handleWatchAdAndRevive` calls `requestWebAdMobTestRewardedAd(WEB_ADMOB_TEST_REWARDED_UNIT_ID)` (verifying `navigator.onLine`, DOM ad-blocker bait nodes, and a network probe to Google's ad endpoint with `ca-app-pub-3940256099942544/5224354917`) and revives only if verification succeeds.
-         - Whenever `rewarded === false` or `requestWebAdMobTestRewardedAd()` fails, display the in-modal alert banner (`adErrorMessage`: `"Ad unavailable. Please check your connection or disable ad blocker to revive!"` or `"Reward not earned. Please watch the full ad to revive!"`) inside `StageOutcomeModal` without reviving the player.
+         - On **Native (`react-native-game/src/ads/rewardedAdManager.ts`)**, `showRewardedReviveAd()` resolves `{ rewarded: true }` **only** when both `AdEventType.OPENED` (`adOpened === true`) and `RewardedAdEventType.EARNED_REWARD` (`earnedReward === true`) fire. Any `AdEventType.ERROR`, `show()` rejection, SDK unavailability, load/show timeout, or early dismissal resolves `{ rewarded: false, error }`.
+         - On **Web (`src/App.tsx`)**, `requestWebAdMobTestRewardedAd(WEB_ADMOB_TEST_REWARDED_UNIT_ID)` requests a reward placement via Google's official ad tag (`ca-app-pub-3940256099942544/5224354917`) and resolves `{ rewarded: true }` **only** if a real Google Rewarded Ad opens (`beforeAd` $\rightarrow$ `adOpenedOnScreen = true`) and completes (`adViewed` $\rightarrow$ `rewardEarned = true`). If no ad renders in the browser, or if blocked/offline, it resolves `{ rewarded: false, error: AD_UNAVAILABLE_ALERT_TEXT }`.
+         - Whenever `rewarded === false`, display the in-modal alert banner (`adErrorMessage`: `"Ad unavailable. Please check your connection or disable ad blocker to revive!"` or `"Reward not earned. Please watch the full ad to revive!"`) inside `StageOutcomeModal` without reviving the player.
      - **Row 2 (Secondary Grid - 2 buttons side-by-side)**:
        - `"Replay"` (for `'stage_cleared'`) or `"Try Again"` (for `'game_over'` / `'time_out'`) | `"Stage Select"`.
 
