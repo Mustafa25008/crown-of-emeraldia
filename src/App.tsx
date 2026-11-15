@@ -511,7 +511,6 @@ function StageOutcomeModal({
   isWorldVictory = false,
   isMobileTouch,
   currentLevelId,
-  levelName,
   score,
   coins,
   isWatchingAd,
@@ -532,145 +531,103 @@ function StageOutcomeModal({
     ? 'border-amber-500/60'
     : 'border-rose-500/50';
 
-  const bossDefeatedSubtitle =
-    currentLevelId >= 46
-      ? 'AZHURAK, THE ANCIENT COLOSSUS DEFEATED!'
-      : currentLevelId >= 41
-      ? 'CRYSTALIS, THE CRYSTAL GUARDIAN DEFEATED!'
-      : currentLevelId >= 36
-      ? 'NOCTHAR, THE SHADOW KING DEFEATED!'
-      : currentLevelId >= 31
-      ? 'CHRONOS, THE TIMEKEEPER DEFEATED!'
-      : currentLevelId >= 26
-      ? 'AETHERION, THE STORM SOVEREIGN DEFEATED!'
-      : currentLevelId >= 21
-      ? 'IGNAROK, THE INFERNO KING DEFEATED!'
-      : currentLevelId >= 16
-      ? 'GLACIOR, THE FROST DRAGON DEFEATED!'
-      : currentLevelId >= 11
-      ? 'SOLKAR, THE SAND TITAN DEFEATED!'
-      : currentLevelId >= 6
-      ? 'ABYSSAL WARLORD KRAKENOS DEFEATED!'
-      : 'IRONCLAD KING DREDGE DEFEATED!';
-
-  const worldConqueredTitle =
-    currentLevelId >= 46
-      ? 'WORLD 10: ANCIENT RUINS CONQUERED!'
-      : currentLevelId >= 41
-      ? 'WORLD 9: CRYSTAL CAVERNS CONQUERED!'
-      : currentLevelId >= 36
-      ? 'WORLD 8: SHADOWVEIL KINGDOM CONQUERED!'
-      : currentLevelId >= 31
-      ? 'WORLD 7: CHRONOS REALM CONQUERED!'
-      : currentLevelId >= 26
-      ? 'WORLD 6: CELESTIA KINGDOM CONQUERED!'
-      : currentLevelId >= 21
-      ? 'WORLD 5: INFERNO KINGDOM CONQUERED!'
-      : currentLevelId >= 16
-      ? 'WORLD 4: FROSTFALL KINGDOM CONQUERED!'
-      : currentLevelId >= 11
-      ? 'WORLD 3: SUNSCORCH DESERT CONQUERED!'
-      : currentLevelId >= 6
-      ? 'WORLD 2: CORAL ABYSS CONQUERED!'
-      : 'WORLD 1: EMERALDIA SAVED!';
-
   const modalWorldNum = Math.floor((currentLevelId - 1) / 5) + 1;
   const modalStageNum = ((currentLevelId - 1) % 5) + 1;
-  const formattedStageLabel = `Stage ${modalWorldNum}-${modalStageNum}: ${formatCleanStageTitle(levelName)}`;
 
   return (
     <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-[2px] flex items-center justify-center p-2 overflow-hidden z-20">
       <div
-        className={`w-full bg-slate-900 border ${borderColorClass} rounded-2xl text-center shadow-2xl my-auto ${
+        className={`w-full bg-slate-900 border-2 ${borderColorClass} rounded-2xl text-center shadow-2xl my-auto font-pixel ${
           isMobileTouch
-            ? 'max-w-[300px] p-2.5 space-y-2'
-            : 'max-w-md p-5 space-y-3.5'
+            ? 'max-w-[290px] p-3 space-y-2.5'
+            : 'max-w-md p-5 space-y-4'
         }`}
       >
-        {isSuccess && isWorldVictory && !isMobileTouch && (
-          <div className="w-10 h-10 rounded-full bg-amber-400/20 border border-amber-400/40 flex items-center justify-center mx-auto">
-            <Crown className="w-5 h-5 text-amber-300" />
-          </div>
-        )}
-
         <div className="min-w-0">
           {isSuccess ? (
-            <>
-              <div
-                className={`font-bold uppercase tracking-wider truncate ${
-                  isMobileTouch ? 'text-[10px]' : 'text-xs'
-                } ${isWorldVictory ? 'text-amber-400' : 'text-emerald-400'}`}
-              >
-                {isWorldVictory && isMobileTouch && (
-                  <Crown className="w-3 h-3 text-amber-300 inline-block mr-1 -mt-0.5" />
-                )}
-                {isWorldVictory ? bossDefeatedSubtitle : 'STAGE CLEARED!'}
+            isWorldVictory ? (
+              <div className="space-y-1.5">
+                <div
+                  className={`mx-auto rounded-full bg-amber-400/20 border border-amber-400/50 flex items-center justify-center ${
+                    isMobileTouch ? 'w-8 h-8' : 'w-10 h-10'
+                  }`}
+                >
+                  <Crown className={isMobileTouch ? 'w-4 h-4 text-amber-300' : 'w-5 h-5 text-amber-300'} />
+                </div>
+                <div
+                  className={`font-pixel text-amber-400 tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
+                    isMobileTouch ? 'text-xs' : 'text-sm sm:text-base'
+                  }`}
+                >
+                  BOSS DEFEATED!
+                </div>
+                <h3
+                  className={`font-pixel text-white tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
+                    isMobileTouch ? 'text-[10px]' : 'text-xs sm:text-sm'
+                  }`}
+                >
+                  WORLD {modalWorldNum} SAVED!
+                </h3>
               </div>
+            ) : (
               <h3
-                className={`font-pixel text-white truncate ${
-                  isMobileTouch ? 'text-[11px] mt-0.5' : 'text-base mt-1'
+                className={`font-pixel text-emerald-400 tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
+                  isMobileTouch ? 'text-xs' : 'text-sm sm:text-base'
                 }`}
               >
-                {isWorldVictory ? worldConqueredTitle : formattedStageLabel}
+                STAGE {modalWorldNum}-{modalStageNum} CLEARED!
               </h3>
-            </>
+            )
           ) : isTimeOut ? (
-            <>
-              <h3
-                className={`font-pixel text-amber-400 ${
-                  isMobileTouch ? 'text-xs' : 'text-base'
-                }`}
-              >
-                TIME UP!
-              </h3>
-              <p
-                className={`text-slate-300 truncate ${
-                  isMobileTouch ? 'text-[10px] mt-0.5' : 'text-xs mt-1'
-                }`}
-              >
-                Time ran out in {formattedStageLabel}.
-              </p>
-            </>
+            <h3
+              className={`font-pixel text-amber-400 tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
+                isMobileTouch ? 'text-xs' : 'text-sm sm:text-base'
+              }`}
+            >
+              TIME UP!
+            </h3>
           ) : (
-            <>
-              <h3
-                className={`font-pixel text-rose-500 ${
-                  isMobileTouch ? 'text-xs' : 'text-base'
-                }`}
-              >
-                GAME OVER
-              </h3>
-              <p
-                className={`text-slate-300 truncate ${
-                  isMobileTouch ? 'text-[10px] mt-0.5' : 'text-xs mt-1'
-                }`}
-              >
-                Ranger Pip ran out of lives in {formattedStageLabel}.
-              </p>
-            </>
+            <h3
+              className={`font-pixel text-rose-500 tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
+                isMobileTouch ? 'text-xs' : 'text-sm sm:text-base'
+              }`}
+            >
+              GAME OVER
+            </h3>
           )}
         </div>
 
+        {/* 2-Column Side-by-Side Stats Row: Icon Stacked Above Value (Replacing SCORE & COINS Text Labels) */}
         <div
-          className={`bg-slate-950 border border-slate-800 rounded-xl grid grid-cols-2 gap-2 text-center font-mono-num text-xs ${
-            isMobileTouch ? 'p-1.5' : 'p-3'
+          className={`bg-slate-950 border border-slate-800 rounded-xl grid grid-cols-2 gap-2 text-center font-pixel ${
+            isMobileTouch ? 'p-2' : 'p-3'
           }`}
         >
-          <div className="px-1">
-            <div className="text-[10px] text-slate-400 truncate">SCORE</div>
+          <div className="px-1 flex flex-col items-center justify-center gap-1.5">
+            <Trophy
+              className={
+                isMobileTouch
+                  ? 'w-3.5 h-3.5 text-amber-400 shrink-0'
+                  : 'w-4 h-4 text-amber-400 shrink-0'
+              }
+            />
             <div
-              className={`font-bold text-amber-400 ${
-                isMobileTouch ? 'text-xs mt-0' : 'text-sm mt-0.5'
+              className={`text-amber-400 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] ${
+                isMobileTouch ? 'text-[10px]' : 'text-xs'
               }`}
             >
               {formatCompactNumber(score)}
             </div>
           </div>
-          <div className="px-1 border-l border-slate-800">
-            <div className="text-[10px] text-slate-400 truncate">COINS</div>
+          <div className="px-1 border-l border-slate-800 flex flex-col items-center justify-center gap-1.5">
+            <GoldCoinIcon
+              className={
+                isMobileTouch ? 'w-3.5 h-3.5 shrink-0' : 'w-4 h-4 shrink-0'
+              }
+            />
             <div
-              className={`font-bold text-yellow-300 ${
-                isMobileTouch ? 'text-xs mt-0' : 'text-sm mt-0.5'
+              className={`text-yellow-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)] ${
+                isMobileTouch ? 'text-[10px]' : 'text-xs'
               }`}
             >
               {formatCompactNumber(coins)}
@@ -682,11 +639,11 @@ function StageOutcomeModal({
         {!isSuccess && adErrorMessage && (
           <div
             role="alert"
-            className={`bg-rose-950/90 border border-rose-500/80 text-rose-100 rounded-xl flex items-center justify-between gap-2 text-left shadow-lg ${
-              isMobileTouch ? 'px-2.5 py-1.5 text-[9px]' : 'px-3 py-2 text-[11px]'
+            className={`bg-rose-950/90 border border-rose-500/80 text-rose-100 rounded-xl flex items-center justify-between gap-2 text-left shadow-lg font-pixel ${
+              isMobileTouch ? 'px-2.5 py-1.5 text-[7px] leading-relaxed' : 'px-3 py-2 text-[9px] leading-relaxed'
             }`}
           >
-            <span className="leading-snug font-medium">{adErrorMessage}</span>
+            <span>{adErrorMessage}</span>
             {onDismissAdError && (
               <button
                 type="button"
@@ -701,27 +658,27 @@ function StageOutcomeModal({
         )}
 
         {/* Unified 2-Row Button Layout Structure */}
-        <div className={`flex flex-col ${isMobileTouch ? 'gap-1.5' : 'gap-2'}`}>
+        <div className={`flex flex-col font-pixel ${isMobileTouch ? 'gap-1.5' : 'gap-2.5'}`}>
           {/* Row 1 (Primary, full-width) */}
           <button
             type="button"
             disabled={isWatchingAd}
             onClick={onPrimaryAction}
-            className={`w-full flex items-center justify-center gap-2 font-bold rounded-xl shadow transition-all cursor-pointer ${
+            className={`w-full flex items-center justify-center gap-2 font-pixel rounded-xl shadow transition-all cursor-pointer ${
               isMobileTouch
-                ? 'min-h-[34px] py-1.5 px-3 text-[11px]'
-                : 'min-h-[40px] py-2.5 px-4 text-xs'
+                ? 'min-h-[34px] py-1.5 px-3 text-[9px]'
+                : 'min-h-[40px] py-2.5 px-4 text-[10px] sm:text-xs'
             } ${
               isSuccess
-                ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950'
-                : 'bg-amber-400 hover:bg-amber-300 text-slate-950 disabled:opacity-60'
+                ? 'bg-emerald-500 hover:bg-emerald-400 text-slate-950 border-b-4 border-emerald-700'
+                : 'bg-amber-400 hover:bg-amber-300 text-slate-950 border-b-4 border-amber-600 disabled:opacity-60'
             }`}
           >
             {isSuccess ? (
               <span>Next Stage ➔</span>
             ) : isWatchingAd ? (
               <>
-                <Loader2 className="w-4 h-4 animate-spin shrink-0" />
+                <Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />
                 <span>Loading...</span>
               </>
             ) : (
@@ -730,15 +687,15 @@ function StageOutcomeModal({
           </button>
 
           {/* Row 2 (Secondary Grid - 2 buttons side-by-side) */}
-          <div className={`grid grid-cols-2 ${isMobileTouch ? 'gap-1.5' : 'gap-2'}`}>
+          <div className={`grid grid-cols-2 ${isMobileTouch ? 'gap-1.5' : 'gap-2.5'}`}>
             <button
               type="button"
               disabled={isWatchingAd}
               onClick={onSecondaryRetry}
-              className={`bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold rounded-xl transition-colors cursor-pointer disabled:opacity-50 ${
+              className={`bg-slate-800 hover:bg-slate-700 text-slate-100 font-pixel rounded-xl border border-white/15 transition-colors cursor-pointer disabled:opacity-50 ${
                 isMobileTouch
-                  ? 'min-h-[32px] py-1.5 px-2.5 text-[11px]'
-                  : 'min-h-[38px] py-2 px-3 text-xs'
+                  ? 'min-h-[32px] py-1.5 px-2 text-[8px]'
+                  : 'min-h-[38px] py-2 px-3 text-[10px]'
               }`}
             >
               {isSuccess ? 'Replay' : 'Try Again'}
@@ -747,10 +704,10 @@ function StageOutcomeModal({
               type="button"
               disabled={isWatchingAd}
               onClick={onLevelSelect}
-              className={`bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl transition-colors cursor-pointer disabled:opacity-50 ${
+              className={`bg-slate-800 hover:bg-slate-700 text-slate-200 font-pixel rounded-xl border border-white/15 transition-colors cursor-pointer disabled:opacity-50 ${
                 isMobileTouch
-                  ? 'min-h-[32px] py-1.5 px-2.5 text-[11px]'
-                  : 'min-h-[38px] py-2 px-3 text-xs'
+                  ? 'min-h-[32px] py-1.5 px-2 text-[8px]'
+                  : 'min-h-[38px] py-2 px-3 text-[10px]'
               }`}
             >
               Stage Select
@@ -2583,30 +2540,30 @@ export default function App() {
                 {gameState === 'PAUSED' && (
                   <div className="absolute inset-0 bg-slate-950/85 backdrop-blur-[2px] flex items-center justify-center p-2 overflow-hidden z-20">
                     <div
-                      className={`w-full bg-slate-900 border border-slate-700 rounded-2xl text-center shadow-2xl my-auto ${
+                      className={`w-full bg-slate-900 border-2 border-slate-700 rounded-2xl text-center shadow-2xl my-auto font-pixel ${
                         isMobileTouch
-                          ? 'max-w-[280px] p-2.5 space-y-2'
-                          : 'max-w-sm p-5 space-y-3.5'
+                          ? 'max-w-[280px] p-3 space-y-2.5'
+                          : 'max-w-sm p-5 space-y-4'
                       }`}
                     >
-                      <div className="min-w-0">
+                      <div className="min-w-0 space-y-1">
                         <h3
-                          className={`font-pixel text-amber-400 ${
-                            isMobileTouch ? 'text-xs' : 'text-base'
+                          className={`font-pixel text-amber-400 tracking-wide drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)] ${
+                            isMobileTouch ? 'text-xs' : 'text-sm sm:text-base'
                           }`}
                         >
                           GAME PAUSED
                         </h3>
                         <p
-                          className={`text-slate-300 truncate ${
-                            isMobileTouch ? 'text-[10px] mt-0.5' : 'text-xs mt-1'
+                          className={`font-pixel text-slate-300 tracking-wide ${
+                            isMobileTouch ? 'text-[9px]' : 'text-[10px] sm:text-xs'
                           }`}
                         >
-                          Stage {activeWorldNum}-{activeStageNum}: {formatCleanStageTitle(hud.levelName)}
+                          STAGE {activeWorldNum}-{activeStageNum}
                         </p>
                       </div>
 
-                      <div className={`flex flex-col ${isMobileTouch ? 'gap-1.5' : 'gap-2'}`}>
+                      <div className={`flex flex-col font-pixel ${isMobileTouch ? 'gap-1.5' : 'gap-2.5'}`}>
                         <button
                           type="button"
                           onClick={() => {
@@ -2616,23 +2573,23 @@ export default function App() {
                             soundManager.resumeAudio();
                             setGameState('PLAYING');
                           }}
-                          className={`w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-bold rounded-xl shadow transition-colors cursor-pointer ${
+                          className={`w-full bg-emerald-500 hover:bg-emerald-400 text-slate-950 font-pixel border-b-4 border-emerald-700 rounded-xl shadow transition-colors cursor-pointer ${
                             isMobileTouch
-                              ? 'min-h-[34px] py-1.5 px-3 text-[11px]'
-                              : 'min-h-[38px] py-2 px-4 text-xs'
+                              ? 'min-h-[34px] py-1.5 px-3 text-[9px]'
+                              : 'min-h-[38px] py-2 px-4 text-[10px] sm:text-xs'
                           }`}
                         >
                           Resume Game
                         </button>
 
-                        <div className={`grid grid-cols-2 ${isMobileTouch ? 'gap-1.5' : 'gap-2'}`}>
+                        <div className={`grid grid-cols-2 ${isMobileTouch ? 'gap-1.5' : 'gap-2.5'}`}>
                           <button
                             type="button"
                             onClick={() => startLevel(currentLevelId, false)}
-                            className={`bg-slate-800 hover:bg-slate-700 text-slate-100 font-semibold rounded-xl transition-colors cursor-pointer ${
+                            className={`bg-slate-800 hover:bg-slate-700 text-slate-100 font-pixel rounded-xl border border-white/15 transition-colors cursor-pointer ${
                               isMobileTouch
-                                ? 'min-h-[32px] py-1.5 px-2.5 text-[11px]'
-                                : 'min-h-[36px] py-1.5 px-3 text-xs'
+                                ? 'min-h-[32px] py-1.5 px-2 text-[8px]'
+                                : 'min-h-[36px] py-2 px-3 text-[10px]'
                             }`}
                           >
                             Restart
@@ -2640,10 +2597,10 @@ export default function App() {
                           <button
                             type="button"
                             onClick={() => navigateToMenu('LEVEL_SELECT')}
-                            className={`bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold rounded-xl transition-colors cursor-pointer ${
+                            className={`bg-slate-800 hover:bg-slate-700 text-slate-200 font-pixel rounded-xl border border-white/15 transition-colors cursor-pointer ${
                               isMobileTouch
-                                ? 'min-h-[32px] py-1.5 px-2.5 text-[11px]'
-                                : 'min-h-[36px] py-1.5 px-3 text-xs'
+                                ? 'min-h-[32px] py-1.5 px-2 text-[8px]'
+                                : 'min-h-[36px] py-2 px-3 text-[10px]'
                             }`}
                           >
                             Stage Select
@@ -2653,10 +2610,10 @@ export default function App() {
                         <button
                           type="button"
                           onClick={() => navigateToMenu('TITLE_MENU')}
-                          className={`w-full bg-slate-800/50 hover:bg-slate-800 text-slate-400 font-medium rounded-lg transition-colors cursor-pointer ${
+                          className={`w-full bg-slate-800/60 hover:bg-slate-800 text-slate-300 font-pixel rounded-xl border border-white/10 transition-colors cursor-pointer ${
                             isMobileTouch
-                              ? 'min-h-[28px] py-1 px-2.5 text-[10px]'
-                              : 'min-h-[32px] py-1 px-3 text-[11px]'
+                              ? 'min-h-[30px] py-1 px-2.5 text-[8px]'
+                              : 'min-h-[34px] py-1.5 px-3 text-[9px]'
                           }`}
                         >
                           Home Screen

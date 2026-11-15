@@ -282,21 +282,29 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
      - The timer resets to full stage time (`getInitialLevelTime()`) **only** when starting a stage, restarting from scratch, advancing to a new stage, or reviving via a verified Rewarded Ad (`revivePlayer(3)`, which resets both hearts to `3` and `timeRemaining` to full stage time).
    - **Timeout Handling**: If `timeRemaining` reaches `0` before reaching the goal, gameplay immediately stops (`isPaused = true`), stage music stops, the timeout chime plays, and `onTimeOut` transitions `gameState` to `'TIME_OUT'` (`"TIME UP!"` header).
 
-3. **Unified Reusable Modal System (`StageOutcomeModal` in `src/App.tsx`) — Consistent Mobile Fit & `'Stage'` Terminology Across All 50 Stages**:
-   - **Single Reusable Component**: All stage completion and failure states (`'stage_cleared'`, `'game_over'`, and `'time_out'`) across all 10 worlds (50 stages, including normal stages and `WORLD_VICTORY` boss stages) must render through the single `StageOutcomeModal` component.
-   - **Global `'Stage'` Terminology**: Display stage titles inside the modal as `Stage X-Y: [Clean Stage Title]` (using `formatCleanStageTitle()` with no `"Level X:"` or `"8-1:"` prefixes and no `"& Boss Fight"` suffixes).
+3. **Unified Reusable Modal System (`StageOutcomeModal` in `src/App.tsx`) — Global `font-pixel` Consistency, Clean Headers, Zero Truncated Subtitles & Vertical Stacked Icon-Only Stats**:
+   - **Single Reusable Component & Global `font-pixel` Typography**: All stage completion and failure states (`'stage_cleared'`, `'game_over'`, and `'time_out'`) across all 10 worlds (50 stages, including normal stages and `WORLD_VICTORY` boss stages) must render through the single `StageOutcomeModal` component using `font-pixel` consistently across all headers, sub-headers, stats, alerts, and buttons.
+   - **Clean, Future-Proof Modal Headers & Zero Long Subtitle Clutter**:
+     - **Success Modal (Normal Stages — `isSuccess && !isWorldVictory`)**:
+       - **Header**: `STAGE X-Y CLEARED!` (prominent green arcade text in `font-pixel text-emerald-400`).
+       - **Stage Title Text**: Completely removed (no stage title line) so text truncation (`...`) never occurs on mobile screens.
+     - **Success Modal (Boss Stages — `isSuccess && isWorldVictory`)**:
+       - **Crown Icon + Main Header**: `<Crown />` icon badge above `BOSS DEFEATED!` (`font-pixel text-amber-400`).
+       - **Sub-header**: `WORLD X SAVED!` (`font-pixel text-white`) — future-proof with zero overflow from long boss or kingdom names.
+     - **Failed Modals (`GAME OVER` & `TIME UP!`)**:
+       - **Header**: `GAME OVER` (`font-pixel text-rose-500`) or `TIME UP!` (`font-pixel text-amber-400`).
+       - **Long Description Text**: Completely removed (never render `"Ranger Pip ran out of lives..."` or `"Time ran out in..."`).
    - **Consistent Mobile Landscape Sizing (`isMobileTouch` Prop)**:
-     - Because mobile landscape viewports have widths `>= 640px`, never rely on Tailwind `sm:` breakpoints alone for modal card sizing (which would enlarge the modal to desktop dimensions in mobile landscape).
-     - Instead, branch explicitly on `isMobileTouch` (`max-w-[300px] p-2.5 space-y-2` on mobile vs `max-w-md p-5 space-y-3.5` on desktop), use `overflow-hidden` on the modal overlay, render an inline `<Crown />` icon on mobile `isWorldVictory` modals, and apply `truncate` to stage/world titles and subtitles so every stage across Worlds 1–10 fits the mobile screen with zero scrolling and identical compact dimensions.
-     - Keep the center gameplay column's `maxWidth` (`isMobileTouch ? 'min(calc(100vw - 264px), calc((100dvh - 46px) * (896 / 608)))' : 'calc((100dvh - 52px) * (896 / 608))'`) consistent across `PLAYING`, `PAUSED`, and all outcome modal states so the canvas container never jumps in size when a modal opens.
-   - **Stats Summary Box (Strictly Score & Coins Only with Compact Number Formatting)**:
-     - The modal stats card must display **only 2 columns: `SCORE` and `COINS`**, formatted with `formatCompactNumber()` (`10.5K`, `1.2M`).
-     - Do **not** display `TIME LEFT` on success or `STATUS` (`0s LEFT` / `0 LIVES`) on failure/timeout inside the modal.
+     - Because mobile landscape viewports have widths `>= 640px`, never rely on Tailwind `sm:` breakpoints alone for modal card sizing.
+     - Branch explicitly on `isMobileTouch` (`max-w-[290px] p-3 space-y-2.5` on mobile vs `max-w-md p-5 space-y-4` on desktop) and use `overflow-hidden` on the modal overlay so every modal fits with zero scrolling.
+   - **Stats Summary Box (2-Column Side-by-Side Row with `<Trophy />` 🏆 & `<GoldCoinIcon />` 🪙 Stacked Above Compact Values)**:
+     - Remove the `SCORE` and `COINS` text labels completely.
+     - Keep the 2-column side-by-side grid (`grid grid-cols-2 gap-2 text-center font-pixel` with `border-l border-slate-800` divider), where the left column stacks `<Trophy />` above `formatCompactNumber(score)` and the right column stacks `<GoldCoinIcon />` above `formatCompactNumber(coins)`.
    - **Mandatory 2-Row Button Layout & Strict Rewarded Ad Validation across All Variants**:
      - **Row 1 (Primary, full-width)**:
        - `"Next Stage ➔"` (for `'stage_cleared'`)
        - `"▶ Watch Ad & Revive"` (for `'game_over'` and `'time_out'`, triggering the rewarded video ad flow to refill 3 lives, reset the stage countdown timer, and resume the stage **ONLY** upon verified ad display and completion).
-       - **Clicked / Loading State (`isWatchingAd === true`)**: Whenever `"▶ Watch Ad & Revive"` is clicked, the button must display **only a spinning loading icon (`<Loader2 className="w-4 h-4 animate-spin shrink-0" />`) and `"Loading..."`** (never show long descriptive text like `"Playing Rewarded Ad... (Refilling 3 Lives)"`).
+       - **Clicked / Loading State (`isWatchingAd === true`)**: Whenever `"▶ Watch Ad & Revive"` is clicked, the button must display **only a spinning loading icon (`<Loader2 className="w-3.5 h-3.5 animate-spin shrink-0" />`) and `"Loading..."`**.
        - **Strict `onAdRewarded` Validation & Zero Ad-Blocker / Offline / Unshown-Ad Exploit Rule (No Custom Web Popup Modal)**:
          - **NEVER** revive the player (`completeRewardRevive` / `revivePlayer(3)`) without an ad actually opening on screen and completing! If an ad fails to load, does not open on screen, the device is offline, an ad blocker / DNS blocker is active, or the player closes the ad before earning the reward, `rewarded` MUST be `false`.
          - Use the official Google AdMob Rewarded Test ID (`ca-app-pub-3940256099942544/5224354917`) on both Web (`WEB_ADMOB_TEST_REWARDED_UNIT_ID`) and Native (`EXPO_PUBLIC_ADMOB_ANDROID_REWARDED_ID`), just like the Banner Test ID. Do **not** render a custom simulated Web popup modal for rewarded ads.
@@ -311,7 +319,7 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
      - Immediately freeze the stage countdown timer (`engineRef.current.setPaused(true)`).
      - Automatically suspend/mute all active Web Audio sound effects and background chiptune music (`soundManager.pauseAllAudio()`).
      - Hide the main game header bar while showing the Pause modal.
-     - Render the active stage subtitle as `Stage {activeWorldNum}-{activeStageNum}: {formatCleanStageTitle(hud.levelName)}` and render only the clean navigation buttons (`Resume Game`, `Restart`, `Stage Select`, `Home Screen`) inside the Pause modal using `isMobileTouch`-aware compact sizing (`max-w-[280px] p-2.5 space-y-2` on mobile, `max-w-sm p-5 space-y-3.5` on desktop) and `overflow-hidden` (no Audio/Music/SFX buttons in the Pause modal and no vertical scrollbar on mobile).
+     - Render `GAME PAUSED` and `STAGE {activeWorldNum}-{activeStageNum}` alongside the clean navigation buttons (`Resume Game`, `Restart`, `Stage Select`, `Home Screen`) inside the Pause modal in `font-pixel` using `isMobileTouch`-aware compact sizing (`max-w-[280px] p-3 space-y-2.5` on mobile, `max-w-sm p-5 space-y-4` on desktop) and `overflow-hidden`.
      - Do **not** display the countdown timer inside the Pause modal.
    - When resuming (`gameState === 'PLAYING'`), unfreeze the engine (`setPaused(false)`) and resume audio (`soundManager.resumeAudio()`).
 

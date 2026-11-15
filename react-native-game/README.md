@@ -147,9 +147,10 @@ npx tsc --noEmit
 ## 6. Native Mobile Features & Performance Architecture
 
 - **Zero-Lag 60+ FPS Hardware-Accelerated Rendering**: `WebView` runs with `androidLayerType="hardware"`, `overScrollMode="never"`, `bounces={false}`, and `scrollEnabled={false}`, backed by the 60Hz fixed-timestep physics accumulator (`FIXED_DT = 1 / 60`) and offscreen `32×32` tile sprite cache.
-- **Clean, Modern Stage Select UI & Global `'Stage'` Terminology**:
+- **Clean, Modern Stage Select UI, Unified Modals & Global `'Stage'` Terminology**:
   - **Stage Select Cards (`LEVEL_SELECT`)**: Arranged in a compact, symmetrical 5-card row with `STAGE X-Y` + status icon (`✓` / `🔒`) in the card header, clean prefix-free stage title (`formatCleanStageTitle()`, removing redundant `1-1:`, `8-1:`, `Level X:` prefixes and `Boss Fight` labels), zero subtitle descriptions, and a vertical stacked icon-only stats column (`🏆` Top Score above `🪙` Coins) formatted with `formatCompactNumber()` (`10.5K`, `1.2M`).
-  - **100% `'Stage'` Terminology Standard**: Uses `'Stage'` consistently across the Top Gameplay HUD (`Stage X-Y`), Stage Select (`STAGE X-Y`), Pause Modal (`Stage X-Y: [Clean Title]`, `Stage Select`), Stage Outcome Modal (`Next Stage ➔`, `Stage Select`), and Settings.
+  - **Unified Stage Outcome Modals (`StageOutcomeModal`)**: Styled in 100% `font-pixel` with `STAGE X-Y CLEARED!` for normal stages (no truncated titles), `<Crown />` + `BOSS DEFEATED!` + `WORLD X SAVED!` for boss stages, and clean `GAME OVER` / `TIME UP!` headers (no long subtitle descriptions), alongside a 2-column side-by-side stats row (`🏆` stacked above Score on the left, `🪙` stacked above Coins on the right).
+  - **100% `'Stage'` Terminology Standard**: Uses `'Stage'` consistently across the Top Gameplay HUD (`Stage X-Y`), Stage Select (`STAGE X-Y`), Pause Modal (`STAGE X-Y`, `Stage Select`), Stage Outcome Modal (`Next Stage ➔`, `Stage Select`), and Settings.
   - **Top Safe-Area Inset & Icon-Only Header Badges**: Home and menu headers include top safe-area inset offsets so they never overlap camera cutouts or status bars, with icon-only `🏆` and `🪙` badges on the Home Screen.
 - **Dynamic Auto-Orientation (`expo-screen-orientation`)**: Locks to `PORTRAIT_UP` on menus and switches to `LANDSCAPE` with hidden system bars during active gameplay.
 - **Native Android Hardware & Gesture Back Button (`BackHandler`)**:
