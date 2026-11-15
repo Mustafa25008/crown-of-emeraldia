@@ -54,6 +54,23 @@ function GoldCoinIcon({ className = 'w-4 h-4' }: { className?: string }) {
 }
 
 /**
+ * Future-proof compact number formatter (e.g. 950 -> "950", 10500 -> "10.5K", 1200000 -> "1.2M")
+ * so score and coin badges never overflow on mobile viewports.
+ */
+function formatCompactNumber(value: number): string {
+  if (!Number.isFinite(value) || value < 0) return '0';
+  const n = Math.floor(value);
+  if (n < 1_000) return String(n);
+  if (n < 1_000_000) {
+    return `${(n / 1_000).toFixed(1).replace(/\.0$/, '')}K`;
+  }
+  if (n < 1_000_000_000) {
+    return `${(n / 1_000_000).toFixed(1).replace(/\.0$/, '')}M`;
+  }
+  return `${(n / 1_000_000_000).toFixed(1).replace(/\.0$/, '')}B`;
+}
+
+/**
  * Renders the exact active gameplay environment (Stage 1-1 'HILLS' parallax sky, pixel clouds,
  * stepped 16-bit hills, bushes, 32x32 ground tiles, floating [BRICK, QUESTION_COIN, BRICK] formation,
  * and 2x2 green warp pipe) using the identical renderer functions used during active gameplay.
@@ -1313,18 +1330,27 @@ export default function App() {
                     </div>
                   )}
 
-                  {/* Top Status Strip: 100% Transparent Header Bar with Glassmorphic Top Score (Top-Left) & Coins (Top-Right) */}
-                  <div className="relative z-10 flex items-center justify-between gap-2 px-3.5 pt-3.5 sm:px-6 sm:pt-5 bg-transparent border-0 shadow-none text-[9px] sm:text-[10px] font-pixel text-white shrink-0">
-                    <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-950/55 backdrop-blur-md px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-white/30 shadow-lg">
+                  {/* Top Status Strip: 100% Transparent Header Bar with Safe-Area Top Offset & Icon-Only Glassmorphic Score (Top-Left) & Coins (Top-Right) Badges */}
+                  <div
+                    style={{ paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 18px), 34px)' }}
+                    className="relative z-10 flex items-center justify-between gap-2 px-3.5 sm:px-6 sm:!pt-5 bg-transparent border-0 shadow-none text-[10px] sm:text-xs font-pixel text-white shrink-0"
+                  >
+                    <div
+                      aria-label={`Top Score: ${totalBestScore}`}
+                      className="flex items-center gap-1.5 sm:gap-2 bg-slate-950/55 backdrop-blur-md px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-white/30 shadow-lg max-w-[46vw] overflow-hidden"
+                    >
                       <Trophy className="w-3.5 h-3.5 sm:w-4 sm:h-4 text-amber-300 shrink-0" />
-                      <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                        TOP SCORE: {totalBestScore.toLocaleString()}
+                      <span className="truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                        {formatCompactNumber(totalBestScore)}
                       </span>
                     </div>
-                    <div className="flex items-center gap-1.5 sm:gap-2 bg-slate-950/55 backdrop-blur-md px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-white/30 shadow-lg">
+                    <div
+                      aria-label={`Coins: ${saveData.totalCoinsCollected}`}
+                      className="flex items-center gap-1.5 sm:gap-2 bg-slate-950/55 backdrop-blur-md px-2.5 py-1.5 sm:px-3.5 sm:py-2 rounded-xl border border-white/30 shadow-lg max-w-[46vw] overflow-hidden"
+                    >
                       <GoldCoinIcon className="w-3.5 h-3.5 sm:w-4 sm:h-4 shrink-0" />
-                      <span className="drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                        COINS: {saveData.totalCoinsCollected}
+                      <span className="truncate drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                        {formatCompactNumber(saveData.totalCoinsCollected)}
                       </span>
                     </div>
                   </div>
@@ -1403,8 +1429,11 @@ export default function App() {
               {/* 2. SELECT WORLD SCREEN (Transparent Top Header Bar, Repositioned Title, Horizontal Scrollbar-Free Carousel, Vertical Card Stack & 16-Bit Pixel Font) */}
               {gameState === 'WORLD_SELECT' && (
                 <div className="relative z-10 flex-1 min-h-0 w-full flex flex-col p-3.5 sm:p-5 overflow-hidden">
-                  {/* Top Navigation Header (Completely Transparent/Invisible Header Bar, Home Button Only) */}
-                  <div className="shrink-0 flex items-center justify-between gap-3 px-3.5 py-2 sm:px-4 sm:py-2.5 bg-transparent border-0 shadow-none">
+                  {/* Top Navigation Header (Completely Transparent/Invisible Header Bar with Safe-Area Top Offset, Home Button Only) */}
+                  <div
+                    style={{ paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 12px), 22px)' }}
+                    className="shrink-0 flex items-center justify-between gap-3 px-3.5 pb-2 sm:px-4 sm:!pt-2.5 sm:pb-2.5 bg-transparent border-0 shadow-none"
+                  >
                     <button
                       type="button"
                       onClick={() => {
@@ -1563,8 +1592,11 @@ export default function App() {
               {/* 3. LEVEL SELECTION SCREEN (Transparent Top Header Bar, Repositioned Title, Scrollbar-Free Grid & 16-Bit Pixel Font) */}
               {gameState === 'LEVEL_SELECT' && (
                 <div className="relative z-10 flex-1 min-h-0 w-full flex flex-col p-3.5 sm:p-5 overflow-hidden">
-                  {/* Top Navigation Header (Completely Transparent/Invisible Header Bar) */}
-                  <div className="shrink-0 flex items-center justify-between gap-3 px-3.5 py-2 sm:px-4 sm:py-2.5 bg-transparent border-0 shadow-none">
+                  {/* Top Navigation Header (Completely Transparent/Invisible Header Bar with Safe-Area Top Offset) */}
+                  <div
+                    style={{ paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 12px), 22px)' }}
+                    className="shrink-0 flex items-center justify-between gap-3 px-3.5 pb-2 sm:px-4 sm:!pt-2.5 sm:pb-2.5 bg-transparent border-0 shadow-none"
+                  >
                     <button
                       type="button"
                       onClick={() => {
@@ -1677,7 +1709,10 @@ export default function App() {
               {/* 4. SETTINGS HUB PAGE (Transparent Top Header Bar, Repositioned Title & Frosted Cards) */}
               {gameState === 'SETTINGS_HUB' && (
                 <div className="relative z-10 flex-1 min-h-0 w-full flex flex-col p-3.5 sm:p-5 overflow-hidden">
-                  <div className="shrink-0 flex items-center justify-between gap-3 px-3.5 py-2 sm:px-4 sm:py-2.5 bg-transparent border-0 shadow-none">
+                  <div
+                    style={{ paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 12px), 22px)' }}
+                    className="shrink-0 flex items-center justify-between gap-3 px-3.5 pb-2 sm:px-4 sm:!pt-2.5 sm:pb-2.5 bg-transparent border-0 shadow-none"
+                  >
                     <button
                       type="button"
                       onClick={() => {
@@ -1767,7 +1802,10 @@ export default function App() {
               {/* 5. HELP / CONTROLS & MECHANICS SCREEN (Transparent Top Header Bar) */}
               {gameState === 'CONTROLS' && (
                 <div className="relative z-10 flex-1 min-h-0 w-full flex flex-col p-3.5 sm:p-5 overflow-hidden">
-                  <div className="shrink-0 flex items-center justify-between gap-3 px-3.5 py-2 sm:px-4 sm:py-2.5 bg-transparent border-0 shadow-none">
+                  <div
+                    style={{ paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 12px), 22px)' }}
+                    className="shrink-0 flex items-center justify-between gap-3 px-3.5 pb-2 sm:px-4 sm:!pt-2.5 sm:pb-2.5 bg-transparent border-0 shadow-none"
+                  >
                     <button
                       type="button"
                       onClick={() => {
@@ -1894,7 +1932,10 @@ export default function App() {
               {/* 6. AUDIO & SAVE SETTINGS SCREEN (Transparent Top Header Bar) */}
               {gameState === 'SETTINGS' && (
                 <div className="relative z-10 flex-1 min-h-0 w-full flex flex-col p-3.5 sm:p-5 overflow-hidden">
-                  <div className="shrink-0 flex items-center justify-between gap-3 px-3.5 py-2 sm:px-4 sm:py-2.5 bg-transparent border-0 shadow-none">
+                  <div
+                    style={{ paddingTop: 'max(calc(env(safe-area-inset-top, 0px) + 12px), 22px)' }}
+                    className="shrink-0 flex items-center justify-between gap-3 px-3.5 pb-2 sm:px-4 sm:!pt-2.5 sm:pb-2.5 bg-transparent border-0 shadow-none"
+                  >
                     <button
                       type="button"
                       onClick={() => {
