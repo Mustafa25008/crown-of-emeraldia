@@ -121,7 +121,7 @@ export function buildWorld2Level5(): LevelDefinition {
     id: 10,
     worldId: 2,
     stageNumber: 5,
-    name: 'Level 5: Tidal Citadel & Boss Fight',
+    name: 'Tidal Citadel',
     subtitle: 'Lair of Abyssal Warlord Krakenos',
     theme: 'CASTLE',
     isUnderwater: false,

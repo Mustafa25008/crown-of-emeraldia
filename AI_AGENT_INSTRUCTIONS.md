@@ -255,7 +255,7 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
         - **Desktop / PC (`!isMobileTouch`)**: Rendered as multiple individual `<Heart />` icons (up to 5 hearts, plus `×{hud.lives}` if `> 5`).
         - **Mobile Landscape Only (`isMobileTouch`)**: Replaced with a single heart icon and count (`♥ x3`, i.e., `<Heart />` + `x{hud.lives}`).
    - **Right-Side Controls**:
-     1. **Level Indicator**: Formatted as `"World x-y"` (e.g., `World 1-1`) on both Desktop/PC and Mobile Landscape.
+     1. **Stage Indicator**: Formatted as `"Stage x-y"` (e.g., `Stage 1-1`) on both Desktop/PC and Mobile Landscape.
      2. **Action Button (Pause Only — No Audio Button in Header)**:
         - **Desktop / PC (`!isMobileTouch`)**: `<Pause />` icon + `"Pause"` label.
         - **Mobile Landscape Only (`isMobileTouch`)**: Minimal `<Pause />` icon button only (no `"Pause"` text).
@@ -265,37 +265,38 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
      - Do **not** include a standalone Restart button in the header (Restart is available inside the Pause menu modal).
      - Do **not** place the countdown timer on the right side of the header.
 
-2. **Level Countdown Timer & Reset Rules (`src/game/engine.ts`)**:
+2. **Stage Countdown Timer & Reset Rules (`src/game/engine.ts`)**:
    - **Balanced Stage Duration (`getInitialLevelTime()`)**:
      - Standard stages: `180` seconds (`3:00`).
      - Secret Room / Key / Underwater stages (`hiddenRoom`, `requiresKey`, or `isUnderwater`): `210` seconds (`3:30`).
      - Boss stages (`hasBoss`): `240` seconds (`4:00`).
-   - **Automatic Reset**: The timer automatically resets to full stage time whenever a level starts, restarts, progresses to a new level, respawns, or revives via rewarded ad.
+   - **Automatic Reset**: The timer automatically resets to full stage time whenever a stage starts, restarts, progresses to a new stage, respawns, or revives via rewarded ad.
    - **Timeout Handling**: If `timeRemaining` reaches `0` before reaching the goal, gameplay immediately stops (`isPaused = true`), stage music stops, the timeout chime plays, and `onTimeOut` transitions `gameState` to `'TIME_OUT'` (`"TIME UP!"` header).
 
-3. **Unified Reusable Modal System (`StageOutcomeModal` in `src/App.tsx`) — Consistent Mobile Fit Across All 50 Levels**:
-   - **Single Reusable Component**: All stage completion and failure states (`'stage_cleared'`, `'game_over'`, and `'time_out'`) across all 10 worlds (50 levels, including normal stages and `WORLD_VICTORY` boss stages) must render through the single `StageOutcomeModal` component.
+3. **Unified Reusable Modal System (`StageOutcomeModal` in `src/App.tsx`) — Consistent Mobile Fit & `'Stage'` Terminology Across All 50 Stages**:
+   - **Single Reusable Component**: All stage completion and failure states (`'stage_cleared'`, `'game_over'`, and `'time_out'`) across all 10 worlds (50 stages, including normal stages and `WORLD_VICTORY` boss stages) must render through the single `StageOutcomeModal` component.
+   - **Global `'Stage'` Terminology**: Display stage titles inside the modal as `Stage X-Y: [Clean Stage Title]` (using `formatCleanStageTitle()` with no `"Level X:"` or `"8-1:"` prefixes and no `"& Boss Fight"` suffixes).
    - **Consistent Mobile Landscape Sizing (`isMobileTouch` Prop)**:
      - Because mobile landscape viewports have widths `>= 640px`, never rely on Tailwind `sm:` breakpoints alone for modal card sizing (which would enlarge the modal to desktop dimensions in mobile landscape).
-     - Instead, branch explicitly on `isMobileTouch` (`max-w-[300px] p-2.5 space-y-2` on mobile vs `max-w-md p-5 space-y-3.5` on desktop), use `overflow-hidden` on the modal overlay, render an inline `<Crown />` icon on mobile `isWorldVictory` modals, and apply `truncate` to stage/world titles and subtitles so every level across Worlds 1–10 fits the mobile screen with zero scrolling and identical compact dimensions.
+     - Instead, branch explicitly on `isMobileTouch` (`max-w-[300px] p-2.5 space-y-2` on mobile vs `max-w-md p-5 space-y-3.5` on desktop), use `overflow-hidden` on the modal overlay, render an inline `<Crown />` icon on mobile `isWorldVictory` modals, and apply `truncate` to stage/world titles and subtitles so every stage across Worlds 1–10 fits the mobile screen with zero scrolling and identical compact dimensions.
      - Keep the center gameplay column's `maxWidth` (`isMobileTouch ? 'min(calc(100vw - 264px), calc((100dvh - 46px) * (896 / 608)))' : 'calc((100dvh - 52px) * (896 / 608))'`) consistent across `PLAYING`, `PAUSED`, and all outcome modal states so the canvas container never jumps in size when a modal opens.
-   - **Stats Summary Box (Strictly Score & Coins Only)**:
-     - The modal stats card must display **only 2 columns: `SCORE` and `COINS`**.
+   - **Stats Summary Box (Strictly Score & Coins Only with Compact Number Formatting)**:
+     - The modal stats card must display **only 2 columns: `SCORE` and `COINS`**, formatted with `formatCompactNumber()` (`10.5K`, `1.2M`).
      - Do **not** display `TIME LEFT` on success or `STATUS` (`0s LEFT` / `0 LIVES`) on failure/timeout inside the modal.
    - **Mandatory 2-Row Button Layout across All Variants**:
      - **Row 1 (Primary, full-width)**:
-       - `"Next Level ➔"` (for `'stage_cleared'`)
-       - `"▶ Watch Ad & Revive"` (for `'game_over'` and `'time_out'`, triggering the rewarded video ad flow to refill 3 lives, reset the level countdown timer, and resume the stage).
+       - `"Next Stage ➔"` (for `'stage_cleared'`)
+       - `"▶ Watch Ad & Revive"` (for `'game_over'` and `'time_out'`, triggering the rewarded video ad flow to refill 3 lives, reset the stage countdown timer, and resume the stage).
        - **Clicked / Loading State (`isWatchingAd === true`)**: Whenever `"▶ Watch Ad & Revive"` is clicked, the button must display **only a spinning loading icon (`<Loader2 className="w-4 h-4 animate-spin shrink-0" />`) and `"Loading..."`** (never show long descriptive text like `"Playing Rewarded Ad... (Refilling 3 Lives)"`). This hook (`handleWatchAdAndRevive`) is ready for plugging in real AdMob Rewarded Ad Unit IDs (`window.AdMob` / `window.AndroidAdMob`) while falling back cleanly during testing.
      - **Row 2 (Secondary Grid - 2 buttons side-by-side)**:
-       - `"Replay"` (for `'stage_cleared'`) or `"Try Again"` (for `'game_over'` / `'time_out'`) | `"Level Select"`.
+       - `"Replay"` (for `'stage_cleared'`) or `"Try Again"` (for `'game_over'` / `'time_out'`) | `"Stage Select"`.
 
 4. **Pause State Manager (`src/App.tsx` & `src/game/audio.ts`)**:
    - When the game is paused (`gameState === 'PAUSED'`):
-     - Immediately freeze the level countdown timer (`engineRef.current.setPaused(true)`).
+     - Immediately freeze the stage countdown timer (`engineRef.current.setPaused(true)`).
      - Automatically suspend/mute all active Web Audio sound effects and background chiptune music (`soundManager.pauseAllAudio()`).
      - Hide the main game header bar while showing the Pause modal.
-     - Render only the clean navigation buttons (`Resume Game`, `Restart`, `Level Select`, `Home Screen`) inside the Pause modal using `isMobileTouch`-aware compact sizing (`max-w-[280px] p-2.5 space-y-2` on mobile, `max-w-sm p-5 space-y-3.5` on desktop) and `overflow-hidden` (no Audio/Music/SFX buttons in the Pause modal and no vertical scrollbar on mobile).
+     - Render the active stage subtitle as `Stage {activeWorldNum}-{activeStageNum}: {formatCleanStageTitle(hud.levelName)}` and render only the clean navigation buttons (`Resume Game`, `Restart`, `Stage Select`, `Home Screen`) inside the Pause modal using `isMobileTouch`-aware compact sizing (`max-w-[280px] p-2.5 space-y-2` on mobile, `max-w-sm p-5 space-y-3.5` on desktop) and `overflow-hidden` (no Audio/Music/SFX buttons in the Pause modal and no vertical scrollbar on mobile).
      - Do **not** display the countdown timer inside the Pause modal.
    - When resuming (`gameState === 'PLAYING'`), unfreeze the engine (`setPaused(false)`) and resume audio (`soundManager.resumeAudio()`).
 
@@ -355,7 +356,20 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
        1. **Number**: `WORLD X` (`font-pixel text-sm sm:text-base` in the matching world theme color).
        2. **Name**: `[KINGDOM / REGION NAME]` (`font-pixel text-[10px] sm:text-xs text-white`).
        3. **Stages**: `X/5 STAGES` (`font-pixel text-[9px] sm:text-[10px]` in the matching world theme color).
-       4. **Score**: `SCORE: ...` (`font-pixel text-[9px] sm:text-[10px] text-amber-200`).
+       4. **Score**: `SCORE: {formatCompactNumber(worldScore)}` (`font-pixel text-[9px] sm:text-[10px] text-amber-200`).
+   - **Stage Select Screen (`LEVEL_SELECT`) — Clean Card Header vs. Title, Zero Subtitle Descriptions, Vertical Stacked Icon-Only Stats & Compact Symmetrical 5-Card Row**:
+     - **Card Header vs. Clean Stage Title (`formatCleanStageTitle`)**:
+       - Keep `STAGE X-Y` on the top-left of each card header alongside the green tick (`<CheckCircle2 />`) or lock (`<Lock />`) icon on the top-right.
+       - Inside the card body, strip all redundant stage/level prefixes (`1-1:`, `8-1:`, `10-5:`, `Level 1:`, `Stage 1-1:`, etc.) and any trailing `& Boss Fight` / `Boss Fight` labels (`formatCleanStageTitle(lvl.name).toUpperCase()`) so only the clean main title remains (e.g., `GREEN HILLS`, `HAUNTED WOODS`, `FINAL CASTLE`, `TIDAL CITADEL`).
+     - **Zero Subtitle Descriptions**:
+       - Never render `<p>{lvl.subtitle}</p>` (e.g., `Sunlit Meadows of Emeraldia`) inside Stage Select cards so cards stay clean, uncluttered, and uniform in height.
+     - **Vertical Stacked Icon-Only Stats (`<Trophy />` 🏆 & `<GoldCoinIcon />` 🪙 with `formatCompactNumber()`)**:
+       - Remove the `TOP:` and `COINS:` text labels from Stage Select cards.
+       - Instead, render clean icons (`<Trophy />` and `<GoldCoinIcon />`) matching the Home Screen in a **vertical Column / Stacked format** (`flex flex-col items-start gap-1.5`), with values formatted via `formatCompactNumber()` (`10.5K`, `1.2M`).
+     - **Compact Symmetrical 5-Card Row Proportions**:
+       - Render the 5 stage cards in a symmetrical single row (`my-auto w-full flex flex-row sm:grid sm:grid-cols-5 gap-2.5 sm:gap-3 items-stretch overflow-x-auto sm:overflow-visible no-scrollbar snap-x snap-mandatory touch-pan-x py-1`) with compact, balanced square/rounded card proportions (`snap-center shrink-0 w-[148px] sm:w-auto h-full flex flex-col justify-between rounded-2xl backdrop-blur-md border-2 p-3 sm:p-3.5`).
+   - **Global `'Stage'` Terminology Standard**:
+     - Across the entire game (menus, Top Gameplay HUD `Stage X-Y`, Pause Modal `Stage X-Y: [Clean Title]` & `Stage Select`, Stage Outcome Modal `Next Stage ➔` & `Stage Select`, and Settings `Reset unlocked stages and high scores in localStorage`), always use `'Stage'` rather than `'Level'`.
 
 7. **Boss Health Scaling Formula (`getBossMaxHpForWorld` in `src/game/engine.ts`)**:
    - All boss stages (`hasBoss: true`) must dynamically compute boss hit points (`hp` and `maxHp`) from the active `worldNumber` using the progressive stepping formula:
@@ -369,15 +383,15 @@ At the start of every level (`randomizeLevelPowerUpAndStarBlocks()` in `src/game
      - **Future Worlds > 10**: Continue adding `+2` hits after every 2 worlds (e.g., World 11–12 = `13` hits, World 13–14 = `15` hits).
    - Multi-phase boss escalation thresholds (`bossEnraged` at $\le 65\%$ HP, `bossOverdrive` at $\le 35\%$ HP) and the Boss Health Bar UI (`HP: hp/maxHp`) must always scale dynamically from `boss.maxHp`.
 
-8. **Adding Future Worlds & Levels**:
-   - Whenever new worlds (`world_11/`, `world_12/`, etc.) or levels are added in the future, strictly preserve all rules in this file:
-     - Modular `src/game/world_<W>/level_<L>.ts` structure, clean `name` (no `"World X:"` prefix), and registration in `src/game/levels.ts`.
+8. **Adding Future Worlds & Stages**:
+   - Whenever new worlds (`world_11/`, `world_12/`, etc.) or stages are added in the future, strictly preserve all rules in this file:
+     - Modular `src/game/world_<W>/level_<L>.ts` structure, clean `name` (no `"World X:"`, `"Level X:"`, `"X-Y:"`, or `"& Boss Fight"` clutter), and registration in `src/game/levels.ts`.
      - Ground alignment (`goalY: 6 * 32` for standard/boss flagpoles on row `16` ground; `goalY: 13 * 32` for locked doors with `requiresKey: true`).
      - Minimum 3–4 tiles vertical clearance under/above Question Blocks and power-up randomization rules.
      - Progressive Boss Health Scaling Formula (`getBossMaxHpForWorld(worldNumber)`).
      - Desktop/PC Keyboard-Only Rule (never show touch controllers on desktop) and Mobile Landscape Side-Margin Touch Controllers (Left two-part Virtual Joystick / Thumbstick and Right separated Action Buttons `🔥`, `↑` in a 100% transparent container placed in the left/right empty side margins outside the gameplay canvas).
-     - Mobile Dynamic Auto-Orientation (`lockMobileLandscape()` when entering any level, `unlockMobileToPortrait()` when exiting to menus/World Select, with zero forced rotation warning modals).
-     - Unified Locked Primary Screen Shell (`isPrimaryMenuScreen`: `TITLE_MENU`, `WORLD_SELECT`, `LEVEL_SELECT`, `SETTINGS_HUB`, `SETTINGS`, and `CONTROLS` sharing the exact same locked `100dvh` / `max-w-4xl` container and full-height persistent `<GameplayEnvironmentBackdrop />`), 100% transparent/invisible top header bar containers across all screens (with no score badge in the `WORLD_SELECT` header), matching dark glassmorphic header buttons (`bg-slate-950/55 hover:bg-slate-900/65 backdrop-blur-md border-2 border-white/25`), glassmorphic cards/buttons and Home Screen elements with repositioned section titles below the header, scrollbar-free horizontal World Select carousel (`no-scrollbar`) with vertical 4-item card stack (`Number -> Name -> Stages -> Score`) in `font-pixel`, exact Top Header Bar layout during active gameplay, button sound rules, 100% transparent footer legal links (`Privacy Policy` & `Terms of Service` positioned below `SETTINGS` and directly above the on-ground Banner Ad slot), On-Ground Bottom Banner Ad (`#mobile-home-ad-banner-slot` on Web and `<AdBannerSlot />` on Native — 100% transparent with zero border or text when unloaded/blocked, and refreshing on every screen change), Level Countdown Timer rules, Pause State Manager, and Unified `StageOutcomeModal` (`isMobileTouch` compact sizing across all levels, `SCORE` and `COINS` only, with `<Loader2 />` + `"Loading..."` when `"▶ Watch Ad & Revive"` is clicked).
+     - Mobile Dynamic Auto-Orientation (`lockMobileLandscape()` when entering any stage, `unlockMobileToPortrait()` when exiting to menus/World Select, with zero forced rotation warning modals).
+     - Unified Locked Primary Screen Shell (`isPrimaryMenuScreen`: `TITLE_MENU`, `WORLD_SELECT`, `LEVEL_SELECT`, `SETTINGS_HUB`, `SETTINGS`, and `CONTROLS` sharing the exact same locked `100dvh` / `max-w-4xl` container and full-height persistent `<GameplayEnvironmentBackdrop />`), 100% transparent/invisible top header bar containers across all screens (with no score badge in the `WORLD_SELECT` header), matching dark glassmorphic header buttons (`bg-slate-950/55 hover:bg-slate-900/65 backdrop-blur-md border-2 border-white/25`), glassmorphic cards/buttons and Home Screen elements with repositioned section titles below the header, scrollbar-free horizontal World Select carousel (`no-scrollbar`) with vertical 4-item card stack (`Number -> Name -> Stages -> Score`) in `font-pixel`, compact symmetrical 5-card Stage Select row (clean title via `formatCleanStageTitle()`, zero subtitle description, vertical stacked icon-only `<Trophy />` & `<GoldCoinIcon />` stats with `formatCompactNumber()`), global `'Stage'` terminology (`Next Stage ➔`, `Stage Select`, `Stage X-Y`), exact Top Header Bar layout during active gameplay, button sound rules, 100% transparent footer legal links (`Privacy Policy` & `Terms of Service` positioned below `SETTINGS` and directly above the on-ground Banner Ad slot), On-Ground Bottom Banner Ad (`#mobile-home-ad-banner-slot` on Web and `<AdBannerSlot />` on Native — 100% transparent with zero border or text when unloaded/blocked, and refreshing on every screen change), Stage Countdown Timer rules, Pause State Manager, and Unified `StageOutcomeModal` (`isMobileTouch` compact sizing across all stages, `SCORE` and `COINS` only, with `<Loader2 />` + `"Loading..."` when `"▶ Watch Ad & Revive"` is clicked).
 
 ---
 

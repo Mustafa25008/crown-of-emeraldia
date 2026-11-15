@@ -117,7 +117,7 @@ export function buildLevel5(): LevelDefinition {
 
   return {
     id: 5,
-    name: 'Level 5: Final Castle & Boss Fight',
+    name: 'Final Castle',
     subtitle: 'Throne of Ironclad King Dredge',
     theme: 'CASTLE',
     musicTrack: 'CASTLE_BOSS',

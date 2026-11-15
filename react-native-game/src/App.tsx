@@ -71,6 +71,17 @@ function formatCompactNumber(value: number): string {
 }
 
 /**
+ * Strips redundant stage/level prefixes ("Level 1: ", "Stage 1-1: ", "8-1: ", etc.)
+ * and trailing "& Boss Fight" / "Boss Fight" labels so only the clean stage title remains.
+ */
+function formatCleanStageTitle(rawName: string): string {
+  return String(rawName || '')
+    .replace(/^\s*(?:Level\s+\d+|Stage\s+\d+-\d+|\d+-\d+)\s*:\s*/i, '')
+    .replace(/\s*(?:&\s*)?Boss\s+Fight\s*$/i, '')
+    .trim();
+}
+
+/**
  * Renders the exact active gameplay environment (Stage 1-1 'HILLS' parallax sky, pixel clouds,
  * stepped 16-bit hills, bushes, 32x32 ground tiles, floating [BRICK, QUESTION_COIN, BRICK] formation,
  * and 2x2 green warp pipe) using the identical renderer functions used during active gameplay.
@@ -387,6 +398,10 @@ function StageOutcomeModal({
       ? 'WORLD 2: CORAL ABYSS CONQUERED!'
       : 'WORLD 1: EMERALDIA SAVED!';
 
+  const modalWorldNum = Math.floor((currentLevelId - 1) / 5) + 1;
+  const modalStageNum = ((currentLevelId - 1) % 5) + 1;
+  const formattedStageLabel = `Stage ${modalWorldNum}-${modalStageNum}: ${formatCleanStageTitle(levelName)}`;
+
   return (
     <div className="absolute inset-0 bg-slate-950/90 backdrop-blur-[2px] flex items-center justify-center p-2 overflow-hidden z-20">
       <div
@@ -420,7 +435,7 @@ function StageOutcomeModal({
                   isMobileTouch ? 'text-[11px] mt-0.5' : 'text-base mt-1'
                 }`}
               >
-                {isWorldVictory ? worldConqueredTitle : levelName}
+                {isWorldVictory ? worldConqueredTitle : formattedStageLabel}
               </h3>
             </>
           ) : isTimeOut ? (
@@ -437,7 +452,7 @@ function StageOutcomeModal({
                   isMobileTouch ? 'text-[10px] mt-0.5' : 'text-xs mt-1'
                 }`}
               >
-                Time ran out in {levelName}.
+                Time ran out in {formattedStageLabel}.
               </p>
             </>
           ) : (
@@ -454,7 +469,7 @@ function StageOutcomeModal({
                   isMobileTouch ? 'text-[10px] mt-0.5' : 'text-xs mt-1'
                 }`}
               >
-                Ranger Pip ran out of lives in {levelName}.
+                Ranger Pip ran out of lives in {formattedStageLabel}.
               </p>
             </>
           )}
@@ -472,7 +487,7 @@ function StageOutcomeModal({
                 isMobileTouch ? 'text-xs mt-0' : 'text-sm mt-0.5'
               }`}
             >
-              {score.toLocaleString()}
+              {formatCompactNumber(score)}
             </div>
           </div>
           <div className="px-1 border-l border-slate-800">
@@ -482,7 +497,7 @@ function StageOutcomeModal({
                 isMobileTouch ? 'text-xs mt-0' : 'text-sm mt-0.5'
               }`}
             >
-              {coins}
+              {formatCompactNumber(coins)}
             </div>
           </div>
         </div>
@@ -505,7 +520,7 @@ function StageOutcomeModal({
             }`}
           >
             {isSuccess ? (
-              <span>Next Level ➔</span>
+              <span>Next Stage ➔</span>
             ) : isWatchingAd ? (
               <>
                 <Loader2 className="w-4 h-4 animate-spin shrink-0" />
@@ -540,7 +555,7 @@ function StageOutcomeModal({
                   : 'min-h-[38px] py-2 px-3 text-xs'
               }`}
             >
-              Level Select
+              Stage Select
             </button>
           </div>
         </div>
@@ -1579,7 +1594,7 @@ export default function App() {
                               {worldCompletedCount}/{world.levels.length} STAGES
                             </div>
                             <div className="font-pixel text-[9px] sm:text-[10px] text-amber-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                              SCORE: {worldScore.toLocaleString()}
+                              SCORE: {formatCompactNumber(worldScore)}
                             </div>
                           </div>
                         </button>
@@ -1589,7 +1604,7 @@ export default function App() {
                 </div>
               )}
 
-              {/* 3. LEVEL SELECTION SCREEN (Transparent Top Header Bar, Repositioned Title, Scrollbar-Free Grid & 16-Bit Pixel Font) */}
+              {/* 3. STAGE SELECTION SCREEN (Transparent Top Header Bar, Repositioned Title, Compact Symmetrical 5-Card Row, Clean Title, No Subtitle, Vertical Stacked Icon-Only Stats) */}
               {gameState === 'LEVEL_SELECT' && (
                 <div className="relative z-10 flex-1 min-h-0 w-full flex flex-col p-3.5 sm:p-5 overflow-hidden">
                   {/* Top Navigation Header (Completely Transparent/Invisible Header Bar with Safe-Area Top Offset) */}
@@ -1630,7 +1645,7 @@ export default function App() {
                   </div>
 
                   <div className="flex-1 min-h-0 overflow-y-auto overflow-x-hidden no-scrollbar overscroll-contain mt-2 pr-0.5 flex flex-col">
-                    <div className="my-auto grid grid-cols-1 md:grid-cols-5 gap-3 sm:gap-3.5">
+                    <div className="my-auto w-full flex flex-row sm:grid sm:grid-cols-5 gap-2.5 sm:gap-3 items-stretch overflow-x-auto sm:overflow-visible no-scrollbar snap-x snap-mandatory touch-pan-x py-1">
                       {activeWorld.levels.map((lvl, idx) => {
                         const stageNum = lvl.stageNumber || idx + 1;
                         const worldNum = lvl.worldId || activeWorld.id;
@@ -1645,20 +1660,19 @@ export default function App() {
                           ? 'REPLAY'
                           : 'PLAY';
 
-                        const cleanTitle = lvl.name
-                          .replace(`Level ${lvl.id}: `, '')
-                          .replace(`Stage ${worldNum}-${stageNum}: `, '');
+                        const cleanTitle = formatCleanStageTitle(lvl.name).toUpperCase();
 
                         return (
                           <div
                             key={lvl.id}
-                            className={`flex flex-col justify-between rounded-2xl backdrop-blur-md border-2 p-3.5 sm:p-4 transition-all ${
+                            className={`snap-center shrink-0 w-[148px] sm:w-auto h-full flex flex-col justify-between rounded-2xl backdrop-blur-md border-2 p-3 sm:p-3.5 transition-all ${
                               isUnlocked
                                 ? 'bg-slate-950/55 border-white/25 hover:border-emerald-400/80 shadow-xl'
                                 : 'bg-slate-950/40 border-white/15 opacity-75 shadow-md'
                             }`}
                           >
-                            <div className="space-y-2.5">
+                            <div className="space-y-2">
+                              {/* Card Header: STAGE X-X + Green Tick / Lock Icon */}
                               <div className="flex items-center justify-between font-pixel text-[9px] sm:text-[10px] text-amber-300">
                                 <span>
                                   STAGE {worldNum}-{stageNum}
@@ -1670,16 +1684,25 @@ export default function App() {
                                 )}
                               </div>
 
-                              <h3 className="font-pixel text-[10px] sm:text-xs text-white leading-relaxed drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
-                                {cleanTitle.toUpperCase()}
-                              </h3>
-                              <p className="text-[11px] text-slate-200/90 leading-relaxed">{lvl.subtitle}</p>
+                              {/* Clean Stage Title (No Prefix, No Boss Fight Tag, No Subtitle Description) */}
+                              <div className="min-h-[2.25rem] flex items-center">
+                                <h3 className="font-pixel text-[10px] sm:text-[11px] text-white leading-snug line-clamp-2 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                                  {cleanTitle}
+                                </h3>
+                              </div>
                             </div>
 
-                            <div className="pt-3 mt-3 border-t border-white/20 space-y-2.5">
-                              <div className="font-pixel text-[8px] sm:text-[9px] text-amber-200 flex items-center justify-between gap-1">
-                                <span>TOP: {highScore.toLocaleString()}</span>
-                                <span>COINS: {bestCoins}</span>
+                            {/* Bottom Stats (Vertical Stacked Icon-Only Top Score & Coins) + Action Button */}
+                            <div className="pt-2.5 mt-2.5 border-t border-white/20 space-y-2.5">
+                              <div className="flex flex-col items-start gap-1.5 font-pixel text-[9px] sm:text-[10px]">
+                                <div className="flex items-center gap-1.5 text-amber-200 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                                  <Trophy className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                                  <span>{formatCompactNumber(highScore)}</span>
+                                </div>
+                                <div className="flex items-center gap-1.5 text-yellow-300 drop-shadow-[0_1px_2px_rgba(0,0,0,0.9)]">
+                                  <GoldCoinIcon className="w-3.5 h-3.5 shrink-0" />
+                                  <span>{formatCompactNumber(bestCoins)}</span>
+                                </div>
                               </div>
 
                               <button
@@ -1689,7 +1712,7 @@ export default function App() {
                                   soundManager.playCoin();
                                   startLevel(lvl.id, true);
                                 }}
-                                className={`w-full min-h-[40px] sm:min-h-[42px] py-2 px-3 rounded-xl font-pixel text-[10px] transition-all whitespace-nowrap shrink-0 ${
+                                className={`w-full min-h-[36px] sm:min-h-[38px] py-1.5 px-2.5 rounded-xl font-pixel text-[9px] sm:text-[10px] transition-all whitespace-nowrap shrink-0 ${
                                   isUnlocked
                                     ? 'bg-emerald-500 hover:bg-emerald-400 active:scale-[0.98] text-slate-950 border-b-4 border-emerald-700 cursor-pointer shadow-lg'
                                     : 'bg-slate-800/80 text-slate-400 border border-white/10 cursor-not-allowed'
@@ -2026,7 +2049,7 @@ export default function App() {
 
                       <div className="flex items-center justify-between p-3.5 sm:p-4 bg-slate-950/55 backdrop-blur-md rounded-2xl border-2 border-white/20 shadow-xl gap-3">
                         <div className="text-[11px] sm:text-xs text-slate-200/90">
-                          Reset unlocked levels and high scores in localStorage
+                          Reset unlocked stages and high scores in localStorage
                         </div>
                         <button
                           type="button"
@@ -2223,7 +2246,7 @@ export default function App() {
                         isMobileTouch ? 'text-[11px] sm:text-xs' : 'text-xs sm:text-sm'
                       } whitespace-nowrap`}
                     >
-                      World {activeWorldNum}-{activeStageNum}
+                      Stage {activeWorldNum}-{activeStageNum}
                     </div>
 
                     <div className="flex items-center shrink-0">
@@ -2326,7 +2349,7 @@ export default function App() {
                             isMobileTouch ? 'text-[10px] mt-0.5' : 'text-xs mt-1'
                           }`}
                         >
-                          {hud.levelName}
+                          Stage {activeWorldNum}-{activeStageNum}: {formatCleanStageTitle(hud.levelName)}
                         </p>
                       </div>
 
@@ -2370,7 +2393,7 @@ export default function App() {
                                 : 'min-h-[36px] py-1.5 px-3 text-xs'
                             }`}
                           >
-                            Level Select
+                            Stage Select
                           </button>
                         </div>
 

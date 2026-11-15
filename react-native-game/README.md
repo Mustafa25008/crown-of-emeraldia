@@ -146,11 +146,15 @@ npx tsc --noEmit
 ## 6. Native Mobile Features & Performance Architecture
 
 - **Zero-Lag 60+ FPS Hardware-Accelerated Rendering**: `WebView` runs with `androidLayerType="hardware"`, `overScrollMode="never"`, `bounces={false}`, and `scrollEnabled={false}`, backed by the 60Hz fixed-timestep physics accumulator (`FIXED_DT = 1 / 60`) and offscreen `32×32` tile sprite cache.
+- **Clean, Modern Stage Select UI & Global `'Stage'` Terminology**:
+  - **Stage Select Cards (`LEVEL_SELECT`)**: Arranged in a compact, symmetrical 5-card row with `STAGE X-Y` + status icon (`✓` / `🔒`) in the card header, clean prefix-free stage title (`formatCleanStageTitle()`, removing redundant `1-1:`, `8-1:`, `Level X:` prefixes and `Boss Fight` labels), zero subtitle descriptions, and a vertical stacked icon-only stats column (`🏆` Top Score above `🪙` Coins) formatted with `formatCompactNumber()` (`10.5K`, `1.2M`).
+  - **100% `'Stage'` Terminology Standard**: Uses `'Stage'` consistently across the Top Gameplay HUD (`Stage X-Y`), Stage Select (`STAGE X-Y`), Pause Modal (`Stage X-Y: [Clean Title]`, `Stage Select`), Stage Outcome Modal (`Next Stage ➔`, `Stage Select`), and Settings.
+  - **Top Safe-Area Inset & Icon-Only Header Badges**: Home and menu headers include top safe-area inset offsets so they never overlap camera cutouts or status bars, with icon-only `🏆` and `🪙` badges on the Home Screen.
 - **Dynamic Auto-Orientation (`expo-screen-orientation`)**: Locks to `PORTRAIT_UP` on menus and switches to `LANDSCAPE` with hidden system bars during active gameplay.
 - **Native Android Hardware & Gesture Back Button (`BackHandler`)**:
   - `PLAYING` $\rightarrow$ Pauses gameplay (`PAUSED`)
   - `PAUSED` $\rightarrow$ Resumes gameplay (`PLAYING`)
-  - Stage Outcome Modals $\rightarrow$ Returns to `LEVEL_SELECT` (Portrait)
+  - Stage Outcome Modals $\rightarrow$ Returns to `LEVEL_SELECT` (Stage Select, Portrait)
   - `SETTINGS` / `CONTROLS` $\rightarrow$ Returns to `SETTINGS_HUB`
   - `LEVEL_SELECT` $\rightarrow$ Returns to `WORLD_SELECT`
   - `WORLD_SELECT` / `SETTINGS_HUB` $\rightarrow$ Returns to `TITLE_MENU` (Home)
@@ -172,3 +176,4 @@ npm run build:android-apk
 cd react-native-game
 npm run build:android-aab
 ```
+
