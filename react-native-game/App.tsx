@@ -10,6 +10,7 @@ import React, {
 } from 'react';
 import {
   BackHandler,
+  Image,
   Platform,
   StyleSheet,
   ToastAndroid,
@@ -37,6 +38,9 @@ import { INLINE_GAME_HTML } from './src/bundle/inlineGameHtml';
 import { GameState } from './src/game/types';
 
 const NATIVE_STORAGE_KEY = 'crown_of_emeraldia_save_v2';
+
+// Keep native Android 12+ androidx.core:core-splashscreen visible only during Cold Start resource loading
+SplashScreen.preventAutoHideAsync().catch(() => {});
 
 interface RootErrorBoundaryState {
   hasError: boolean;
@@ -86,6 +90,11 @@ function GameHostApp() {
     );
   }, [currentGameState]);
 
+  const dismissColdStartSplashImmediately = useCallback(() => {
+    setIsEngineReady(true);
+    SplashScreen.hideAsync().catch(() => {});
+  }, []);
+
   const applyNativeOrientation = useCallback(async (mode: 'landscape' | 'portrait') => {
     if (Platform.OS === 'web') return;
     if (currentOrientationRef.current === mode) return;
@@ -105,39 +114,27 @@ function GameHostApp() {
     }
   }, []);
 
-  // Ensure native splash screen hides reliably even if WebView onLoadEnd is delayed
-  useEffect(() => {
-    const fallbackTimer = setTimeout(() => {
-      setIsEngineReady(true);
-      SplashScreen.hideAsync().catch(() => {});
-    }, 600);
-    return () => clearTimeout(fallbackTimer);
-  }, []);
-
-  // Hide native splash screen and initialize AdMob SDK only after the WebView engine is ready
+  // Dismiss native splash screen immediately once engine is ready (No Fake Delay) and initialize AdMob SDK
   useEffect(() => {
     if (!isEngineReady) return;
 
     SplashScreen.hideAsync().catch(() => {});
 
     let cancelled = false;
-    const adInitTimer = setTimeout(() => {
-      initializeAdMobSdk()
-        .then((ready) => {
-          if (!cancelled && ready) {
-            setIsAdMobReady(true);
-          }
-        })
-        .catch(() => {});
-    }, 500);
+    initializeAdMobSdk()
+      .then((ready) => {
+        if (!cancelled && ready) {
+          setIsAdMobReady(true);
+        }
+      })
+      .catch(() => {});
 
     return () => {
       cancelled = true;
-      clearTimeout(adInitTimer);
     };
   }, [isEngineReady]);
 
-  // Hydrate saved progress from React Native AsyncStorage when WebView loads
+  // Hydrate saved progress from React Native AsyncStorage when WebView loads and immediately dismiss splash
   const handleWebViewLoadEnd = useCallback(async () => {
     try {
       const savedJson = await AsyncStorage.getItem(NATIVE_STORAGE_KEY);
@@ -147,9 +144,9 @@ function GameHostApp() {
     } catch {
       // Ignore storage read errors
     } finally {
-      setIsEngineReady(true);
+      dismissColdStartSplashImmediately();
     }
-  }, []);
+  }, [dismissColdStartSplashImmediately]);
 
   // Native Android Hardware & Gesture Back Button Handler
   useEffect(() => {
@@ -186,7 +183,7 @@ function GameHostApp() {
 
       switch (msg.type) {
         case 'ENGINE_READY': {
-          setIsEngineReady(true);
+          dismissColdStartSplashImmediately();
           break;
         }
         case 'SET_ORIENTATION': {
@@ -236,15 +233,11 @@ function GameHostApp() {
         }
       }
     },
-    [applyNativeOrientation]
+    [applyNativeOrientation, dismissColdStartSplashImmediately]
   );
 
-  const handleRootLayout = useCallback(() => {
-    SplashScreen.hideAsync().catch(() => {});
-  }, []);
-
   return (
-    <View style={styles.container} onLayout={handleRootLayout}>
+    <View style={styles.container}>
       <StatusBar style="light" hidden />
       <WebView
         ref={webViewRef}
@@ -267,10 +260,20 @@ function GameHostApp() {
         showsVerticalScrollIndicator={false}
         injectedJavaScriptBeforeContentLoaded={INJECTED_NATIVE_BRIDGE_JS}
         onLoadEnd={handleWebViewLoadEnd}
-        onError={() => setIsEngineReady(true)}
-        onHttpError={() => setIsEngineReady(true)}
+        onError={dismissColdStartSplashImmediately}
+        onHttpError={dismissColdStartSplashImmediately}
         onMessage={handleWebViewMessage}
       />
+      {/* Cold-Start Splash Screen: Shown only while game resources initialize, dismissed immediately on ENGINE_READY */}
+      {!isEngineReady && (
+        <View style={styles.coldStartSplashOverlay} pointerEvents="none">
+          <Image
+            source={require('./assets/splash-icon.png')}
+            style={styles.coldStartSplashImage}
+            resizeMode="cover"
+          />
+        </View>
+      )}
       {/* Native Google AdMob Banner Ad overlaid transparently on the bottom environment ground (refreshes on every screen change; hidden during gameplay) */}
       <AdBannerSlot
         visible={isMenuScreen && isEngineReady}
@@ -292,14 +295,25 @@ export default function App() {
 const styles = StyleSheet.create({
   container: {
     flex: 1,
-    backgroundColor: '#020617',
+    backgroundColor: '#48C3F7',
   },
   webviewContainer: {
     flex: 1,
-    backgroundColor: '#020617',
+    backgroundColor: '#48C3F7',
   },
   webview: {
     flex: 1,
-    backgroundColor: '#020617',
+    backgroundColor: '#48C3F7',
+  },
+  coldStartSplashOverlay: {
+    ...StyleSheet.absoluteFillObject,
+    backgroundColor: '#48C3F7',
+    alignItems: 'center',
+    justifyContent: 'center',
+    zIndex: 50,
+  },
+  coldStartSplashImage: {
+    width: '100%',
+    height: '100%',
   },
 });

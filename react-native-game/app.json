@@ -7,11 +7,11 @@
     "icon": "./assets/icon.png",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
-    "backgroundColor": "#020617",
+    "backgroundColor": "#48C3F7",
     "splash": {
       "image": "./assets/splash-icon.png",
-      "resizeMode": "contain",
-      "backgroundColor": "#020617"
+      "resizeMode": "cover",
+      "backgroundColor": "#48C3F7"
     },
     "ios": {
       "supportsTablet": true,
@@ -31,7 +31,7 @@
       "softwareKeyboardLayoutMode": "pan",
       "adaptiveIcon": {
         "foregroundImage": "./assets/adaptive-icon.png",
-        "backgroundColor": "#0f2942"
+        "backgroundColor": "#48C3F7"
       },
       "permissions": [
         "INTERNET",
@@ -53,9 +53,9 @@
       [
         "expo-splash-screen",
         {
-          "backgroundColor": "#020617",
-          "image": "./assets/icon.png",
-          "imageWidth": 200
+          "backgroundColor": "#48C3F7",
+          "image": "./assets/splash-icon.png",
+          "imageWidth": 288
         }
       ],
       [

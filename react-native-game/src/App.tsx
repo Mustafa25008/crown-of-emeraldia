@@ -110,6 +110,16 @@ function GameplayEnvironmentBackdrop() {
       drawTile(ctx, TileType.PIPE_TOP_R, (pipeLeftCol + 1) * TILE, (groundTopRow - 2) * TILE, 'HILLS', 0);
       drawTile(ctx, TileType.PIPE_BODY_L, pipeLeftCol * TILE, (groundTopRow - 1) * TILE, 'HILLS', 0);
       drawTile(ctx, TileType.PIPE_BODY_R, (pipeLeftCol + 1) * TILE, (groundTopRow - 1) * TILE, 'HILLS', 0);
+
+      // Immediately dismiss Cold-Start Splash Screen on first painted frame (Zero Fake Delay)
+      const coldSplash = document.getElementById('cold-start-splash');
+      if (coldSplash) {
+        coldSplash.remove();
+      }
+      const anyWin = window as unknown as {
+        ReactNativeWebView?: { postMessage?: (msg: string) => void };
+      };
+      anyWin.ReactNativeWebView?.postMessage?.(JSON.stringify({ type: 'ENGINE_READY' }));
     };
 
     renderBackdrop();
@@ -1281,7 +1291,7 @@ export default function App() {
         {isPrimaryMenuScreen && (
           <div className="w-full h-full max-w-4xl sm:max-h-[640px] flex flex-col justify-between overflow-hidden">
             <div
-              className={`relative flex-1 min-h-0 w-full overflow-hidden flex flex-col justify-between bg-slate-950 ${
+              className={`relative flex-1 min-h-0 w-full overflow-hidden flex flex-col justify-between bg-[#48C3F7] ${
                 isNativeExpoApp ? '' : 'rounded-2xl border-2 border-slate-800 shadow-2xl'
               }`}
             >
