@@ -1599,18 +1599,21 @@ export default function App() {
         isScrollLockedScreen ? 'h-[100dvh] max-h-[100dvh] overflow-hidden' : 'min-h-screen'
       } relative flex flex-col bg-slate-950 text-slate-100 select-none`}
     >
-      {/* Web Cold-Launch & Home Re-Entry Splash Screen Overlay */}
+      {/* Web Cold-Launch & Home Re-Entry Splash Screen Overlay (Portrait /splash.png on Mobile, Widescreen /splash-landscape.png on Desktop/Landscape) */}
       {isWebSplashVisible && !isNativeExpoApp && (
         <div
           role="status"
           aria-label="Loading Crown of Emeraldia"
-          className="fixed inset-0 z-[9999] bg-[#48C3F7] flex items-center justify-center overflow-hidden select-none"
+          className="web-responsive-splash-container fixed inset-0 z-[9999] flex items-center justify-center overflow-hidden select-none"
         >
-          <img
-            src="/splash.png"
-            alt="Crown of Emeraldia Loading Splash"
-            className="w-full h-full max-w-[520px] object-contain pixelated pointer-events-none select-none"
-          />
+          <picture className="w-full h-full flex items-center justify-center pointer-events-none select-none">
+            <source media="(orientation: landscape) and (min-width: 640px)" srcSet="/splash-landscape.png" />
+            <img
+              src="/splash.png"
+              alt="Crown of Emeraldia Loading Splash"
+              className="web-responsive-splash-img pixelated pointer-events-none select-none"
+            />
+          </picture>
         </div>
       )}
 

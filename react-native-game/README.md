@@ -161,7 +161,7 @@ npx tsc --noEmit
   - `LEVEL_SELECT` $\rightarrow$ Returns to `WORLD_SELECT`
   - `WORLD_SELECT` / `SETTINGS_HUB` $\rightarrow$ Returns to `TITLE_MENU` (Home)
   - `TITLE_MENU` $\rightarrow$ Prompts `"Press Back again to exit Crown of Emeraldia"` toast before exiting (`BackHandler.exitApp()`), and flags `shouldRunSplashOnResumeRef` so re-opening the app runs the full Splash Screen sequence.
-- **Cold-Launch & Home Re-Entry Splash Sequence (`assets/splash-icon.png`)**: Runs the pixel-art Sky & Crown Splash Screen sequence (`1100ms`) on cold launch and whenever the app is re-opened on the Home Screen (`TITLE_MENU`) after minimizing to the background or exiting via the Back button, while keeping active gameplay stages uninterrupted on quick task switches.
+- **Cold-Launch & Home Re-Entry Splash Sequence (`assets/splash-icon.png`)**: Keeps the native mobile vertical 9:16 portrait Pixel-Art Sky & Crown Splash Screen (`1080×1920`, `resizeMode="cover"`) on mobile devices (while Web/Desktop landscape browsers use `/splash-landscape.png`), running for `1100ms` on cold launch and whenever the app is re-opened on the Home Screen (`TITLE_MENU`) after minimizing to the background or exiting via the Back button.
 - **100% Safe, Non-Destructive `AsyncStorage` & `localStorage` Save Persistence (`mergeSaveProgress`)**: Automatically syncs, merges, and hydrates both `crown_of_emeraldia_save_v1` and `crown_of_emeraldia_save_v2` via `@react-native-async-storage/async-storage` using monotonic `Math.max` merging (`mergeSaveProgress`), guaranteeing that unlocked stages, coins, and high scores are never reset or overwritten during startup, splash sequences, or app resume.
 
 ---
