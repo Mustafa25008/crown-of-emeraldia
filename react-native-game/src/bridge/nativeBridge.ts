@@ -5,6 +5,7 @@ export type NativeBridgeInboundMessage =
       type: 'GAME_STATE_CHANGE';
       gameState: GameState;
       isAtRoot: boolean;
+      refreshKey?: string;
     }
   | {
       type: 'SET_ORIENTATION';

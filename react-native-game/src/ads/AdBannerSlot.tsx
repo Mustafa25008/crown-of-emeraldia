@@ -1,11 +1,12 @@
-import React, { Component, ErrorInfo, ReactNode, useState } from 'react';
-import { Platform, StyleSheet, Text, View } from 'react-native';
+import React, { Component, ErrorInfo, ReactNode, useEffect, useState } from 'react';
+import { Platform, StyleSheet, View } from 'react-native';
 import { getBannerAdUnitId } from './admobConfig';
 import { getSafeAdMobModule } from './rewardedAdManager';
 
 export interface AdBannerSlotProps {
   visible: boolean;
   sdkReady?: boolean;
+  refreshKey?: string | number;
 }
 
 interface AdErrorBoundaryProps {
@@ -28,7 +29,7 @@ class AdErrorBoundary extends Component<AdErrorBoundaryProps, AdErrorBoundarySta
   }
 
   componentDidCatch(_error: Error, _info: ErrorInfo): void {
-    // Gracefully fall back to test slot UI without crashing the app
+    // Gracefully hide banner slot without crashing the app
   }
 
   render() {
@@ -40,30 +41,27 @@ class AdErrorBoundary extends Component<AdErrorBoundaryProps, AdErrorBoundarySta
 }
 
 /**
- * Renders the Google AdMob Banner Ad inside the designated bottom mobile menu slot.
- * Strictly hidden during active gameplay (visible === false), guarded by AdErrorBoundary,
- * and only mounts the native BannerAd once the AdMob SDK is initialized.
+ * Renders the Google AdMob Banner Ad directly over the bottom pixel-art ground of the full-screen game environment.
+ * - Positioned absolutely at the bottom (`backgroundColor: 'transparent'`, `borderWidth: 0`) so the game environment
+ *   screen extends 100% to the very bottom of the device.
+ * - Refreshes automatically on every screen change via `refreshKey`.
+ * - If the ad does not load, is blocked by an ad blocker, or is offline, renders `null` (no text, no border,
+ *   100% transparent) so the complete game environment screen remains cleanly visible.
  */
-export function AdBannerSlot({ visible, sdkReady = false }: AdBannerSlotProps) {
+export function AdBannerSlot({ visible, sdkReady = false, refreshKey = 'initial' }: AdBannerSlotProps) {
   const [adLoadFailed, setAdLoadFailed] = useState<boolean>(false);
 
-  if (!visible || Platform.OS === 'web') {
+  useEffect(() => {
+    setAdLoadFailed(false);
+  }, [refreshKey]);
+
+  if (!visible || Platform.OS === 'web' || !sdkReady) {
     return null;
   }
 
-  const fallbackElement = (
-    <View style={styles.fallbackSlot}>
-      <Text style={styles.fallbackText}>AD BANNER SPACE (TEST MODE)</Text>
-    </View>
-  );
-
-  const adMob = sdkReady ? getSafeAdMobModule() : null;
+  const adMob = getSafeAdMobModule();
   if (!adMob || adLoadFailed) {
-    return (
-      <View style={styles.slotContainer} accessibilityLabel="Mobile Menu Ad Banner Slot">
-        {fallbackElement}
-      </View>
-    );
+    return null;
   }
 
   const { BannerAd, BannerAdSize } = adMob;
@@ -71,9 +69,14 @@ export function AdBannerSlot({ visible, sdkReady = false }: AdBannerSlotProps) {
   const bannerSize = BannerAdSize.ANCHORED_ADAPTIVE_BANNER || BannerAdSize.BANNER;
 
   return (
-    <View style={styles.slotContainer} accessibilityLabel="Mobile Menu Ad Banner Slot">
-      <AdErrorBoundary fallback={fallbackElement}>
+    <View
+      style={styles.slotContainer}
+      pointerEvents="box-none"
+      accessibilityLabel="Mobile Menu Ad Banner Slot"
+    >
+      <AdErrorBoundary key={`boundary-${refreshKey}`} fallback={null}>
         <BannerAd
+          key={`banner-${refreshKey}`}
           unitId={unitId}
           size={bannerSize}
           requestOptions={{
@@ -93,25 +96,17 @@ export function AdBannerSlot({ visible, sdkReady = false }: AdBannerSlotProps) {
 
 const styles = StyleSheet.create({
   slotContainer: {
+    position: 'absolute',
+    left: 0,
+    right: 0,
+    bottom: 0,
     width: '100%',
     minHeight: 52,
-    backgroundColor: '#020617',
-    borderTopWidth: 1,
-    borderTopColor: 'rgba(255, 255, 255, 0.14)',
+    backgroundColor: 'transparent',
+    borderTopWidth: 0,
     alignItems: 'center',
     justifyContent: 'center',
     overflow: 'hidden',
-  },
-  fallbackSlot: {
-    height: 50,
-    width: '100%',
-    alignItems: 'center',
-    justifyContent: 'center',
-  },
-  fallbackText: {
-    color: '#94a3b8',
-    fontSize: 10,
-    fontWeight: '700',
-    letterSpacing: 1.5,
+    zIndex: 20,
   },
 });

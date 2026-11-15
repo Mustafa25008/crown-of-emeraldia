@@ -70,6 +70,7 @@ function GameHostApp() {
   const [isAtRoot, setIsAtRoot] = useState<boolean>(true);
   const [isEngineReady, setIsEngineReady] = useState<boolean>(false);
   const [isAdMobReady, setIsAdMobReady] = useState<boolean>(false);
+  const [bannerRefreshKey, setBannerRefreshKey] = useState<string>('TITLE_MENU-0');
   const lastRootBackPressRef = useRef<number>(0);
   const currentOrientationRef = useRef<'landscape' | 'portrait'>('portrait');
 
@@ -195,6 +196,7 @@ function GameHostApp() {
         case 'GAME_STATE_CHANGE': {
           setCurrentGameState(msg.gameState);
           setIsAtRoot(msg.isAtRoot);
+          setBannerRefreshKey(msg.refreshKey || `${msg.gameState}-${Date.now()}`);
           const isGameplay =
             msg.gameState === 'PLAYING' ||
             msg.gameState === 'PAUSED' ||
@@ -269,8 +271,12 @@ function GameHostApp() {
         onHttpError={() => setIsEngineReady(true)}
         onMessage={handleWebViewMessage}
       />
-      {/* Native Google AdMob Banner Ad in the bottom menu slot (strictly hidden during active gameplay) */}
-      <AdBannerSlot visible={isMenuScreen && isEngineReady} sdkReady={isAdMobReady} />
+      {/* Native Google AdMob Banner Ad overlaid transparently on the bottom environment ground (refreshes on every screen change; hidden during gameplay) */}
+      <AdBannerSlot
+        visible={isMenuScreen && isEngineReady}
+        sdkReady={isAdMobReady}
+        refreshKey={bannerRefreshKey}
+      />
     </View>
   );
 }

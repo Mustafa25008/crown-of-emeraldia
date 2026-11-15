@@ -140,6 +140,144 @@ function GameplayEnvironmentBackdrop() {
   );
 }
 
+const WEB_ADMOB_TEST_BANNER_UNIT_ID = 'ca-app-pub-3940256099942544/9214589741';
+
+const WEB_TEST_AD_CREATIVES = [
+  {
+    headline: 'Google AdMob Test Banner',
+    subtext: 'Nice job! Displaying a 320x50 test ad.',
+    cta: 'INSTALL',
+    accent: '#10b981',
+  },
+  {
+    headline: 'Emeraldia Arcade Network',
+    subtext: 'Official AdMob Test Mode • 320x50',
+    cta: 'OPEN',
+    accent: '#f59e0b',
+  },
+  {
+    headline: 'Google Play Test Campaign',
+    subtext: 'Refreshed on screen navigation • 60FPS',
+    cta: 'PLAY',
+    accent: '#38bdf8',
+  },
+  {
+    headline: 'AdMob SDK 58 Verified',
+    subtext: 'Unit: 3940256099942544/9214589741',
+    cta: 'VIEW',
+    accent: '#a855f7',
+  },
+] as const;
+
+/**
+ * Renders the Web Test Banner Ad using the official Google AdMob Test Unit ID.
+ * - Automatically refreshes whenever `refreshKey` (screen state / world selection) changes.
+ * - If offline, dismissed, or blocked by an ad blocker, renders `null` (100% transparent, no border, no text)
+ *   so the full gameplay environment ground remains completely visible underneath.
+ */
+function WebAdMobTestBanner({ refreshKey }: { refreshKey: string }) {
+  const [adVisible, setAdVisible] = useState<boolean>(true);
+  const [isRefreshing, setIsRefreshing] = useState<boolean>(false);
+  const [creativeIdx, setCreativeIdx] = useState<number>(0);
+
+  useEffect(() => {
+    if (typeof window === 'undefined' || typeof document === 'undefined') return;
+    if (typeof navigator !== 'undefined' && navigator.onLine === false) {
+      setAdVisible(false);
+      return;
+    }
+
+    // Standard ad-blocker detection: if an ad blocker hides/collapses the bait node, keep slot 100% transparent
+    let isBlocked = false;
+    try {
+      const bait = document.createElement('div');
+      bait.className = 'adsbox pub_300x250 pub_300x250m pub_728x90 text-ad textAd text_ad text_ads';
+      bait.style.position = 'absolute';
+      bait.style.left = '-9999px';
+      bait.style.top = '-9999px';
+      bait.style.width = '1px';
+      bait.style.height = '1px';
+      document.body.appendChild(bait);
+      const computed = window.getComputedStyle(bait);
+      if (
+        bait.offsetParent === null ||
+        bait.offsetHeight === 0 ||
+        bait.clientHeight === 0 ||
+        computed.display === 'none' ||
+        computed.visibility === 'hidden'
+      ) {
+        isBlocked = true;
+      }
+      document.body.removeChild(bait);
+    } catch {
+      isBlocked = false;
+    }
+
+    if (isBlocked) {
+      setAdVisible(false);
+      return;
+    }
+
+    setIsRefreshing(true);
+    setAdVisible(true);
+    const timer = window.setTimeout(() => {
+      setCreativeIdx((prev) => (prev + 1) % WEB_TEST_AD_CREATIVES.length);
+      setIsRefreshing(false);
+    }, 120);
+
+    return () => window.clearTimeout(timer);
+  }, [refreshKey]);
+
+  useEffect(() => {
+    const handleOnline = () => setAdVisible(true);
+    const handleOffline = () => setAdVisible(false);
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
+  }, []);
+
+  if (!adVisible || isRefreshing) {
+    return null;
+  }
+
+  const creative = WEB_TEST_AD_CREATIVES[creativeIdx];
+
+  return (
+    <div
+      key={refreshKey}
+      data-ad-client="ca-pub-3940256099942544"
+      data-ad-slot="9214589741"
+      data-ad-unit={WEB_ADMOB_TEST_BANNER_UNIT_ID}
+      className="w-[320px] max-w-[96vw] h-[50px] bg-slate-950/90 backdrop-blur-md border border-white/15 rounded-lg px-2.5 flex items-center justify-between gap-2 shadow-lg select-none"
+    >
+      <div className="flex items-center gap-2 min-w-0">
+        <span className="px-1 py-0.5 rounded bg-amber-400 text-slate-950 font-bold text-[9px] leading-none shrink-0">
+          Ad
+        </span>
+        <div className="min-w-0 leading-tight">
+          <div className="text-[11px] font-semibold text-white truncate">
+            {creative.headline}
+          </div>
+          <div className="text-[9px] text-slate-300 truncate">
+            {creative.subtext}
+          </div>
+        </div>
+      </div>
+      <div className="flex items-center gap-1.5 shrink-0">
+        <span
+          style={{ backgroundColor: creative.accent }}
+          className="px-2 py-1 rounded text-[9px] font-bold text-slate-950 tracking-wide"
+        >
+          {creative.cta}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 type OutcomeModalVariant = 'stage_cleared' | 'game_over' | 'time_out';
 
 interface StageOutcomeModalProps {
@@ -679,12 +817,17 @@ export default function App() {
     };
   }, [handleAndroidBackPress]);
 
-  // Sync browser/WebView history state so Android swipe-back / browser back navigates screens instead of closing the app
+  const [bannerRefreshCount, setBannerRefreshCount] = useState<number>(0);
+
+  // Sync browser/WebView history state and trigger Banner Ad refresh on every screen/world navigation change
   useEffect(() => {
+    setBannerRefreshCount((prev) => prev + 1);
+    const refreshKey = `${gameState}-${selectedWorldId}-${Date.now()}`;
     postToReactNative({
       type: 'GAME_STATE_CHANGE',
       gameState,
       isAtRoot: gameState === 'TITLE_MENU',
+      refreshKey,
     });
     if (gameState !== 'TITLE_MENU') {
       try {
@@ -693,7 +836,7 @@ export default function App() {
         // Ignore in restricted sandbox contexts
       }
     }
-  }, [gameState, postToReactNative]);
+  }, [gameState, selectedWorldId, postToReactNative]);
 
   useEffect(() => {
     const onPopState = () => {
@@ -1128,15 +1271,21 @@ export default function App() {
           isGameplayView
             ? 'p-1 sm:px-3 sm:py-2 overflow-hidden'
             : isPrimaryMenuScreen
-            ? 'p-2 sm:px-4 sm:py-6 overflow-hidden'
+            ? isNativeExpoApp
+              ? 'p-0 overflow-hidden'
+              : 'p-2 sm:px-4 sm:py-6 overflow-hidden'
             : 'p-2 sm:px-4 sm:py-6 landscape:p-1 overflow-x-hidden'
         } max-w-full`}
       >
         {/* UNIFIED LOCKED PRIMARY SCREEN SHELL (Home, World Select, Level Select, Settings Hub, Audio Settings, and Controls & Help) */}
         {isPrimaryMenuScreen && (
           <div className="w-full h-full max-w-4xl sm:max-h-[640px] flex flex-col justify-between overflow-hidden">
-            <div className="relative flex-1 min-h-0 w-full rounded-2xl overflow-hidden border-2 border-slate-800 shadow-2xl flex flex-col justify-between bg-slate-950">
-              {/* Persistent Exact Gameplay Environment Background (Locked to viewport container: sky on top, ground floor sealed at the very bottom) */}
+            <div
+              className={`relative flex-1 min-h-0 w-full overflow-hidden flex flex-col justify-between bg-slate-950 ${
+                isNativeExpoApp ? '' : 'rounded-2xl border-2 border-slate-800 shadow-2xl'
+              }`}
+            >
+              {/* Persistent Exact Gameplay Environment Background (Full-height: sky on top, ground floor extending all the way to the very bottom behind the Banner Ad) */}
               <GameplayEnvironmentBackdrop />
 
               {/* 1. CLASSIC GAME HOME SCREEN (Sleek Glassmorphic Styling & Consistent 16-Bit Pixel Font) */}
@@ -1171,7 +1320,7 @@ export default function App() {
                   </div>
 
                   {/* Center Compact Glassmorphic Signboard Title Card & Balanced Action Buttons */}
-                  <div className="relative z-10 flex-1 min-h-0 flex flex-col items-center justify-center px-4 py-2 sm:py-6 text-center">
+                  <div className="relative z-10 flex-1 min-h-0 flex flex-col items-center justify-center px-4 py-1 sm:py-4 text-center">
                     <div className="bg-slate-950/55 backdrop-blur-md border-2 border-amber-400/85 rounded-2xl px-4 py-2.5 sm:px-8 sm:py-4 md:px-10 md:py-5 shadow-2xl max-w-[300px] sm:max-w-lg w-full">
                       <h1 className="font-pixel text-lg sm:text-2xl md:text-3xl text-white leading-snug tracking-tight drop-shadow-[0_2px_4px_rgba(0,0,0,0.9)]">
                         CROWN OF EMERALDIA
@@ -1179,7 +1328,7 @@ export default function App() {
                     </div>
 
                     {/* Balanced Vertical Action Stack: Glassmorphic Play, Store, and Settings */}
-                    <div className="mt-5 sm:mt-7 flex flex-col items-center gap-2.5 sm:gap-3 w-full max-w-[210px] sm:max-w-[260px]">
+                    <div className="mt-4 sm:mt-6 flex flex-col items-center gap-2.5 sm:gap-3 w-full max-w-[210px] sm:max-w-[260px]">
                       <button
                         type="button"
                         onClick={() => {
@@ -1215,10 +1364,10 @@ export default function App() {
                     </div>
                   </div>
 
-                  {/* Bottom Ground Footer Legal Links (100% Transparent Background, Right Above Reserved Banner Ad Space) */}
+                  {/* Legal Links: 100% Transparent Background, Positioned Below SETTINGS Button & Directly Above the On-Ground Banner Ad Slot */}
                   <div
                     style={{ backgroundColor: 'transparent', border: 'none', boxShadow: 'none' }}
-                    className="relative z-10 h-12 sm:h-16 bg-transparent border-0 shadow-none flex items-center justify-center gap-3 sm:gap-4 px-4 text-[8px] sm:text-[10px] font-pixel shrink-0"
+                    className="relative z-10 h-7 sm:h-8 bg-transparent border-0 shadow-none flex items-center justify-center gap-3 sm:gap-4 px-4 text-[8px] sm:text-[10px] font-pixel shrink-0"
                   >
                     <a
                       href="#"
@@ -1840,22 +1989,23 @@ export default function App() {
                   </div>
                 </div>
               )}
-            </div>
 
-            {/* Mobile Portrait Bottom Ad Banner Placeholder (Rendered on Web; in Native Expo, the real AdMob BannerAd component mounts in this bottom slot) */}
-            {!isNativeExpoApp && (
+              {/* On-Ground Bottom Banner Ad Slot (Inside the GameplayEnvironmentBackdrop on the pixel-art land; 100% transparent & borderless when ad does not load or is blocked) */}
               <div
                 id="mobile-home-ad-banner-slot"
                 data-ad-slot="HOME_BOTTOM_BANNER"
                 role="region"
-                aria-label="Advertisement Banner Placeholder"
-                className="mt-1.5 w-full h-[50px] sm:hidden shrink-0 rounded-xl bg-slate-950/55 backdrop-blur-md border border-white/20 flex items-center justify-center px-3 shadow-inner"
+                aria-label="Advertisement Banner Slot"
+                style={{ backgroundColor: 'transparent', border: 'none', boxShadow: 'none' }}
+                className="relative z-10 w-full h-[52px] shrink-0 bg-transparent border-0 shadow-none flex items-center justify-center px-2"
               >
-                <span className="font-pixel text-[8px] tracking-widest uppercase text-slate-300/90 select-none">
-                  Ad Banner Space
-                </span>
+                {!isNativeExpoApp && (
+                  <WebAdMobTestBanner
+                    refreshKey={`${gameState}-${selectedWorldId}-${bannerRefreshCount}`}
+                  />
+                )}
               </div>
-            )}
+            </div>
           </div>
         )}
 
